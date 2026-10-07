@@ -1,0 +1,11 @@
+# dossiers de travail = worktrees des branches de données (voir README)
+/fichiers/
+/externe/
+/cleaned/
+/dataset/
+/presentation/
+__pycache__/
+*.pyc
+~$*
+.DS_Store
+Thumbs.db
