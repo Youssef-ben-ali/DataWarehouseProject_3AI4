@@ -1,0 +1,2 @@
+# données : conserver les fichiers à l'octet près (pas de conversion de fins de ligne)
+* -text
