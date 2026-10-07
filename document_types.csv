@@ -1,0 +1,16 @@
+Id,Name,LabelEn,Flow,StockFactor,IsSellType,IsPayable,IsRefund,IsDeliverable,IsEnabled
+1,FactureClient,Customer invoice,SALE,-1,true,true,false,false,true
+2,Proforma,Quote (pro forma),QUOTE,0,true,false,false,false,true
+3,CommandeClient,Customer order,ORDER,0,true,false,false,false,true
+4,AvoirClient,Customer credit note,SALE_RETURN,1,true,true,true,false,true
+5,BonLivraison,Delivery note,SALE,-1,true,false,false,true,true
+6,VenteComptoir,Counter sale,SALE,-1,true,true,false,false,true
+7,BonRetour,Customer return note,SALE_RETURN,1,true,false,true,true,true
+8,FactureDeRoute,Route invoice,SALE,0,true,false,false,false,true
+20,FactureFour,Supplier invoice,PURCHASE,1,false,true,false,false,true
+21,CommandFour,Supplier order,ORDER,0,false,false,false,false,true
+22,BonReception,Goods receipt,PURCHASE,1,false,false,false,true,true
+23,AvoirFour,Supplier credit note,PURCHASE_RETURN,-1,false,true,true,false,true
+24,RetourFour,Return to supplier,PURCHASE_RETURN,-1,false,false,true,true,true
+40,BonSortie,Stock exit note,STOCK_OUT,-1,true,false,false,false,true
+41,BonEntree,Stock entry note,STOCK_IN,1,false,false,false,false,true

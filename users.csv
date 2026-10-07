@@ -1,0 +1,8 @@
+Id,FullName,UserName,IsStaff,Tresorerie_defaultCaisseId
+1,Administrateur,admin,false,5F5022C6-5883-45D4-BC76-D2B158F859AD
+2,Système,_!_!_!_system_!_!_!_,false,
+3,Marie,Marie,true,5E63F93B-BBB5-4BA3-9F96-9B29D29854D7
+4,Hugo,Hugo,true,43FD7699-DF3D-4C90-BEDA-DD26E8E821E3
+5,Celine,Celine,true,47B99B68-B1AD-4671-8B9B-FEA29EC68403
+6,melanie,melanie,true,BD92D636-F45D-471D-87FF-4852A2880606
+7,kady,kady,true,86219038-B0D4-4B27-8E46-8BB24C9A4D09

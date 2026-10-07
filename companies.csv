@@ -1,0 +1,157 @@
+Id,Code,Name,CompanyType,CompanyType_Id,IsGuest,IsRemoved
+2,WALKIN,CLIENT COMPTOIR (ANONYME),CUSTOMER,1,false,false
+4,FOU0001,PharmaNova France,SUPPLIER,2,false,false
+5,FOU0002,HexaMed Distribution,SUPPLIER,2,false,false
+6,FOU0003,Laboratoires Valoria,SUPPLIER,2,false,false
+7,CL0001,Santélys Pharma,CUSTOMER,1,false,false
+9,FOU0004,Laboratoires Médélys,SUPPLIER,2,false,false
+10,CL0003,Novapharm France,CUSTOMER,1,false,false
+11,FOU0005,Biocentra France,SUPPLIER,2,false,false
+12,CL0004,Médicor Laboratories,CUSTOMER,1,false,false
+13,FOU0006,Pharmadis France,SUPPLIER,2,false,false
+14,CL0005,Laboratoires Thérapéa,CUSTOMER,1,false,false
+15,CL0006,Sanovia Pharma,CUSTOMER,1,false,false
+16,FOU0007,Pharmelia France,SUPPLIER,2,false,false
+17,FOU0008,Medivance Laboratories,SUPPLIER,2,false,false
+18,FOU0009,Biopharmex France,SUPPLIER,2,false,false
+19,CL0007,Laboratoires Élyséa,CUSTOMER,1,false,false
+20,FOU0010,Hexapharm France,SUPPLIER,2,false,false
+21,FOU0011,Médinova Distribution,SUPPLIER,2,false,false
+22,FOU0012,Laboratoires Arvenis,SUPPLIER,2,false,false
+24,FOU0013,Pharmaceutica France,SUPPLIER,2,false,false
+25,FOU0014,Santéa Pharma,SUPPLIER,2,false,false
+26,FOU0015,Laboratoires Célestis,SUPPLIER,2,false,false
+27,FOU0016,Medoria France,SUPPLIER,2,false,false
+28,FOU0017,Pharmadis Santé,SUPPLIER,2,false,false
+29,FOU0018,Biovalis Laboratories,SUPPLIER,2,false,false
+30,FOU0019,Laboratoires Orphéa,SUPPLIER,2,false,false
+31,FOU0020,Médicentra France,SUPPLIER,2,false,false
+32,FOU0021,Novelia Pharma,SUPPLIER,2,false,false
+34,FOU0022,Laboratoires Althéa,SUPPLIER,2,false,false
+35,CL0010,Pharmavance France,CUSTOMER,1,false,false
+36,FOU0023,Biomedica France,SUPPLIER,2,false,false
+37,FOU0024,Laboratoires Séréna,SUPPLIER,2,false,false
+38,FOU0025,Médipharm Distribution,SUPPLIER,2,false,false
+39,FOU0026,Thérapolis France,SUPPLIER,2,false,false
+40,CL0011,Laboratoires Aurélis,CUSTOMER,1,false,false
+42,CL0013,Pharmélys France,CUSTOMER,1,false,false
+43,FOU0027,Biocare France,SUPPLIER,2,false,false
+45,FOU0028,Laboratoires Évolys,SUPPLIER,2,false,false
+46,FOU0029,Medinex Pharma,SUPPLIER,2,false,false
+48,FOU0030,Santévia Laboratories,SUPPLIER,2,false,false
+49,FOU0031,Pharmanova Distribution,SUPPLIER,2,false,false
+50,FOU0032,Laboratoires Opalys,SUPPLIER,2,false,false
+51,FOU0033,Médicelis France,SUPPLIER,2,false,false
+52,CL0016,Biothélys Pharma,CUSTOMER,1,false,false
+53,FOU0034,Laboratoires Calypsa,SUPPLIER,2,false,false
+54,FOU0035,Pharméa France,SUPPLIER,2,false,false
+55,FOU0036,Médinova Laboratories,SUPPLIER,2,false,false
+58,CL0019,Laboratoires Virelia,CUSTOMER,1,false,false
+59,FOU0037,Biovance Pharma,SUPPLIER,2,false,false
+61,FOU0039,Santélys Distribution,SUPPLIER,2,false,false
+62,CL0020,Pharmelia Laboratories,CUSTOMER,1,false,false
+63,CL0021,Laboratoires Lyséa,CUSTOMER,1,false,false
+64,FOU0040,Medivora France,SUPPLIER,2,false,false
+65,FOU0041,Pharmadis Médical,SUPPLIER,2,false,false
+66,CL0022,Laboratoires Nérélia,CUSTOMER,1,false,false
+67,CL0023,Biocéane Pharma,CUSTOMER,1,false,false
+68,FOU0042,Médévia France,SUPPLIER,2,false,false
+69,FOU0043,Laboratoires Alvéria,SUPPLIER,2,false,false
+70,FOU0044,Pharmélys Distribution,SUPPLIER,2,false,false
+72,CL0024,Santéora Pharma,CUSTOMER,1,false,false
+73,CL0025,Laboratoires Évadis,CUSTOMER,1,false,false
+74,FOU0046,Medoria Laboratories,SUPPLIER,2,false,false
+75,CL0026,Biopharma Hexagone,CUSTOMER,1,false,false
+76,FOU0047,Pharmavance Distribution,SUPPLIER,2,false,false
+77,FOU0048,Laboratoires Solévia,SUPPLIER,2,false,false
+79,FOU0050,Médinova Santé,SUPPLIER,2,false,false
+80,FOU0051,Théraphia France,SUPPLIER,2,false,false
+81,FOU0052,Laboratoires Valéa,SUPPLIER,2,false,false
+82,FOU0053,Biocentra Distribution,SUPPLIER,2,false,false
+83,FOU0054,Pharmélia Médical,SUPPLIER,2,false,false
+84,FOU0055,Laboratoires Novélys,SUPPLIER,2,false,false
+85,FOU0056,Santévia Pharma,SUPPLIER,2,false,false
+86,FOU0057,Médélys Laboratories,SUPPLIER,2,false,false
+87,CL0027,Pharmadis Hexagone,CUSTOMER,1,false,false
+88,FOU0058,Laboratoires Élyséa Pharma,SUPPLIER,2,false,false
+89,FOU0059,Biovalis France,SUPPLIER,2,false,false
+90,CL0028,Médicor Distribution,CUSTOMER,1,false,false
+92,FOU0060,Pharmanova Laboratories,SUPPLIER,2,false,false
+93,FOU0061,Laboratoires Aurévia,SUPPLIER,2,false,false
+94,CL0030,Santéa Distribution,CUSTOMER,1,false,false
+95,CL0031,Medivance France,CUSTOMER,1,false,false
+96,FOU0062,Laboratoires Céléria,SUPPLIER,2,false,false
+97,CL0032,Biothéa Pharma,CUSTOMER,1,false,false
+98,FOU0063,Pharmélys Laboratories,SUPPLIER,2,false,false
+99,FOU0064,Médicentra Distribution,SUPPLIER,2,false,false
+102,FOU0066,Laboratoires Sérélys,SUPPLIER,2,false,false
+103,FOU0067,Novapharm Distribution,SUPPLIER,2,false,false
+104,CL0034,Santéora Laboratories,CUSTOMER,1,false,false
+105,FOU0068,Médoria Pharma,SUPPLIER,2,false,false
+106,FOU0069,Laboratoires Arvélia,SUPPLIER,2,false,false
+107,FOU0070,Biomedica Distribution,SUPPLIER,2,true,false
+108,CL0035,Pharmavance Laboratories,CUSTOMER,1,false,false
+110,FOU0072,Laboratoires Orélia,SUPPLIER,2,true,false
+111,FOU0073,Médipharm France,SUPPLIER,2,false,false
+112,FOU0074,Thérapolis Pharma,SUPPLIER,2,false,false
+113,CL0036,Laboratoires Valesca,CUSTOMER,1,true,false
+114,CL0037,Biocare Laboratories,CUSTOMER,1,false,false
+115,FOU0075,Pharmelia Distribution,SUPPLIER,2,false,false
+116,CL0038,Médinex France,CUSTOMER,1,false,false
+117,CL0039,Laboratoires Évolia,CUSTOMER,1,true,false
+118,FOU0076,Santélys Laboratories,SUPPLIER,2,false,false
+120,FOU0077,Pharmadis Pharma,SUPPLIER,2,true,false
+121,FOU0078,Laboratoires Novera,SUPPLIER,2,false,false
+122,CL0041,Biovance Distribution,CUSTOMER,1,false,false
+123,FOU0079,Médévia Pharma,SUPPLIER,2,true,false
+125,FOU0081,Laboratoires Althéa France,SUPPLIER,2,false,false
+126,FOU0082,Pharmanova Santé,SUPPLIER,2,false,false
+128,FOU0083,Médicelis Laboratories,SUPPLIER,2,false,false
+129,CL0043,Laboratoires Soléna,CUSTOMER,1,false,false
+133,CL0046,Biopharmex Distribution,CUSTOMER,1,false,false
+135,CL0047,Santévia France,CUSTOMER,1,true,false
+137,FOU0087,Pharmélys Pharma,SUPPLIER,2,false,false
+139,CL0049,Laboratoires Calypsa France,CUSTOMER,1,true,false
+140,CL0050,Médoria Distribution,CUSTOMER,1,true,false
+141,FOU0088,Biocéane Laboratories,SUPPLIER,2,false,false
+142,FOU0089,Pharmavance Santé,SUPPLIER,2,false,false
+143,FOU0090,Laboratoires Virelia Pharma,SUPPLIER,2,false,false
+144,CL0051,Médinova Distribution,CUSTOMER,1,true,false
+145,CL0052,Santéora France,CUSTOMER,1,true,false
+146,FOU0091,Laboratoires Lyséa Pharma,SUPPLIER,2,true,false
+149,FOU0092,Biovalis Laboratories,SUPPLIER,2,false,false
+150,CL0055,Pharmelia Santé,CUSTOMER,1,false,false
+152,FOU0093,Médicor Pharma,SUPPLIER,2,false,false
+154,FOU0094,Laboratoires Évadia,SUPPLIER,2,false,false
+155,CL0058,Novelia Laboratories,CUSTOMER,1,false,false
+157,CL0060,Santéa Pharma France,CUSTOMER,1,true,false
+158,FOU0095,Pharmadis Laboratories,SUPPLIER,2,false,false
+160,FOU0096,Laboratoires Nérélis,SUPPLIER,2,false,false
+161,FOU0097,Biothélys France,SUPPLIER,2,true,false
+162,CL0062,Médicentra Pharma,CUSTOMER,1,true,false
+163,CL0063,Pharmanova Distribution France,CUSTOMER,1,true,false
+164,CL0064,Laboratoires Aurélis Pharma,CUSTOMER,1,true,false
+165,CL0065,Santélys Pharma France,CUSTOMER,1,false,false
+166,CL0066,Medivance Distribution,CUSTOMER,1,true,false
+168,FOU0098,Laboratoires Valoria Pharma,SUPPLIER,2,false,false
+169,CL0068,Biocentra France,CUSTOMER,1,false,false
+170,CL0069,Pharmélys Santé,CUSTOMER,1,false,false
+171,CL0070,Laboratoires Célestia,CUSTOMER,1,false,false
+172,CL0071,Médipharm Laboratories,CUSTOMER,1,false,false
+173,CL0072,Novapharm France,CUSTOMER,1,false,false
+174,CL0073,Santévia Distribution,CUSTOMER,1,false,false
+181,CL0077,Laboratoires Arvenis Pharma,CUSTOMER,1,false,false
+184,CL0079,Biomedica Pharma,CUSTOMER,1,false,false
+186,FOU0104,Pharmavance France,SUPPLIER,2,true,false
+188,FOU0105,Médoria Laboratories,SUPPLIER,2,true,false
+190,CL0081,Laboratoires Élysia,CUSTOMER,1,false,false
+191,FOU0107,Biovance Pharma France,SUPPLIER,2,false,false
+192,FOU0108,Pharmelia Laboratories,SUPPLIER,2,true,false
+196,CL0084,Santéora Pharma France,CUSTOMER,1,false,false
+199,CL0085,Médinex Distribution,CUSTOMER,1,true,false
+201,CL0087,Laboratoires Séréna Pharma,CUSTOMER,1,true,false
+205,CL0089,Biocare France,CUSTOMER,1,false,false
+206,FOU0114,Pharmadis Santé France,SUPPLIER,2,false,false
+207,CL0090,Laboratoires Orphéa Pharma,CUSTOMER,1,false,false
+208,CL0091,Médicelis France,CUSTOMER,1,false,false
+219,CL0098,Novelia Pharma France,CUSTOMER,1,false,false
