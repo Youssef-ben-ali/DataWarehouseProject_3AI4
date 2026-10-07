@@ -1,0 +1,13 @@
+Geo_Id,Ville,Departement,Region,Pays
+1,BORDEAUX,33,Nouvelle-Aquitaine,FRANCE
+2,GRENOBLE,38,Auvergne-Rhône-Alpes,FRANCE
+3,LILLE,59,Hauts-de-France,FRANCE
+4,LYON,69,Auvergne-Rhône-Alpes,FRANCE
+5,MARSEILLE,13,Provence-Alpes-Côte d'Azur,FRANCE
+6,NANTES,44,Pays de la Loire,FRANCE
+7,NICE,06,Provence-Alpes-Côte d'Azur,FRANCE
+8,PARIS,75,Île-de-France,FRANCE
+9,RENNES,35,Bretagne,FRANCE
+10,STRASBOURG,67,Grand Est,FRANCE
+11,TOULOUSE,31,Occitanie,FRANCE
+-1,NON RENSEIGNE,,NON RENSEIGNE,

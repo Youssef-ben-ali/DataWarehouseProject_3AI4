@@ -1,0 +1,8 @@
+PaymentMode_Id,PaymentModeName,EstEspeces,EstDiffere
+1,Chèque,false,false
+4,Inconnu (4),false,false
+5,Carte bancaire,false,false
+7,Crédit (paiement différé),false,true
+11,Espèces,true,false
+21,Jetons,false,false
+-1,Non renseigné,false,false
