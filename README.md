@@ -53,7 +53,7 @@ Les scripts n'utilisent que la bibliothèque standard Python (sauf `build_presen
 ## Récupérer une seule branche
 
 ```bash
-git clone --branch dataset-dwh --single-branch <URL_DU_DEPOT> dwh
+git clone --branch dataset-dwh --single-branch https://github.com/Youssef-ben-ali/DataWarehouseProject_3AI4.git dwh
 ```
 
 ## Reproduire tout le pipeline
@@ -62,7 +62,7 @@ Les scripts attendent les dossiers `fichiers/`, `externe/`, `cleaned/`, `dataset
 On les obtient en montant les branches comme dossiers avec `git worktree` :
 
 ```bash
-git clone <URL_DU_DEPOT> health-retailers && cd health-retailers
+git clone https://github.com/Youssef-ben-ali/DataWarehouseProject_3AI4.git health-retailers && cd health-retailers
 git worktree add fichiers data-original
 git worktree add externe  data-external
 git worktree add cleaned  data-cleaned
