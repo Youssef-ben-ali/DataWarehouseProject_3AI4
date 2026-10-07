@@ -1,0 +1,8 @@
+﻿Id;FullName;UserName;Password;PasswordSalt;Tresorerie
+1;Administrateur;admin;O+4FlsDBG5Cve3GtE2eplg8Vj2s=;ft+/EBkx70cPd+D60m3FuZlyg1Atq81NdzY4jGLY1K/7ui+3ZknFio4XNa+7b396igLjg1WrrDE=;"{""defaultCaisseId"":""5f5022c6-5883-45d4-bc76-d2b158f859ad""}"
+2;Système;_!_!_!_system_!_!_!_;aNP74ugoQZLKRurduX0nh0at8v0=;dHxaCol8ZVL2JRUGIqhhrg8MAs6P3jRUlk6ruqWb0xtr1HbXeIRZgWROIY8tsCHuviKvXcYDPVg=;
+3;Marie;Marie;0W/ttE4p8m4hPTtBQUkJ/yltR8w=;hyAb9syyIkMN8vg0kgvTBmBZdzL+47t5LjCv9v3jWu9rDssV1eMj4EaIIqDXDZyqQyHlDdbG1h8=;"{""defaultBankAccountId"":""41e8adb8-c852-40de-9f3f-2f731487b435"",""defaultCaisseId"":""5e63f93b-bbb5-4ba3-9f96-9b29d29854d7""}"
+4;Hugo;Hugo;BTPJKz8ni2qR00rPf8PoADC+8+4=;4eDTkIRRtRV36VMI97TQcR9BgEX09z1B22Hm6OJ8hMAkmWHxDslKFGKaRbZIo5mvs71RyVceag4=;"{""defaultBankAccountId"":""dede29c6-7d96-40fc-8721-26b0d2a3a218"",""defaultCaisseId"":""43fd7699-df3d-4c90-beda-dd26e8e821e3""}"
+5;Celine;Celine;pT5+o4WPKE1n4PkBbHPUbImIgcA=;Ijkgz2ScYdC92OCSv9nn8E943KZDpswFdBtn0wlZ3g9GKkPKrgjUqAhnU73ieKdyI1YyNRSt2b8=;"{""defaultBankAccountId"":""c3800085-785e-4756-8d3a-6f35d74ca26b"",""defaultCaisseId"":""47b99b68-b1ad-4671-8b9b-fea29ec68403""}"
+6;melanie;melanie;LQgkQOrdnxScEWSLfmW2uUyjm0E=;KZMqMbaEGoBR83bLsyUVaeMt+3OGVG3Maz37IpgHNONcHReTCLOSnn5mpT6Onaml/pBbOABmUXs=;"{""defaultBankAccountId"":""239b395c-ecdd-4cdb-80d0-1af0b9263e2d"",""defaultCaisseId"":""bd92d636-f45d-471d-87ff-4852a2880606""}"
+7;kady;kady;1z0QvPGFjoJtuslhbzWfvai5te4=;NDq8IS4un0g8IT9PE3YGVqa+IIK5koQdv1I5CxcggX8HfrOAyqwqrIrpECop+01Vv5KInC6GUBY=;"{""defaultCaisseId"":""86219038-b0d4-4b27-8e46-8bb24c9a4d09""}"

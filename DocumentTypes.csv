@@ -1,0 +1,16 @@
+﻿Id;Name;Label;IconPath;ReportBottomMsg;CanValidate;CanCreate;StockFactor;AllowBlackStock;IsSellType;IsPayable;PayementPriority;StockPriority;IsRefund;IsDeliverable;IsEnabled
+1;FactureClient;Core.DocumentType.Facture;../Content/Images/client/facture.png;Pénalités de retard (taux annuel) : 8.00 %.... Pour personnaliser ce message cliquez sur Fichier->Personnalisation Facture.;VRAI;VRAI;-1;FAUX;VRAI;VRAI;30;20;FAUX;FAUX;VRAI
+2;Proforma;Core.DocumentType.Proforma;../Content/Images/client/devi.png;;FAUX;VRAI;0;VRAI;VRAI;FAUX;0;0;FAUX;FAUX;VRAI
+3;CommandeClient;Core.DocumentType.CommandClient;../Content/Images/client/commande.png;;FAUX;VRAI;0;VRAI;VRAI;FAUX;0;0;FAUX;FAUX;VRAI
+4;AvoirClient;Core.DocumentType.AvoirClient;../Content/Images/client/avoire.png;;VRAI;VRAI;1;FAUX;VRAI;VRAI;30;20;VRAI;FAUX;VRAI
+5;BonLivraison;Core.DocumentType.BonLivraison;../Content/Images/client/livraison.png;;VRAI;VRAI;-1;VRAI;VRAI;FAUX;20;30;FAUX;VRAI;VRAI
+6;VenteComptoir;Core.DocumentType.VenteComptoir;../Content/Images/client/comptoire.png;;VRAI;VRAI;-1;VRAI;VRAI;VRAI;0;0;FAUX;FAUX;VRAI
+7;BonRetour;Core.DocumentType.BonRetour;../Content/Images/client/retour.png;;VRAI;VRAI;1;VRAI;VRAI;FAUX;20;30;VRAI;VRAI;VRAI
+8;FactureDeRoute;Core.DocumentType.FactureDeRoute;../Content/Images/client/factureDeRoute.png;;FAUX;VRAI;0;VRAI;VRAI;FAUX;0;0;FAUX;FAUX;VRAI
+20;FactureFour;Core.DocumentType.Purchase.Facture;../Content/Images/client/facture.png;;VRAI;VRAI;1;FAUX;FAUX;VRAI;30;20;FAUX;FAUX;VRAI
+21;CommandFour;Core.DocumentType.Purchase.CommandFour;../Content/Images/client/commande.png;;FAUX;VRAI;0;VRAI;FAUX;FAUX;0;0;FAUX;FAUX;VRAI
+22;BonReception;Core.DocumentType.Purchase.BonReception;../Content/Images/supplier/reception.png;;VRAI;VRAI;1;VRAI;FAUX;FAUX;20;30;FAUX;VRAI;VRAI
+23;AvoirFour;Core.DocumentType.Purchase.AvoirFour;../Content/Images/client/avoire.png;;VRAI;VRAI;-1;FAUX;FAUX;VRAI;30;20;VRAI;FAUX;VRAI
+24;RetourFour;Core.DocumentType.Purchase.RetourFour;../Content/Images/client/retour.png;;VRAI;VRAI;-1;VRAI;FAUX;FAUX;20;30;VRAI;VRAI;VRAI
+40;BonSortie;Core.DocumentType.Stock.BonSortie;../Content/Images/client/bonsortie.png;;VRAI;VRAI;-1;VRAI;VRAI;FAUX;0;25;FAUX;FAUX;VRAI
+41;BonEntree;Core.DocumentType.Stock.BonEntree;../Content/Images/client/bonentree.png;;VRAI;VRAI;1;VRAI;FAUX;FAUX;0;25;FAUX;FAUX;VRAI

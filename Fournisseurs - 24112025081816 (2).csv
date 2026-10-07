@@ -1,0 +1,119 @@
+﻿Code;Nom;Adresse;Code postal;Ville;Pays;E-Mail;Site Web;Solde;Solde initial
+FOU0001;1. PharmaNova France ; 12 rue des Lilas ;75001;Paris ; France ; contact@pharmanovafrance.example.com;;0.0070;0
+FOU0002;2. PharmaNexa France ; 18 avenue Victor Hugo ;75002;Paris ; France ; contact@pharmanexafrance.example.com;;2776.5400;0
+FOU0003;3. MediNova France ; 24 rue Lafayette ;75003;Paris ; France ; contact@medinovafrance.example.com;;0;0
+FOU0004;4. MediNexa France ; 31 rue de Rivoli ;75004;Paris ; France ; contact@medinexafrance.example.com;;4451.2360;0
+FOU0005;5. BioNova France ; 8 avenue Gambetta ;75005;Paris ; France ; contact@bionovafrance.example.com;;-58.4900;0
+FOU0006;6. BioNexa France ; 15 rue Monge ;75006;Paris ; France ; contact@bionexafrance.example.com;;-385.5600;0
+FOU0007;7. PharmaVital France ; 27 rue de Rennes ;75007;Paris ; France ; contact@pharmavitalfrance.example.com;;7650.6000;0
+FOU0008;8. PharmaVita France ; 34 avenue de Ségur ;75008;Paris ; France ; contact@pharmavitafrance.example.com;;-3770.2050;0
+FOU0009;9. MedicaNova France ; 42 boulevard Haussmann ;75009;Paris ; France ; contact@medicanovafrance.example.com;;0;0
+FOU0010;10. MedicaNexa France ; 19 rue La Fayette ;75010;Paris ; France ; contact@medicanexafrance.example.com;;13722.4870;0
+FOU0011;11. BioVitalis France ; 22 rue du Faubourg ;75011;Paris ; France ; contact@biovitalisfrance.example.com;;8686.7220;0
+FOU0012;12. BioVitan France ; 29 avenue Parmentier ;75012;Paris ; France ; contact@biovitanfrance.example.com;;752.2350;0
+FOU0013;13. PharmaCelis France ; 11 rue de Bercy ;75013;Paris ; France ; contact@pharmacelisfrance.example.com;;39385.3970;0
+FOU0014;14. PharmaCelia France ; 16 avenue d'Italie ;75014;Paris ; France ; contact@pharmaceliafrance.example.com;;6630.8880;0
+FOU0015;15. MediCelis France ; 21 rue Vaugirard ;75015;Paris ; France ; contact@medicelisfrance.example.com;;2876.7330;0
+FOU0016;16. MediCelia France ; 28 boulevard Pasteur ;75016;Paris ; France ; contact@mediceliafrance.example.com;;2509.9120;0
+FOU0017;17. BioPharmaPlus France ; 9 rue de Courcelles ;75017;Paris ; France ; contact@biopharmaplusfrance.example.com;;1264.6800;0
+FOU0018;18. BioPharmaPro France ; 14 avenue Wagram ;75018;Paris ; France ; contact@biopharmaprofrance.example.com;www.distripets.com;1203.9220;0
+FOU0019;19. PharmaSante France ; 33 rue Ordener ;75019;Paris ; France ; contact@pharmasantefrance.example.com;;26806.9460;0
+FOU0020;20. PharmaSantéa France ; 7 avenue Jean Jaurès ;75020;Paris ; France ; contact@pharmasanteafrance.example.com;;6533.1760;0
+FOU0021;21. NovaPharm Lyon ; 15 rue de la République ;69001;Lyon ; France ; contact@novapharmlyon.example.com;;16156.9050;0
+FOU0022;22. NexaPharm Lyon ; 21 avenue de Saxe ;69002;Lyon ; France ; contact@nexapharmlyon.example.com;;6595.5910;0
+FOU0023;23. MediLyon Pharma ; 9 rue Victor Hugo ;69003;Lyon ; France ; contact@medilyonpharma.example.com;;2401.4680;0
+FOU0024;24. BioLyon Pharma ; 18 boulevard des Brotteaux ;69004;Lyon ; France ; contact@biolyonpharma.example.com;www.alania.care;13386.3230;0
+FOU0025;25. PharmaRhône ; 26 rue de Marseille ;69005;Lyon ; France ; contact@pharmarhone.example.com;;3722.6630;0
+FOU0026;26. MediRhône ; 32 avenue Jean Mermoz ;69006;Lyon ; France ; contact@medirhone.example.com;;0;0
+FOU0027;27. BioRhône Santé ; 12 rue Garibaldi ;69007;Lyon ; France ; contact@biorhonesante.example.com;;1409.2050;0
+FOU0028;28. PharmaLys France ; 20 avenue Berthelot ;69008;Lyon ; France ; contact@pharmalysfrance.example.com;;10292.6210;0
+FOU0029;29. MediLys France ; 17 rue de Gerland ;69009;Lyon ; France ; contact@medilysfrance.example.com;;1979.8740;0
+FOU0030;30. NovaMedi Rhône ; 23 rue du Dauphiné ;69003;Lyon ; France ; contact@novamedirhone.example.com;;976.8770;0
+FOU0031;31. PharmaAzur Marseille ; 14 rue Paradis ;13001;Marseille ; France ; contact@pharmaazurmarseille.example.com;;5664.7370;0
+FOU0032;32. MediAzur Marseille ; 22 avenue du Prado ;13002;Marseille ; France ; contact@mediazurmarseille.example.com;;11538.4690;0
+FOU0033;33. BioAzur Marseille ; 31 rue Breteuil ;13003;Marseille ; France ; contact@bioazurmarseille.example.com;;760.4880;0
+FOU0034;34. NovaMed Provence ; 18 boulevard Sakakini ;13004;Marseille ; France ; contact@novamedprovence.example.com;;11516.2950;0
+FOU0035;35. NexaMed Provence ; 25 avenue du Prado ;13005;Marseille ; France ; contact@nexamedsprovence.example.com;;0;0
+FOU0036;36. PharmaProvence ; 11 rue Sainte ;13006;Marseille ; France ; contact@pharmaprovence.example.com;;4011.5380;0
+FOU0037;37. MediProvence ; 19 rue Paradis ;13007;Marseille ; France ; contact@mediprovence.example.com;;1566.3000;0
+FOU0038;38. BioProvence ; 27 avenue de Toulon ;13008;Marseille ; France ; contact@bioprovence.example.com;;0;0
+FOU0039;39. PharmaCalanques ; 35 boulevard Michelet ;13009;Marseille ; France ; contact@pharmacalanques.example.com;;4937.7460;0
+FOU0040;40. MediCalanques ; 8 avenue de Mazargues ;13010;Marseille ; France ; contact@medicalanques.example.com;;2178.7620;0
+FOU0041;41. NovaPharm Toulouse ; 13 rue Alsace Lorraine ;31000;Toulouse ; France ; contact@novapharmtoulouse.example.com;;1723.6430;0
+FOU0042;42. NexaPharm Toulouse ; 20 avenue Jean Jaurès ;31100;Toulouse ; France ; contact@nexapharmtoulouse.example.com;;3953.2860;0
+FOU0043;43. MediGaronne ; 28 rue Lafayette ;31200;Toulouse ; France ; contact@medigaronne.example.com;;2093.8230;0
+FOU0044;44. BioGaronne ; 16 boulevard Carnot ;31300;Toulouse ; France ; contact@biogaronne.example.com;;561.3040;0
+FOU0045;45. PharmaOccitanie ; 24 rue de Metz ;31400;Toulouse ; France ; contact@pharmaoccitanie.example.com;;2777.4000;0
+FOU0046;46. MediOccitanie ; 9 avenue de Lombez ;31500;Toulouse ; France ; contact@medioccitanie.example.com;;0;0
+FOU0047;47. BioOccitanie ; 32 route de Narbonne ;31600;Toulouse ; France ; contact@biooccitanie.example.com;;7071.5010;0
+FOU0048;48. NovaMedi Garonne ; 17 rue Bayard ;31700;Toulouse ; France ; contact@novamedigaronne.example.com;;0;0
+FOU0049;49. PharmaToulouse Santé ; 29 rue Matabiau ;31800;Toulouse ; France ; contact@pharmatoulousesante.example.com;;8107.6800;0
+FOU0050;50. MediToulouse Santé ; 21 avenue de Lyon ;31900;Toulouse ; France ; contact@meditoulousesante.example.com;;0;0
+FOU0051;51. PharmaAtlantique Nantes ; 12 rue Crébillon ;44000;Nantes ; France ; contact@pharmaatlantiqnantes.example.com;;378.8040;0
+FOU0052;52. MediAtlantique Nantes ; 18 boulevard Guist'hau ;44100;Nantes ; France ; contact@mediatlantiqnantes.example.com;;0;0
+FOU0053;53. BioAtlantique ; 27 rue de Strasbourg ;44200;Nantes ; France ; contact@bioatlantique.example.com;;1097.7050;0
+FOU0054;54. NovaPharm Loire ; 14 avenue de la Libération ;44300;Nantes ; France ; contact@novapharmloire.example.com;;2048.4940;0
+FOU0055;55. NexaPharm Loire ; 23 rue Paul Bellamy ;44400;Nantes ; France ; contact@nexapharmloire.example.com;;1730.6450;0
+FOU0056;56. PharmaLoire Santé ; 31 rue Fouré ;44500;Nantes ; France ; contact@pharmaloiresante.example.com;;2043.0720;0
+FOU0057;57. MediLoire Santé ; 9 boulevard Jules Verne ;44600;Nantes ; France ; contact@mediloiresante.example.com;;0;0
+FOU0058;58. BioLoire Pharma ; 16 rue Copernic ;44700;Nantes ; France ; contact@bioloirepharma.example.com;;0;0
+FOU0059;59. NovaMedi Nantes ; 25 rue de la Fosse ;44800;Nantes ; France ; contact@novamedinantes.example.com;;0;0
+FOU0060;60. PharmaNantes Pro ; 19 avenue de la Libération ;44900;Nantes ; France ; contact@pharmanantespro.example.com;;3741.2520;0
+FOU0061;61. PharmaNord Lille ; 11 rue Nationale ;59000;Lille ; France ; contact@pharmanordlille.example.com;;334.9300;0
+FOU0062;62. MediNord Lille ; 22 boulevard Vauban ;59100;Lille ; France ; contact@medinordlille.example.com;;3690.8350;0
+FOU0063;63. BioNord Lille ; 17 rue Faidherbe ;59200;Lille ; France ; contact@bionordlille.example.com;;425.6400;0
+FOU0064;64. NovaPharm Flandre ; 29 avenue de Dunkerque ;59300;Lille ; France ; contact@novapharmflandre.example.com;;0;0
+FOU0065;65. NexaPharm Flandre ; 8 rue Solférino ;59400;Lille ; France ; contact@nexapharmflandre.example.com;;2583.1880;0
+FOU0066;66. PharmaFlandre Santé ; 34 rue Nationale ;59500;Lille ; France ; contact@pharmaflandresante.example.com;;7669.2560;0
+FOU0067;67. MediFlandre Santé ; 15 boulevard Victor Hugo ;59600;Lille ; France ; contact@mediflandresante.example.com;;3170.5610;0
+FOU0068;68. BioFlandre Pharma ; 24 rue Colbert ;59700;Lille ; France ; contact@bioflandrepharma.example.com;;885.0120;0
+FOU0069;69. NovaMedi Nord ; 19 rue de Béthune ;59800;Lille ; France ; contact@novamedinord.example.com;;5775.5470;0
+FOU0073;70. PharmaLille Pro ; 26 avenue Kennedy ;59900;Lille ; France ; contact@pharmalillepro.example.com;;0;0
+FOU0074;71. PharmaAlpes Grenoble ; 13 rue Félix Poulat ;38000;Grenoble ; France ; contact@pharmaalpesgrenoble.example.com;;1148.1190;0
+FOU0075;72. MediAlpes Grenoble ; 21 boulevard Gambetta ;38100;Grenoble ; France ; contact@medialpesgrenoble.example.com;;0;0
+FOU0076;73. BioAlpes Grenoble ; 16 avenue Alsace Lorraine ;38200;Grenoble ; France ; contact@bioalpesgrenoble.example.com;www.phaematec.tn;2420.2700;0
+FOU0078;74. NovaPharm Isère ; 28 rue Lesdiguières ;38300;Grenoble ; France ; contact@novapharmisere.example.com;;4367.5720;0
+FOU0081;75. NexaPharm Isère ; 9 avenue Félix Viallet ;38400;Grenoble ; France ; contact@nexapharmisere.example.com;;0;0
+FOU0082;76. PharmaIsère Santé ; 17 boulevard Maréchal Foch ;38500;Grenoble ; France ; contact@pharmaiseresante.example.com;;2128.4910;0
+FOU0083;77. MediIsère Santé ; 24 rue de la République ;38600;Grenoble ; France ; contact@mediiseresante.example.com;;0;0
+FOU0085;78. BioIsère Pharma ; 31 avenue Jean Perrot ;38700;Grenoble ; France ; contact@bioiserepharma.example.com;www.socamedical.com;6091.7160;0
+FOU0087;79. NovaMedi Alpes ; 12 rue Thiers ;38800;Grenoble ; France ; contact@novamedialpes.example.com;;0;0
+FOU0088;80. PharmaGrenoble Pro ; 20 rue Dr Mazet ;38900;Grenoble ; France ; contact@pharmagrenoblepro.example.com;;402.0380;0
+FOU0089;81. PharmaRiviera Nice ; 14 avenue Jean Médecin ;6000;Nice ; France ; contact@pharmarivieranice.example.com;WWW.SOLUTION.COM.TN;1356.9140;0
+FOU0090;82. MediRiviera Nice ; 23 boulevard Gambetta ;6100;Nice ; France ; contact@medirivieranice.example.com;;1052.3890;0
+FOU0092;83. BioRiviera Nice ; 31 rue Masséna ;6200;Nice ; France ; contact@biorivieranice.example.com;;2900.2850;0
+FOU0093;84. NovaPharm CôteAzur ; 18 avenue de la Californie ;6300;Nice ; France ; contact@novapharmcoteazur.example.com;;9392.5990;0
+FOU0094;85. NexaPharm CôteAzur ; 27 rue de France ;6400;Nice ; France ; contact@nexapharmcoteazur.example.com;;0;0
+FOU0095;86. PharmaCôteAzur Santé ; 9 boulevard Victor Hugo ;6500;Nice ; France ; contact@pharmacoteazursante.example.com;;0;0
+FOU0096;87. MediCôteAzur Santé ; 16 avenue Durante ;6600;Nice ; France ; contact@medicoteazursante.example.com;;1050.3670;0
+FOU0098;88. BioCôteAzur Pharma ; 25 rue Gioffredo ;6700;Nice ; France ; contact@biocoteazurpharma.example.com;;1260.8660;0
+FOU0099;89. NovaMedi Riviera ; 12 boulevard Cimiez ;6800;Nice ; France ; contact@novamediriviera.example.com;;1484.6420;0
+FOU0101;90. PharmaNice Pro ; 21 avenue de la République ;6900;Nice ; France ; contact@pharmanicepro.example.com;;0;0
+FOU0106;91. PharmaBordeaux Atlantique ; 15 rue Sainte-Catherine ;33000;Bordeaux ; France ; contact@pharmabordeauxatlantique.example.com;;0;0
+FOU0107;92. MediBordeaux Atlantique ; 24 cours de l'Intendance ;33100;Bordeaux ; France ; contact@medibordeauxatlantique.example.com;;5505.5490;0
+FOU0109;93. BioBordeaux ; 19 rue Judaïque ;33200;Bordeaux ; France ; contact@biobordeaux.example.com;;0;0
+FOU0110;94. NovaPharm Gironde ; 28 cours Victor Hugo ;33300;Bordeaux ; France ; contact@novapharmgironde.example.com;WWW.INOLINS.COM;1904.6340;0
+FOU0111;95. NexaPharm Gironde ; 11 avenue Thiers ;33400;Bordeaux ; France ; contact@nexapharmgironde.example.com;;0;0
+FOU0113;96. PharmaGironde Santé ; 32 rue Fondaudège ;33500;Bordeaux ; France ; contact@pharmagirondesante.example.com;;1750.1470;0
+FOU0114;97. MediGironde Santé ; 17 cours Gambetta ;33600;Bordeaux ; France ; contact@medigirondesante.example.com;;1366.1660;0
+FOU0115;98. BioGironde Pharma ; 22 rue Porte Dijeaux ;33700;Bordeaux ; France ; contact@biogirondepharma.example.com;;0;0
+FOU0116;99. NovaMedi Bordeaux ; 9 rue du Palais Gallien ;33800;Bordeaux ; France ; contact@novamedibordeaux.example.com;;0;0
+FOU0118;100. PharmaBordeaux Pro ; 26 avenue d'Eysines ;33900;Bordeaux ; France ; contact@pharmabordeauxpro.example.com;;0;0
+FOU0127;101. PharmaEst Strasbourg ; 12 rue des Grandes Arcades ;67000;Strasbourg ; France ; contact@pharmaeststrasbourg.example.com;WWW.TAG-GROUP.TN;0;0
+FOU0134;102. MediEst Strasbourg ; 21 avenue de la Paix ;67100;Strasbourg ; France ; contact@medieststrasbourg.example.com;;0;0
+FOU0141;103. BioEst Strasbourg ; 18 rue du Dôme ;67200;Strasbourg ; France ; contact@bioeststrasbourg.example.com;;2117.2960;0
+FOU0142;104. NovaPharm Alsace ; 27 avenue des Vosges ;67300;Strasbourg ; France ; contact@novapharmalsace.example.com;;3381.3930;0
+FOU0143;105. NexaPharm Alsace ; 9 rue du Faubourg ;67400;Strasbourg ; France ; contact@nexapharmalsace.example.com;;4442.4370;0
+FOU0144;106. PharmaAlsace Santé ; 15 boulevard de la Victoire ;67500;Strasbourg ; France ; contact@pharmaalsacesante.example.com;;929.0990;0
+FOU0145;107. MediAlsace Santé ; 24 rue de la Nuée Bleue ;67600;Strasbourg ; France ; contact@medialsacesante.example.com;;9567.1720;0
+FOU0146;108. BioAlsace Pharma ; 31 rue des Bouchers ;67700;Strasbourg ; France ; contact@bioalsacepharma.example.com;;1163.7760;0
+FOU0147;109. NovaMedi Est ; 16 rue du 22 Novembre ;67800;Strasbourg ; France ; contact@novamediest.example.com;;0;0
+FOU0148;110. PharmaStrasbourg Pro ; 20 avenue de Colmar ;67900;Strasbourg ; France ; contact@pharmastrasbourgpro.example.com;;0;0
+FOU0149;111. PharmaOuest Rennes ; 13 rue Le Bastard ;35000;Rennes ; France ; contact@pharmaouestrennes.example.com;;0;0
+FOU0150;112. MediOuest Rennes ; 22 avenue Janvier ;35100;Rennes ; France ; contact@mediouestrennes.example.com;;4116.2640;0
+FOU0152;113. BioOuest Rennes ; 17 boulevard de la Liberté ;35200;Rennes ; France ; contact@bioouestrennes.example.com;;0;0
+FOU0153;114. NovaPharm Bretagne ; 28 rue Saint-Georges ;35300;Rennes ; France ; contact@novapharmbretagne.example.com;;295.6820;0
+FOU0154;115. NexaPharm Bretagne ; 9 avenue Aristide Briand ;35400;Rennes ; France ; contact@nexapharmbretagne.example.com;;0;0
+FOU0155;116. PharmaBretagne Santé ; 16 rue d'Antrain ;35500;Rennes ; France ; contact@pharmabretagnesante.example.com;;0;0
+FOU0156;117. MediBretagne Santé ; 25 boulevard de Metz ;35600;Rennes ; France ; contact@medibretagnesante.example.com;;3032.0160;0
+FOU0157;118. BioBretagne Pharma ; 31 rue de Nantes ;35700;Rennes ; France ; contact@biobretagnepharma.example.com;;9529.4520;0
