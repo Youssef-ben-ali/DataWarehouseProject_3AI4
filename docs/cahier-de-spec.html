@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<title>Health Retailers — Cahier de spécification décisionnelle — version mise à jour</title>
+<style>
+@page { size: A4; margin: 11mm 15mm 16mm 15mm;
+  @bottom-center { content: "Health Retailers — Cahier de spécification décisionnelle — version mise à jour"; font-family: Arial, sans-serif; font-size: 6.5pt; color: #666; } }
+* { box-sizing: border-box; }
+body { font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 8.6pt; line-height: 1.32; color: #000; margin: 0; }
+h2 { font-family: Calibri, Carlito, Arial, sans-serif; font-size: 16pt; font-weight: 700; margin: 14px 0 6px; page-break-after: avoid; }
+h3 { font-family: Calibri, Carlito, Arial, sans-serif; font-size: 12pt; font-weight: 700; margin: 10px 0 4px; page-break-after: avoid; }
+h3.a { font-family: Arial, "Liberation Sans", sans-serif; font-size: 11pt; margin: 12px 0 2px; }
+p { margin: 0 0 6px; }
+.note { font-style: italic; color: #555; font-size: 7.6pt; }
+.bold { font-weight: 700; }
+ul { margin: 0 0 6px 10px; padding-left: 8px; }
+ul li { margin: 0; }
+ol { margin: 0 0 6px 4px; padding-left: 14px; }
+table { table-layout: fixed; border-collapse: collapse; width: 100%; margin: 4px 0 10px; page-break-inside: auto; }
+tr { page-break-inside: avoid; }
+/* tableaux « standard » : bordures grises, en-tête bleu clair */
+table.t th, table.t td { border: 0.6pt solid #a0a0a0; padding: 3.5px 4px; font-size: 6.9pt; vertical-align: top; text-align: left; }
+table.t th { background: #dce6f2; font-weight: 700; }
+/* tableaux « Élément / Détail » (6.1 à 6.5) : bordures noires, compacts */
+table.d th, table.d td { border: 0.8pt solid #000; padding: 1px 3px; font-size: 8.2pt; vertical-align: top; text-align: left; width: 50%; }
+table.d th { background: #d9e2ec; font-weight: 700; }
+/* page de garde */
+.cover { text-align: center; padding-top: 36mm; page-break-after: always; height: 262mm; }
+.cover .t1 { font-size: 23pt; font-weight: 700; margin-bottom: 2px; }
+.cover .t2 { font-size: 19pt; font-weight: 700; margin-bottom: 8px; }
+.cover .t3 { font-size: 10.5pt; margin-bottom: 18px; }
+.cover .t4 { font-size: 10.5pt; margin-bottom: 18px; }
+.cover .t5 { font-size: 8.3pt; font-style: italic; color: #555; }
+.pb { page-break-before: always; }
+.keep { break-inside: avoid; page-break-inside: avoid; }
+</style></head><body>
+
+
+<div class="cover">
+  <div class="t1">CAHIER DE SPÉCIFICATION DÉCISIONNELLE</div>
+  <div class="t2">Projet Data Engineering — HEALTH RETAILERS</div>
+  <div class="t3">Business Intelligence • Data Warehouse • Machine Learning</div>
+  <div class="t4">Conception d’une solution décisionnelle et analytique pour un drugstore en France</div>
+  <div class="t5">Version mise à jour après retour enseignant — modèle BI simplifié et objectifs ML précisés</div>
+</div>
+
+<h2>1. Présentation de l’entreprise et du projet</h2>
+<p>Le projet Health Retailers porte sur l’exploitation décisionnelle des données d’un drugstore situé en France. Les données opérationnelles couvrent les produits, les ventes, les stocks, les clients, les fournisseurs, les transactions et les paiements. L’objectif est de transformer ces données en informations fiables pour le pilotage commercial et opérationnel.</p>
+<p>Le dépôt du projet recense 29 fichiers CSV et 370 256 enregistrements sur une période principale allant du 30 septembre 2024 au 30 avril 2025. Cette période réelle est prolongée par des données synthétiques générées du 1er mai 2025 au 29 septembre 2026, soit deux ans d’historique au total. Délimitation : toute donnée datée jusqu’au 30 avril 2025 inclus est réelle ; toute donnée datée à partir du 1er mai 2025 est synthétique. Le pipeline Python réalise le nettoyage, la préparation des données, la construction de jeux décisionnels et la préparation des jeux de données Machine Learning.</p>
+<p class="note">Le présent cahier décrit le modèle cible après les retours pédagogiques. Le dépôt Git contient encore un modèle décisionnel plus large ; les scripts devront être alignés sur cette version simplifiée une fois les choix validés par l’équipe.</p>
+
+<h2>2. Contexte et problématique décisionnelle</h2>
+<p>Les informations utiles au pilotage sont réparties dans plusieurs fichiers et ne sont pas directement exploitables. Le projet doit donc fournir une vision cohérente des ventes, des clients, du stock actuel et des paiements, tout en préparant des données adaptées aux cas d’usage Machine Learning.</p>
+<p><span class="bold">Chaîne de spécification :</span> Décideur → Objectif métier → Question analytique → Mesure / KPI → Variables nécessaires → Source / attributs → Formule.</p>
+<p class="bold">Principe retenu : une mesure est définie une seule fois. Les analyses « par produit », « par marque », « par client » ou « par période » sont obtenues dans Power BI par les dimensions, filtres et axes de visualisation, et non par la création de mesures dupliquées.</p>
+
+<h2>3. Décideurs et objectifs métier</h2>
+<table class="t">
+<tr><th>Décideur</th><th>Objectif métier</th><th>Questions principales</th></tr>
+<tr><td>Direction générale</td><td>Suivre la performance globale</td><td>Quel est le CA ? Combien de ventes sont réalisées ? Comment évolue l’activité ?</td></tr>
+<tr><td>Responsable commercial</td><td>Analyser les ventes</td><td>Quels produits, familles et marques se vendent le plus ? Quelle est la quantité vendue et le panier moyen ? Quels produits, familles et marques sont les plus rentables ?</td></tr>
+<tr><td>Responsable relation client</td><td>Analyser les clients</td><td>Quels clients identifiés sont actifs ? Quelle est leur fréquence d’achat et leur valeur ?</td></tr>
+<tr><td>Responsable approvisionnement / stock</td><td>Piloter le stock</td><td>Quels produits sont disponibles, en stock faible ou en rupture ? Quelle demande faut-il anticiper ?</td></tr>
+<tr><td>Responsable financier / caisse</td><td>Suivre les flux de paiement</td><td>Quel montant est encaissé ? Quels moyens de paiement sont utilisés ? Comment évoluent les encaissements ?</td></tr>
+</table>
+
+<h2>4. Périmètre</h2>
+<h3>4.1 Inclus</h3>
+<ul>
+<li>Produits, familles, marques, prix et seuils de stock lorsque les attributs sont fiables.</li>
+<li>Documents de vente et lignes de vente nécessaires au calcul des mesures commerciales.</li>
+<li>Clients identifiés et attributs disponibles pour l’analyse client.</li>
+<li>Stock actuel par produit à une date de référence.</li>
+<li>Paiements, montants et moyens de paiement.</li>
+<li>Dimension temporelle et calendrier français.</li>
+<li>Jeux de données ML pour la prévision de demande, les anomalies de ventes, les anomalies de caisse et la segmentation client.</li>
+</ul>
+<h3>4.2 Hors périmètre BI actuel</h3>
+<ul>
+<li>Analyse détaillée des mouvements de stock comme table de faits BI.</li>
+<li>Analyse fournisseur, géographique ou par utilisateur tant qu’aucun objectif BI ne la justifie.</li>
+<li>Données techniques d’authentification, permissions et sécurité.</li>
+<li>Météo et indicateurs épidémiques comme dimensions BI : ils sont réservés au cas ML de prévision de la demande.</li>
+</ul>
+<h3>4.3 Validation</h3>
+<p>Les clés, granularités, types de données, dates et règles de qualité doivent être confirmés à partir des sources. Une table ou une variable n’est conservée dans le modèle final que si elle répond à un objectif métier, permet de calculer une mesure ou apporte une valeur démontrable à un cas ML.</p>
+
+<h2 class="pb">5. Inventaire des sources fournies</h2>
+<p>Les fichiers du dépôt constituent les sources internes principales. Certains domaines restent disponibles pour les contrôles ETL ou le ML même lorsqu’ils ne deviennent pas une dimension ou une table de faits du Data Warehouse BI final.</p>
+<table class="t">
+<tr><th>Domaine</th><th>Fichiers identifiés / exemples</th><th>Utilisation retenue</th></tr>
+<tr><td>Produits</td><td>Produits - 24112025081625 (2).csv ; ProductBrands.csv ; Barcodes.csv ; ProductPrices.csv</td><td>Référentiel produit, famille, marque, prix, seuils et liaison avec ventes/stock.</td></tr>
+<tr><td>Ventes / documents</td><td>Documents.csv ; DocumentsReports.csv ; documentItemm.csv ; DocumentTypes.csv ; RelatedDocuments.csv</td><td>Construction de fait_ventes, Document_Id, dates, quantités, montants et contrôle du double comptage.</td></tr>
+<tr><td>Stock</td><td>ProductStocks.csv ; StockMovements.csv ; InventaireItems.csv</td><td>ProductStocks alimente le stock actuel. Les mouvements restent disponibles en source/ETL si un calcul historique est nécessaire.</td></tr>
+<tr><td>Clients</td><td>Clients - 24112025081756 (3).csv ; CompaniesList.csv ; Transactions.csv</td><td>Construction de dim_client et analyses limitées aux clients identifiés.</td></tr>
+<tr><td>Paiements / caisse</td><td>Payment.csv ; TransactionPayments.csv ; PaymentsList.csv ; CaisseOperations.csv ; TresoreriePayments.csv</td><td>Construction de fait_paiements et préparation du cas ML caisse.</td></tr>
+<tr><td>Autres référentiels</td><td>users_csv.csv ; DomainEvents.csv ; Events.csv ; Permissions.csv</td><td>À utiliser uniquement pour ETL ou ML lorsqu’une question métier le justifie.</td></tr>
+</table>
+
+<h2>6. Spécification des besoins décisionnels BI</h2>
+<p>Les mesures ci-dessous sont les mesures de base du modèle BI. Elles ne sont pas répétées sous des noms différents selon l’axe d’analyse. Power BI applique les dimensions et filtres pour obtenir les vues par produit, marque, client, période ou moyen de paiement.</p>
+<table class="t">
+<tr><th>Mesure de base</th><th>Formule / règle</th><th>Variables nécessaires</th><th>Dimensions / filtres possibles</th></tr>
+<tr><td>Chiffre d’affaires HT</td><td>SUM(CA_HT)</td><td>CA_HT</td><td>Temps, produit, famille, marque, client</td></tr>
+<tr><td>Quantité vendue</td><td>SUM(QuantiteVendue)</td><td>QuantiteVendue</td><td>Temps, produit, famille, marque</td></tr>
+<tr><td>Nombre de ventes</td><td>COUNT(DISTINCT Document_Id)</td><td>Document_Id</td><td>Temps, client</td></tr>
+<tr><td>Panier moyen</td><td>CA_HT / Nombre de ventes</td><td>CA_HT, Document_Id</td><td>Temps, client</td></tr>
+<tr><td>Taux de croissance du CA</td><td>(CA_N - CA_N-1) / CA_N-1 × 100</td><td>CA_HT, DateKey</td><td>Temps</td></tr>
+<tr><td>Marge HT</td><td>SUM(CA_HT) - SUM(Cout_HT)</td><td>CA_HT, Cout_HT</td><td>Temps, produit, famille, marque</td></tr>
+<tr><td>Clients actifs</td><td>DISTINCTCOUNT(Company_Id) avec au moins une vente sur la période</td><td>Company_Id, DateKey</td><td>Temps, type client</td></tr>
+<tr><td>Stock disponible</td><td>Quantity</td><td>Product_Id, Quantity</td><td>Produit, famille, marque</td></tr>
+<tr><td>Produits en rupture</td><td>COUNT(Product_Id) où Quantity = 0</td><td>Product_Id, Quantity</td><td>Produit, famille, marque</td></tr>
+<tr><td>Produits en stock faible</td><td>COUNT(Product_Id) où 0 &lt; Quantity &lt;= QuantiteAlerte</td><td>Product_Id, Quantity, QuantiteAlerte</td><td>Produit, famille, marque</td></tr>
+<tr><td>Montant encaissé</td><td>SUM(Amount) sur les encaissements clients</td><td>Amount</td><td>Temps, moyen de paiement</td></tr>
+<tr><td>Nombre de paiements</td><td>COUNT(Id)</td><td>Id</td><td>Temps, moyen de paiement</td></tr>
+</table>
+
+<div class="keep"><h3 class="a">6.1 Direction générale — Performance globale</h3>
+<table class="d">
+<tr><th>Élément</th><th>Détail</th></tr>
+<tr><td>Objectif BI</td><td>Suivre la performance globale du drugstore avec un nombre limité de mesures réutilisables.</td></tr>
+<tr><td>Questions analytiques</td><td>Quel est le CA ? Combien de ventes sont réalisées ? Quel est le panier moyen ? Comment évolue l’activité dans le temps ?</td></tr>
+<tr><td>Mesures de base</td><td>CA HT ; Nombre de ventes ; Panier moyen ; Taux de croissance du CA.</td></tr>
+<tr><td>Variables minimales</td><td>CA_HT ; Document_Id ; DateKey.</td></tr>
+<tr><td>Dimensions / filtres</td><td>dim_temps. Les vues mensuelles, trimestrielles ou annuelles sont obtenues par filtre et non par création de nouvelles mesures.</td></tr>
+<tr><td>Résultat attendu</td><td>Vue synthétique de la performance globale et de son évolution temporelle.</td></tr>
+</table></div>
+
+<div class="keep"><h3 class="a">6.2 Responsable commercial — Analyse des ventes</h3>
+<table class="d">
+<tr><th>Élément</th><th>Détail</th></tr>
+<tr><td>Objectif BI</td><td>Analyser les ventes et identifier les produits, familles ou marques qui contribuent le plus à l’activité.</td></tr>
+<tr><td>Questions analytiques</td><td>Quels produits se vendent le plus ? Quelles familles ou marques contribuent le plus ? Quel est le panier moyen ? Comment évoluent les ventes ? Quels produits, familles ou marques sont les plus rentables ?</td></tr>
+<tr><td>Mesures de base</td><td>CA HT ; Quantité vendue ; Panier moyen ; Marge HT.</td></tr>
+<tr><td>Variables minimales</td><td>CA_HT ; Cout_HT ; QuantiteVendue ; Document_Id ; Product_Id ; DateKey.</td></tr>
+<tr><td>Dimensions / filtres</td><td>dim_produit (produit, famille, marque) et dim_temps. Le même CA et la même quantité sont réutilisés avec différents axes Power BI.</td></tr>
+<tr><td>Résultat attendu</td><td>Comparaison des performances commerciales par produit, famille, marque et période.</td></tr>
+</table></div>
+
+<div class="keep"><h3 class="a">6.3 Responsable relation client — Analyse des clients</h3>
+<table class="d">
+<tr><th>Élément</th><th>Détail</th></tr>
+<tr><td>Objectif BI</td><td>Mesurer la valeur et l’activité des clients identifiés sans dupliquer les mesures commerciales.</td></tr>
+<tr><td>Questions analytiques</td><td>Quels clients génèrent le plus de valeur ? À quelle fréquence achètent-ils ? Quel est leur panier moyen ? Quels clients sont actifs sur une période ?</td></tr>
+<tr><td>Mesures de base</td><td>CA HT ; Nombre de ventes ; Panier moyen ; Nombre de clients actifs.</td></tr>
+<tr><td>Variables minimales</td><td>Company_Id ; CA_HT ; Document_Id ; DateKey.</td></tr>
+<tr><td>Dimensions / filtres</td><td>dim_client et dim_temps. Le CA ou le panier sont les mêmes mesures que dans les autres dashboards, filtrées par client.</td></tr>
+<tr><td>Résultat attendu</td><td>Analyse des clients identifiés selon leur activité, leur fréquence et leur valeur.</td></tr>
+<tr><td>Limite</td><td>Les transactions anonymes ne sont pas utilisées pour les KPI nécessitant l’identification d’un client.</td></tr>
+</table></div>
+
+<div class="keep"><h3 class="a">6.4 Responsable approvisionnement / stock — Gestion du stock</h3>
+<table class="d">
+<tr><th>Élément</th><th>Détail</th></tr>
+<tr><td>Objectif BI</td><td>Connaître l’état actuel du stock et identifier rapidement les produits nécessitant une action.</td></tr>
+<tr><td>Questions analytiques</td><td>Quel est le stock disponible ? Quels produits sont en rupture ? Quels produits ont un stock inférieur au seuil d’alerte ?</td></tr>
+<tr><td>Mesures de base</td><td>Stock disponible ; Nombre de produits en rupture ; Nombre de produits en stock faible.</td></tr>
+<tr><td>Variables minimales</td><td>Product_Id ; Quantity ; QuantiteAlerte ; DateKey.</td></tr>
+<tr><td>Dimensions / filtres</td><td>dim_produit. Les vues par produit, famille ou marque sont des filtres sur les mêmes indicateurs.</td></tr>
+<tr><td>Résultat attendu</td><td>État du stock actuel et liste des produits en rupture ou en stock faible.</td></tr>
+<tr><td>Limite</td><td>La rotation historique n’est pas retenue dans le BI actuel tant qu’un historique de stock fiable n’est pas validé. La prévision de demande relève du ML.</td></tr>
+</table></div>
+
+<div class="keep"><h3 class="a">6.5 Responsable financier / caisse — Paiements</h3>
+<table class="d">
+<tr><th>Élément</th><th>Détail</th></tr>
+<tr><td>Objectif BI</td><td>Suivre les encaissements et leur répartition sans créer une mesure différente pour chaque moyen ou période.</td></tr>
+<tr><td>Questions analytiques</td><td>Quel montant est encaissé ? Combien de paiements sont enregistrés ? Comment se répartissent-ils par moyen ? Comment évoluent-ils dans le temps ?</td></tr>
+<tr><td>Mesures de base</td><td>Montant encaissé ; Nombre de paiements.</td></tr>
+<tr><td>Variables minimales</td><td>Id ; Amount ; PaymentMode_Id ; DateKey.</td></tr>
+<tr><td>Dimensions / filtres</td><td>dim_paiement et dim_temps. Les analyses par carte, espèces ou période utilisent les mêmes mesures avec filtres.</td></tr>
+<tr><td>Résultat attendu</td><td>Suivi des encaissements par période et moyen de paiement.</td></tr>
+<tr><td>Précaution</td><td>Si la source mélange encaissements clients et paiements fournisseurs, appliquer un filtre avant le calcul du montant encaissé.</td></tr>
+</table></div>
+
+<h3>6.6 Synthèse d’utilisation par décideur</h3>
+<table class="t">
+<tr><th>Décideur</th><th>Mesures utilisées</th><th>Analyse réalisée avec les dimensions</th></tr>
+<tr><td>Direction générale</td><td>CA HT, nombre de ventes, panier moyen, croissance</td><td>Évolution par jour, mois, trimestre ou année.</td></tr>
+<tr><td>Responsable commercial</td><td>CA HT, quantité vendue, panier moyen, marge HT</td><td>Produit, famille, marque, période.</td></tr>
+<tr><td>Responsable relation client</td><td>CA HT, nombre de ventes, panier moyen, clients actifs</td><td>Client identifié, type client, période.</td></tr>
+<tr><td>Responsable stock</td><td>Stock disponible, produits en rupture, produits en stock faible</td><td>Produit, famille, marque. La prévision de demande relève du ML.</td></tr>
+<tr><td>Responsable financier / caisse</td><td>Montant encaissé, nombre de paiements</td><td>Période et moyen de paiement.</td></tr>
+</table>
+<p class="note">La rotation du stock n’est pas retenue comme KPI BI dans la version actuelle. Elle nécessite un stock moyen historique fiable. Elle pourra être réintroduite si l’historique est validé et si le responsable stock confirme ce besoin.</p>
+
+<h2>7. Données nécessaires et qualité</h2>
+<table class="t">
+<tr><th>Domaine</th><th>Variables minimales recherchées</th><th>Utilisation</th></tr>
+<tr><td>Ventes</td><td>Document_Id, DateKey, Product_Id, Company_Id, QuantiteVendue, CA_HT, Cout_HT</td><td>Mesures commerciales et client.</td></tr>
+<tr><td>Produits</td><td>Product_Id, Libellé, Famille, Marque, QuantiteAlerte</td><td>Filtres produit et calcul du stock faible.</td></tr>
+<tr><td>Clients</td><td>Company_Id, TypeClient et attributs fiables</td><td>Analyse des clients identifiés.</td></tr>
+<tr><td>Stock</td><td>Product_Id, Quantity, DateKey</td><td>Stock actuel, rupture et stock faible.</td></tr>
+<tr><td>Paiements</td><td>Id, DateKey, PaymentMode_Id, Amount</td><td>Montant et nombre de paiements.</td></tr>
+<tr><td>Temps</td><td>DateKey, Date, semaine, mois, trimestre, année, EstFerie</td><td>Analyse temporelle et filtres.</td></tr>
+</table>
+<h3>7.1 Contrôles de qualité</h3>
+<ul>
+<li>Valeurs manquantes, aberrantes ou impossibles.</li>
+<li>Doublons et unicité des clés.</li>
+<li>Cohérence des types et formats de dates.</li>
+<li>Intégrité référentielle entre documents, lignes, produits et clients.</li>
+<li>Traitement des retours / avoirs et prévention du double comptage entre factures et bons de livraison.</li>
+<li>Validation de la granularité réelle de chaque jeu de données.</li>
+<li>Séparation des ventes anonymes des analyses nécessitant un client identifié.</li>
+</ul>
+
+<h2>8. Données externes</h2>
+<p>Les données externes sont intégrées uniquement lorsqu’elles répondent à un besoin précis. Le calendrier français (jours fériés) n’est pas une source externe : il est calculé et intégré à dim_temps, pour le BI et le ML. La météo et les indicateurs épidémiques ne font pas partie du Data Warehouse BI ; ils sont des variables explicatives candidates pour la prévision de demande.</p>
+<table class="t">
+<tr><th>Donnée externe</th><th>Utilisation</th><th>Justification</th><th>Intégration</th></tr>
+<tr><td>Météo (Open-Meteo)</td><td>ML</td><td>Tester si température / précipitations améliorent la prévision de certaines familles saisonnières.</td><td>Dataset de prévision uniquement</td></tr>
+<tr><td>Indicateurs épidémiques (Réseau Sentinelles)</td><td>ML</td><td>Tester si le contexte épidémique améliore la prévision de certaines familles de produits de santé.</td><td>Dataset de prévision uniquement</td></tr>
+<tr><td>Données synthétiques (prolongation du 01/05/2025 au 29/09/2026)</td><td>BI + ML</td><td>Disposer de deux ans d’historique pour l’évolution temporelle, la saisonnalité et la prévision.</td><td>Fichiers séparés, même format que les sources ; délimitation par la date (données réelles jusqu’au 30/04/2025 inclus)</td></tr>
+</table>
+<p class="bold">Règle de validation : météo et épidémies seront conservées uniquement si leur ajout améliore réellement la performance du modèle par rapport à une version sans ces variables. Elles ne sont pas considérées comme des causes établies a priori.</p>
+<p>Cette évaluation est réalisée sur la période réelle uniquement (données datées jusqu’au 30 avril 2025), car des effets météo et épidémiques ont servi d’hypothèses à la génération des données synthétiques.</p>
+
+<h2>9. Modèle Data Warehouse cible</h2>
+<p>Le modèle cible est volontairement réduit aux tables nécessaires aux objectifs BI. Le dépôt Git actuel contient un modèle plus large (8 dimensions et 6 faits) ; la présente spécification retient une version plus simple à aligner dans les scripts après validation.</p>
+<table class="t">
+<tr><th>Type</th><th>Table</th><th>Grain</th><th>PK / FK principales</th><th>Variables utiles / rôle</th></tr>
+<tr><td>Dimension</td><td>dim_temps</td><td>1 ligne = 1 date (du 30/09/2024 au 29/09/2026)</td><td>PK DateKey</td><td>Date, semaine, mois, trimestre, année, EstFerie</td></tr>
+<tr><td>Dimension</td><td>dim_produit</td><td>1 ligne = 1 produit</td><td>PK Product_Id</td><td>Libellé, Famille, Marque, QuantiteAlerte</td></tr>
+<tr><td>Dimension</td><td>dim_client</td><td>1 ligne = 1 client, y compris le client comptoir anonyme (filtre EstClientIdentifie pour les KPI clients)</td><td>PK Company_Id</td><td>TypeClient + attributs fiables</td></tr>
+<tr><td>Dimension</td><td>dim_paiement</td><td>1 ligne = 1 moyen de paiement</td><td>PK PaymentMode_Id</td><td>Libellé / type de moyen</td></tr>
+<tr><td>Fait</td><td>fait_ventes</td><td>1 produit vendu dans 1 document à 1 date</td><td>PK Id ; FK DateKey, Product_Id, Company_Id</td><td>Document_Id, QuantiteVendue, CA_HT, Remise_HT, Cout_HT</td></tr>
+<tr><td>Fait</td><td>fait_stock_actuel</td><td>1 produit à la date de snapshot</td><td>PK/FK Product_Id ; FK DateKey</td><td>Quantity. Rupture et stock faible sont calculés.</td></tr>
+<tr><td>Fait</td><td>fait_paiements</td><td>1 paiement</td><td>PK Id ; FK DateKey, PaymentMode_Id</td><td>Amount ; indicateur client/fournisseur uniquement si nécessaire au filtrage</td></tr>
+</table>
+<p class="note">Document_Id est conservé directement dans fait_ventes pour compter les ventes distinctes et calculer le panier moyen. Une dimension Document séparée n’est pas nécessaire tant qu’aucun objectif BI n’analyse le type, le statut ou le canal du document.<br>
+Les sources StockMovements, fournisseurs, utilisateurs et géographie peuvent rester disponibles dans les zones source/ETL ou les datasets ML sans devenir des tables du Data Warehouse BI final.</p>
+
+<h2>10. Besoins BI / Reporting</h2>
+<table class="t">
+<tr><th>Dashboard</th><th>Mesures principales</th><th>Filtres / axes</th></tr>
+<tr><td>Synthèse</td><td>CA HT, nombre de ventes, panier moyen, croissance</td><td>Période</td></tr>
+<tr><td>Commercial</td><td>CA HT, quantité vendue, panier moyen, marge HT</td><td>Période, produit, famille, marque</td></tr>
+<tr><td>Stock</td><td>Stock disponible, produits en rupture, produits en stock faible</td><td>Produit, famille, marque</td></tr>
+<tr><td>Clients</td><td>CA HT, nombre de ventes, panier moyen, clients actifs</td><td>Client identifié, type client, période</td></tr>
+<tr><td>Paiements</td><td>Montant encaissé, nombre de paiements</td><td>Période, moyen de paiement</td></tr>
+</table>
+<p class="bold">Les mêmes mesures de base sont réutilisées dans plusieurs dashboards. La variation de l’analyse est obtenue par les dimensions et filtres Power BI, et non par des mesures redondantes.</p>
+
+<h2>11. Besoins Machine Learning / IA</h2>
+<table class="t">
+<tr><th>N°</th><th>Objectif</th><th>Type de problème</th><th>Résultat attendu</th></tr>
+<tr><td>11.1</td><td>Prévision de la demande</td><td>Régression / séries temporelles</td><td>Quantité prévue pour la semaine N+1 par famille ou par marque.</td></tr>
+<tr><td>11.2</td><td>Détection d’anomalies sur les ventes</td><td>Détection d’outliers non supervisée</td><td>Liste de lignes de vente à contrôler.</td></tr>
+<tr><td>11.3</td><td>Détection d’anomalies de caisse</td><td>Anomalies / classification selon le sous-cas</td><td>Opérations ou annulations à examiner.</td></tr>
+<tr><td>11.4</td><td>Segmentation client</td><td>Clustering</td><td>Groupes de clients homogènes pour l’analyse marketing.</td></tr>
+</table>
+
+<h3>11.1 Prévision de la demande</h3>
+<table class="t">
+<tr><th style="width:50%">Élément</th><th>Spécification retenue</th></tr>
+<tr><td>Objectif métier</td><td>Anticiper la demande afin d’aider le responsable stock à préparer l’approvisionnement et limiter les ruptures.</td></tr>
+<tr><td>Granularité famille</td><td>1 ligne = 1 semaine × 1 famille de produits.</td></tr>
+<tr><td>Granularité marque</td><td>1 ligne = 1 semaine × 1 marque. Les deux datasets sont préparés séparément.</td></tr>
+<tr><td>Horizon</td><td>Prévision à N+1 semaine.</td></tr>
+<tr><td>Variable cible Y</td><td>Quantité totale vendue pendant la semaine suivante pour la famille ou la marque étudiée.</td></tr>
+<tr><td>Variables X internes</td><td>Quantités des semaines précédentes (lags), moyenne mobile, prix moyen, taux de remise, nombre de documents, canal si exploitable.</td></tr>
+<tr><td>Variables X temporelles</td><td>Semaine, mois, jour férié.</td></tr>
+<tr><td>Variables X externes candidates</td><td>Température, précipitations, indicateurs épidémiques ; conservés seulement si leur apport est mesurable.</td></tr>
+<tr><td>Évaluation</td><td>MAE / RMSE, comparées à une baseline naïve ou moyenne mobile.</td></tr>
+<tr><td>Résultat attendu</td><td>Prévision hebdomadaire par famille ou par marque, avec limites liées à l’historique disponible.</td></tr>
+</table>
+<p class="note">Le dépôt prépare déjà deux jeux hebdomadaires distincts : un par famille et un par marque. Il ne faut donc pas présenter la granularité comme « semaine × famille × marque ».</p>
+
+<h3>11.2 Détection d’anomalies sur les ventes</h3>
+<table class="t">
+<tr><th style="width:50%">Élément</th><th>Spécification</th></tr>
+<tr><td>Objectif</td><td>Identifier des ventes inhabituelles nécessitant une vérification humaine.</td></tr>
+<tr><td>Variables X</td><td>Taux de remise, écart prix / coût, quantité, utilisateur, heure et autres indicateurs disponibles.</td></tr>
+<tr><td>Cible Y</td><td>Pas de cible fiable si l’approche reste non supervisée. Les règles métier servent à contrôler les résultats, pas à prouver une anomalie.</td></tr>
+<tr><td>Méthodes candidates</td><td>Isolation Forest, LOF ou méthode non supervisée équivalente.</td></tr>
+<tr><td>Résultat attendu</td><td>Score / liste de lignes de vente à contrôler en priorité.</td></tr>
+</table>
+
+<h3>11.3 Détection d’anomalies de caisse</h3>
+<table class="t">
+<tr><th style="width:50%">Élément</th><th>Spécification</th></tr>
+<tr><td>Objectif</td><td>Identifier les opérations de caisse inhabituelles et les annulations à examiner.</td></tr>
+<tr><td>Variables X</td><td>Montant, utilisateur, heure, fréquence d’annulation et variables disponibles dans les événements de caisse.</td></tr>
+<tr><td>Y possible</td><td>IsCancelled si le sous-problème retenu est une classification d’annulation.</td></tr>
+<tr><td>Précaution</td><td>Une opération annulée ou atypique n’est pas automatiquement frauduleuse. Une validation humaine est nécessaire.</td></tr>
+</table>
+
+<h3>11.4 Segmentation client</h3>
+<table class="t">
+<tr><th style="width:50%">Élément</th><th>Spécification</th></tr>
+<tr><td>Objectif</td><td>Regrouper les clients identifiés selon leur comportement d’achat.</td></tr>
+<tr><td>Type</td><td>Clustering non supervisé ; aucune cible Y.</td></tr>
+<tr><td>Variables X</td><td>CA total, fréquence, panier moyen, récence, ancienneté, nombre de produits distincts, type de client si fiable.</td></tr>
+<tr><td>Résultat attendu</td><td>Segments interprétables permettant de comparer des profils de clients.</td></tr>
+</table>
+
+<h2>12. KPI, mesures et règles de validation</h2>
+<table class="t">
+<tr><th>Mesure / KPI</th><th>Formule</th><th>Règle essentielle</th></tr>
+<tr><td>CA HT</td><td>SUM(CA_HT)</td><td>Utiliser une définition unique et éviter tout double comptage des documents liés.</td></tr>
+<tr><td>Nombre de ventes</td><td>COUNT(DISTINCT Document_Id)</td><td>Ne pas compter les lignes de vente comme des ventes distinctes.</td></tr>
+<tr><td>Panier moyen</td><td>CA HT / nombre de ventes</td><td>Même mesure réutilisée avec filtres temps/client dans Power BI.</td></tr>
+<tr><td>Croissance du CA</td><td>(CA_N - CA_N-1) / CA_N-1 × 100</td><td>Comparer des périodes cohérentes.</td></tr>
+<tr><td>Marge HT</td><td>SUM(CA_HT) - SUM(Cout_HT)</td><td>Calculée comme mesure, non stockée ; les lignes sans coût sont exclues.</td></tr>
+<tr><td>Produits en rupture</td><td>COUNT(Product_Id où Quantity = 0)</td><td>Basé sur le snapshot de stock retenu.</td></tr>
+<tr><td>Stock faible</td><td>0 &lt; Quantity &lt;= QuantiteAlerte</td><td>Le seuil doit provenir du référentiel produit ou d’une règle validée.</td></tr>
+<tr><td>Montant encaissé</td><td>SUM(Amount)</td><td>Filtrer les décaissements / paiements fournisseurs si les sources les mélangent.</td></tr>
+<tr><td>Erreur de prévision</td><td>MAE / RMSE</td><td>Évaluer sur une période future non utilisée pour l’entraînement et comparer à une baseline.</td></tr>
+</table>
+
+<h2>13. Méthodologie de travail</h2>
+<ol>
+<li>Comprendre les besoins métier et valider les questions analytiques.</li>
+<li>Profiler les 29 CSV et documenter la qualité des données.</li>
+<li>Nettoyer et normaliser les sources sans modifier les fichiers bruts.</li>
+<li>Construire le modèle BI minimal à partir des mesures et dimensions réellement nécessaires.</li>
+<li>Charger les données préparées et construire les mesures dans Power BI.</li>
+<li>Préparer séparément les jeux ML avec variables X, cible Y lorsqu’elle existe, granularité et métriques d’évaluation.</li>
+<li>Évaluer les données externes et ne conserver que celles qui améliorent réellement le cas ML.</li>
+<li>Documenter les résultats, limites, hypothèses et règles de gouvernance.</li>
+</ol>
+
+<h2>14. Résultats attendus et étapes suivantes</h2>
+<ul>
+<li>Alignement du schéma et des scripts Git sur le modèle BI simplifié après validation par l’équipe.</li>
+<li>Construction / chargement des 3 faits et 4 dimensions cibles.</li>
+<li>Développement des cinq dashboards Power BI avec des mesures réutilisables et des filtres.</li>
+<li>Préparation et entraînement des quatre cas ML selon la disponibilité et la qualité des données.</li>
+<li>Comparaison des modèles de prévision à une baseline et validation de l’apport des variables externes.</li>
+<li>Documentation finale du mapping source → variable → mesure / KPI → dashboard ou cas ML.</li>
+</ul>
+
+<h2>15. Règles à retenir</h2>
+<ul>
+<li>Commencer par les objectifs métier et non par les tables disponibles.</li>
+<li>Définir une mesure BI une seule fois ; utiliser les dimensions et filtres Power BI pour changer l’axe d’analyse.</li>
+<li>Ne conserver dans le Data Warehouse que les faits et dimensions directement justifiés par les objectifs BI.</li>
+<li>Ne pas transformer une donnée utile au ML en dimension BI si aucun besoin BI ne l’exige.</li>
+<li>Séparer clairement les variables X, la cible Y, la granularité et la métrique d’évaluation de chaque cas ML.</li>
+<li>Ne pas présenter une corrélation supposée comme une causalité : météo et épidémies doivent démontrer leur apport.</li>
+<li>Conserver les sources brutes et les données ETL même lorsqu’elles ne sont pas présentes dans le modèle BI final.</li>
+<li>Documenter les limites : historique réel de 7 mois (jusqu’au 30 avril 2025) prolongé à 2 ans par des données synthétiques, clients anonymes, qualité des sources et disponibilité des stocks historiques.</li>
+</ul>
+
+<h2>16. Conclusion</h2>
+<p>Le projet Health Retailers doit fournir une base décisionnelle simple, cohérente et directement reliée aux besoins des responsables. La version cible retient trois tables de faits — ventes, stock actuel et paiements — et quatre dimensions — temps, produit, client et paiement. Les mesures BI sont centralisées et réutilisées dans Power BI par filtrage plutôt que dupliquées pour chaque axe d’analyse.<br>
+Les cas Machine Learning sont traités séparément avec leurs propres variables, granularités et critères d’évaluation. La prévision de demande est définie à la semaine, séparément par famille ou par marque ; la météo et les indicateurs épidémiques restent des variables explicatives candidates, uniquement conservées si leur contribution est démontrée.<br>
+Cette organisation respecte le principe directeur du projet : une donnée n’est intégrée au modèle que si elle répond à une question métier, permet de calculer une mesure / KPI ou apporte une valeur démontrable à un cas Machine Learning.</p>
+
+</body></html>

@@ -37,24 +37,39 @@ def fr(x, d=0):
     return f"{x:,.{d}f}".replace(",", " ").replace(".", ",")
 
 
+REAL_END = "20250430"          # délimitation réel / synthétique (DateKey) : version B, données sur 2 ans
+
+
+def corr(a, b):
+    ma, mb = sum(a) / len(a), sum(b) / len(b)
+    den = (sum((x - ma) ** 2 for x in a) * sum((y - mb) ** 2 for y in b)) ** 0.5
+    return sum((x - ma) * (y - mb) for x, y in zip(a, b)) / den if den else 0.0
+
+
 def stats():
     S = {}
     sales = R("dwh/fait_ventes.csv")
+    real = [s for s in sales if s["DateKey"] <= REAL_END]
     S["ca_ht"] = sum(float(s["CA_HT"]) for s in sales)
-    S["docs"] = len({s["Document_Id"] for s in sales})
-    S["panier"] = S["ca_ht"] / S["docs"]
-    S["marge"] = sum(float(s["Marge_HT"] or 0) for s in sales)
+    S["ca_reel"] = sum(float(s["CA_HT"]) for s in real)
+    S["docs_reel"] = len({s["Document_Id"] for s in real})
+    S["panier_reel"] = S["ca_reel"] / S["docs_reel"]
+    S["marge"] = sum(float(s["CA_HT"]) - float(s["Cout_HT"]) for s in sales if s["Cout_HT"])
     m = defaultdict(float)
     for s in sales:
-        m[s["Date"][:7]] += float(s["CA_HT"])
+        m[f"{s['DateKey'][:4]}-{s['DateKey'][4:6]}"] += float(s["CA_HT"])
     S["mois"] = {k: v for k, v in sorted(m.items()) if k >= "2024-10"}
-    S["moy_mois"] = sum(S["mois"].values()) / len(S["mois"])
-    S["comptoir_pct"] = 100 * sum(float(s["CA_HT"]) for s in sales if s["Canal"] == "COMPTOIR") / S["ca_ht"]
+    S["mois_reel"] = {k: v for k, v in S["mois"].items() if k <= REAL_END[:4] + "-" + REAL_END[4:6]}
+    S["moy_mois"] = sum(S["mois_reel"].values()) / len(S["mois_reel"])
+    # canal et client anonyme : informations de la zone ETL (période réelle)
+    comptoir = {d["Id"] for d in R("../cleaned/documents.csv") if d["DocumentType_Id"] == "6"}
+    S["comptoir_pct"] = 100 * sum(float(s["CA_HT"]) for s in real if s["Document_Id"] in comptoir) / S["ca_reel"]
     txn = R("../cleaned/transactions.csv")
     S["anonyme_pct"] = 100 * sum(t["IsWalkInCustomer"] == "true" for t in txn) / len(txn)
     stock = R("dwh/fait_stock_actuel.csv")
-    act = [a for a in stock if a["EstProduitActif"] == "true"]
-    S["rupture_actifs"] = 100 * sum(a["EnRupture"] == "true" for a in act) / len(act)
+    sold = {s["Product_Id"] for s in sales}
+    act = [a for a in stock if a["Product_Id"] in sold]
+    S["rupture_actifs"] = 100 * sum(float(a["Quantity"]) == 0 for a in act) / len(act)
     prods = R("dwh/dim_produit.csv")
     S["produits"] = len(prods)
     S["sans_famille_pct"] = 100 * sum(p["Famille"] in ("NON RENSEIGNE", "NON CLASSE") for p in prods) / len(prods)
@@ -62,8 +77,20 @@ def stats():
     seg = R("ml/ml_11_4_segmentation_clients.csv")
     S["clients_id"] = len(seg)
     S["clients_ca_pct"] = 100 * sum(float(c["X_CA_HT_Total"]) for c in seg) / S["ca_ht"]
+    pays = [p for p in R("dwh/fait_paiements.csv") if p["EstPaiementFournisseur"] == "false" and p["DateKey"] <= REAL_END]
+    S["sans_mode_pct"] = 100 * sum(p["PaymentMode_Id"] == "-1" for p in pays) / len(pays)
     S["rows"] = {p.stem: sum(1 for _ in p.open(encoding="utf-8")) - 1 for p in (DS / "dwh").glob("*.csv")}
     S["ml_rows"] = {p.stem: sum(1 for _ in p.open(encoding="utf-8")) - 1 for p in (DS / "ml").glob("*.csv")}
+    ops = R("ml/ml_11_3_operations_caisse.csv")
+    S["annulations"] = sum(o["Y_IsCancelled"] == "true" for o in ops)
+    # premier signal ML, mesuré sur la PÉRIODE RÉELLE uniquement (§8 du cahier)
+    fam = [r for r in R("ml/ml_11_1_prevision_demande_famille_hebdo.csv")
+           if r["FamilyGroup"] == "COMPLEMENTS ALIMENTAIRES" and r["SemaineComplete"] == "true"
+           and r["SemaineDebut"] <= "2025-04-21" and r["X_Meteo_TempMoyenne"] and r["X_Grippe_Inc100"]]   # semaines 100 % réelles
+    y = [float(r["Y_Quantite"]) for r in fam]
+    S["sig_n"] = len(fam)
+    S["sig_temp"] = corr(y, [float(r["X_Meteo_TempMoyenne"]) for r in fam])
+    S["sig_grippe"] = corr(y, [float(r["X_Grippe_Inc100"]) for r in fam])
     # volume des sources brutes
     n = 0
     for p in (HERE / "fichiers").glob("*.csv"):
@@ -223,7 +250,8 @@ class Deck:
 # --------------------------------------------------------------------------- #
 def build(S):
     d = Deck()
-    mois_fr = {"01": "janv.", "02": "févr.", "03": "mars", "04": "avr.", "10": "oct.", "11": "nov.", "12": "déc."}
+    mois_fr = {"01": "janv.", "02": "févr.", "03": "mars", "04": "avr.", "05": "mai", "06": "juin", "07": "juil.",
+               "08": "août", "09": "sept.", "10": "oct.", "11": "nov.", "12": "déc."}
 
     # 1. Titre ------------------------------------------------------------------
     s = d.slide(notes="Présenter l'équipe et le sujet : le projet Health Retailers consiste à construire une plateforme "
@@ -234,7 +262,7 @@ def build(S):
     text(s, 0.9, 1.5, 11.5, 0.5, "PROJET DATA ENGINEERING · CLASSE 3IA", size=16, color="99F6E4", bold=True)
     text(s, 0.9, 2.05, 11.5, 1.2, "Health Retailers", size=60, color=WHITE, bold=True)
     text(s, 0.9, 3.3, 11.5, 1.0, "Plateforme décisionnelle BI & Machine Learning pour un drugstore", size=26, color="E0E7FF")
-    text(s, 0.9, 5.5, 11.5, 0.5, "Première validation du projet", size=18, color=WHITE, bold=True)
+    text(s, 0.9, 5.5, 11.5, 0.5, "Première validation du projet — modèle révisé (version B)", size=18, color=WHITE, bold=True)
     text(s, 0.9, 6.0, 11.5, 0.5, "Équipe : [Nom du groupe] — [Membre 1], [Membre 2], [Membre 3], [Membre 4]",
          size=16, color="CBD5E1")
 
@@ -257,8 +285,8 @@ def build(S):
     s = d.slide("Un drugstore qui produit beaucoup de données… peu exploitées", "1 · Business Understanding",
                 notes="Contexte : transformation digitale du secteur santé & bien-être. Le drugstore enregistre chaque "
                       "jour ses ventes, achats, stocks et paiements dans un logiciel de gestion. Nous disposons d'un export "
-                      f"de 29 fichiers CSV (~{fr(S['records'])} enregistrements) couvrant 7 mois. Ces données ne sont "
-                      "aujourd'hui pas exploitées pour piloter l'activité.")
+                      f"de 29 fichiers CSV (~{fr(S['records'])} enregistrements) couvrant 7 mois, que nous avons prolongé à 2 ans par "
+                      "des données synthétiques documentées. Ces données ne sont aujourd'hui pas exploitées pour piloter l'activité.")
     text(s, 0.55, 1.55, 6.6, 4.9, [
         "• **Activité :** drugstore / parapharmacie situé en France – hygiène, beauté, compléments alimentaires, accessoires.",
         "• **Système opérationnel :** un logiciel de caisse et de gestion enregistre ventes comptoir, factures clients, "
@@ -266,10 +294,12 @@ def build(S):
         "• **Enjeu du secteur :** avec la transformation digitale, la donnée transactionnelle devient un levier pour "
         "améliorer la performance commerciale et opérationnelle.",
         "• **Source fournie :** un export brut de la base du logiciel – 29 fichiers CSV, du 30/09/2024 au 30/04/2025.",
+        "• **Prolongation :** données synthétiques générées jusqu'au 29/09/2026 (2 ans au total), rangées à part comme "
+        "donnée externe ; délimitation par la date.",
     ], size=16, space=10)
     tiles = [(fr(S["records"]), "enregistrements bruts\ndans 29 fichiers CSV"),
-             (fr(S["ca_ht"] / 1e6, 2) + " M", "de chiffre d'affaires HT\nsur 7 mois"),
-             (fr(S["docs"]), "ventes (documents)\npanier moyen " + fr(S["panier"], 0) + " HT"),
+             (fr(S["ca_reel"] / 1e6, 2) + " M", "de chiffre d'affaires HT\nsur les 7 mois réels"),
+             (fr(S["docs_reel"]), "ventes réelles (documents)\npanier moyen " + fr(S["panier_reel"], 0) + " HT"),
              (fr(S["produits"]), "produits référencés\n" + fr(S["fournisseurs"]) + " fournisseurs")]
     for i, (v, lab) in enumerate(tiles):
         x, y = 7.55 + (i % 2) * 2.75, 1.6 + (i // 2) * 2.45
@@ -281,7 +311,8 @@ def build(S):
     # 4. Activité (graphique) ---------------------------------------------------
     s = d.slide(f"Un CA HT d'environ {fr(S['moy_mois'] / 1000)} k par mois, porté par le comptoir",
                 "1 · Business Understanding",
-                notes="Premier regard sur l'activité, calculé à partir de notre Data Warehouse. Le CA mensuel est assez "
+                notes="Premier regard sur l'activité, calculé à partir de notre Data Warehouse. En bleu foncé les 7 mois "
+                      "réels, en clair la prolongation synthétique. Le CA mensuel réel est assez "
                       "stable avec un creux en mars. La vente comptoir domine et la grande majorité des transactions "
                       "concernent un client anonyme : cela limite l'analyse client, ce qui a guidé nos choix d'objectifs.")
     cd = CategoryChartData()
@@ -292,7 +323,7 @@ def build(S):
     ch = gf.chart
     ch.has_legend = False
     ch.has_title = True
-    ch.chart_title.text_frame.text = "CA HT mensuel (octobre 2024 – avril 2025)"
+    ch.chart_title.text_frame.text = "CA HT mensuel — réel (oct. 2024 – avr. 2025) puis synthétique (mai 2025 – sept. 2026)"
     tr = ch.chart_title.text_frame.paragraphs[0].runs[0]
     tr.font.size, tr.font.bold, tr.font.name = Pt(14), True, FONT
     tr.font.color.rgb = rgb(INK)
@@ -301,6 +332,11 @@ def build(S):
     ser = plot.series[0]
     ser.format.fill.solid()
     ser.format.fill.fore_color.rgb = rgb(NAVY)
+    for idx, k in enumerate(keys):                       # période synthétique en couleur claire
+        if k not in S["mois_reel"]:
+            pt = ser.points[idx]
+            pt.format.fill.solid()
+            pt.format.fill.fore_color.rgb = rgb("A5B4FC")
     va = ch.value_axis
     va.has_major_gridlines = True
     va.major_gridlines.format.line.color.rgb = rgb("E2E8F0")
@@ -314,15 +350,16 @@ def build(S):
     ca.tick_labels.font.color.rgb = rgb(INK)
     ca.format.line.color.rgb = rgb(LINE)
     vals = list(S["mois"].values())
-    for idx in (vals.index(max(vals)), vals.index(min(vals))):
+    rvals = list(S["mois_reel"].values())
+    for idx in (rvals.index(max(rvals)), rvals.index(min(rvals))):
         dl = ser.points[idx].data_label
         dl.position = XL_LABEL_POSITION.OUTSIDE_END
         dl.text_frame.text = f"{fr(vals[idx] / 1000)} k"
         r = dl.text_frame.paragraphs[0].runs[0]
         r.font.size, r.font.bold, r.font.name = Pt(12), True, FONT
         r.font.color.rgb = rgb(INK)
-    low = keys[vals.index(min(vals))]
-    text(s, 0.55, 6.55, 7.6, 0.35, "Septembre 2024 exclu : un seul jour d'activité (démarrage du logiciel le 30/09).",
+    low = keys[rvals.index(min(rvals))]
+    text(s, 0.55, 6.55, 7.6, 0.35, "Bleu foncé : réel · bleu clair : synthétique. Septembre 2024 exclu (un seul jour d'activité).",
          size=11, color=MUTED)
     ins = [(f"{fr(S['comptoir_pct'])} %", "du CA HT est réalisé en vente comptoir ; le reste via bons de livraison et factures."),
            (f"{fr(S['anonyme_pct'])} %", "des transactions sont rattachées à un client comptoir anonyme : peu de clients identifiés."),
@@ -367,10 +404,10 @@ def build(S):
     table(s, 0.55, 1.55, 12.25, [
         ["Décideur", "Objectif métier", "Questions analytiques principales"],
         ["Direction générale", "Suivre la performance globale", "Quel est le CA ? Comment évolue-t-il ? Quelle période génère le plus de CA ?"],
-        ["Responsable commercial", "Analyser les ventes", "Quels produits et marques se vendent le plus ? Quel est le panier moyen ?"],
+        ["Responsable commercial", "Analyser les ventes", "Quels produits et marques se vendent le plus et sont les plus rentables ? Quel panier moyen ?"],
         ["Responsable relation client", "Analyser les clients", "Quels clients sont actifs ? Quelle est leur fréquence d'achat et leur valeur ?"],
         ["Resp. approvisionnement / stock", "Piloter les stocks", "Quels produits sont en rupture ou en stock faible ? Quelle demande anticiper ?"],
-        ["Responsable financier / caisse", "Suivre les flux de paiement", "Quels montants sont encaissés ? Par quel moyen ? Y a-t-il des écarts de caisse ?"],
+        ["Responsable financier / caisse", "Suivre les flux de paiement", "Quel montant est encaissé ? Par quel moyen ? Comment évoluent les encaissements ?"],
     ], [3.0, 2.9, 6.35], size=14, row_h=0.72)
 
     # 7. Objectifs : arbre -------------------------------------------------------
@@ -383,9 +420,9 @@ def build(S):
                                        "et anticiper son activité commerciale et opérationnelle", {"size": 15, "color": WHITE, "bold": True})],
             fill=NAVY, align=PP_ALIGN.CENTER)
     subs = [("Piloter la performance commerciale", "Dashboards Synthèse & Commercial", None),
-            ("Optimiser les stocks et l'approvisionnement", "Dashboard Stock : ruptures, rotation, ABC", "Prévision de la demande hebdomadaire"),
+            ("Optimiser les stocks et l'approvisionnement", "Dashboard Stock : stock disponible, ruptures, stock faible", "Prévision de la demande hebdomadaire"),
             ("Connaître et fidéliser les clients", "Dashboard Clients : actifs, fréquence, panier", "Segmentation des clients"),
-            ("Protéger la marge", "Suivi de la marge, des remises et des ventes sous le coût", "Détection d'anomalies sur les ventes"),
+            ("Protéger la marge", "Marge HT par produit, famille et marque (dashboard Commercial)", "Détection d'anomalies sur les ventes"),
             ("Sécuriser la caisse et les paiements", "Dashboard Paiements & caisse", "Détection d'anomalies de caisse")]
     cw, gap, x0 = 2.35, 0.125, 0.55
     line(s, 6.65, 2.27, 6.65, 2.5, color=MUTED)
@@ -413,11 +450,11 @@ def build(S):
                       "sa cible. Les formules des KPI viennent du cahier de spécification (§6 et §12).")
     table(s, 0.55, 1.5, 12.25, [
         ["Sous-objectif métier", "Objectif technique BI (KPI / reporting)", "Objectif technique ML (type · cible)"],
-        ["SO1 · Performance commerciale", "CA HT/TTC, croissance %, nb de ventes, panier moyen,\ntop produits et marques par période", "—"],
-        ["SO2 · Stocks et approvisionnement", "Taux de rupture, stock faible, rotation,\ncouverture en jours, classe ABC", "**Prévision de la demande** · régression / séries temporelles\nY = quantité vendue la semaine suivante, par famille / marque"],
+        ["SO1 · Performance commerciale", "CA HT, croissance %, nb de ventes, panier moyen,\ntop produits et marques par période", "—"],
+        ["SO2 · Stocks et approvisionnement", "Stock disponible, produits en rupture,\nproduits en stock faible", "**Prévision de la demande** · régression / séries temporelles\nY = quantité vendue la semaine suivante, par famille / marque"],
         ["SO3 · Clients", "Clients actifs, fréquence d'achat, panier client,\nCA par client et par type (B2B / particulier)", "**Segmentation** · clustering non supervisé\npas de cible : groupes de clients homogènes"],
-        ["SO4 · Marge", "Marge HT, taux de marge, montant des remises,\nlignes vendues sous le coût", "**Détection d'anomalies sur les ventes** · non supervisé\nliste des lignes de vente à contrôler"],
-        ["SO5 · Caisse et paiements", "Montants encaissés par moyen de paiement,\névolution, écarts de caisse", "**Détection d'anomalies de caisse** · anomalies / classification\nY = opération annulée (oui / non)"],
+        ["SO4 · Marge", "Marge HT = CA HT − coût HT, calculée comme mesure\npar produit, famille, marque et période", "**Détection d'anomalies sur les ventes** · non supervisé\nliste des lignes de vente à contrôler"],
+        ["SO5 · Caisse et paiements", "Montant encaissé, nombre de paiements,\npar moyen de paiement et par période", "**Détection d'anomalies de caisse** · anomalies / classification\nY = opération annulée (oui / non)"],
     ], [3.0, 4.35, 4.9], size=13, row_h=0.86)
 
     # 9. Méthodologie globale ---------------------------------------------------
@@ -442,9 +479,9 @@ def build(S):
             a.fill.fore_color.rgb = rgb(MUTED)
             a.line.fill.background()
         text(s, x - 0.05, 2.9, w + 0.1, 0.6, sub, size=12, color=MUTED, align=PP_ALIGN.CENTER)
-    layers = [("Sources brutes", "29 CSV · export du logiciel", LIGHT, INK),
-              ("Données nettoyées", "30 fichiers · formats unifiés", LIGHT, INK),
-              ("Data Warehouse", "8 dimensions · 6 tables de faits", "DBEAFE", NAVY),
+    layers = [("Sources", "29 CSV réels + données synthétiques", LIGHT, INK),
+              ("Données nettoyées", "formats unifiés · réel et synthétique", LIGHT, INK),
+              ("Data Warehouse", "4 dimensions · 3 tables de faits", "DBEAFE", NAVY),
               ("Jeux de données ML", "6 fichiers · variables X_ / cible Y_", "EDE9FE", VIOLET),
               ("Restitution", "Dashboards · modèles · alertes", "CCFBF1", TEAL)]
     text(s, 0.55, 3.75, 12, 0.4, "Flux des données", size=15, color=INK, bold=True)
@@ -459,8 +496,8 @@ def build(S):
             a.line.fill.background()
     text(s, 0.55, 5.9, 12.2, 0.8, ["• Scripts Python reproductibles : chaque étape se relance en une commande ; les fichiers "
                                    "originaux ne sont jamais modifiés.",
-                                   "• Données externes ajoutées seulement quand elles répondent à une question : calendrier "
-                                   "français, météo (Open-Meteo), épidémies (réseau Sentinelles)."], size=13, space=3)
+                                   "• Données externes : météo (Open-Meteo) et épidémies (réseau Sentinelles), réservées à la "
+                                   "prévision ML ; calendrier français calculé ; prolongation synthétique à 2 ans."], size=13, space=3)
 
     # 10. Préparation des données -----------------------------------------------
     s = d.slide("Préparation des données : fiabiliser avant d'analyser", "3 · Méthodologie de travail",
@@ -501,17 +538,17 @@ def build(S):
     table(s, 0.55, 2.85, 7.3, [
         ["Dashboard", "Contenu principal"],
         ["Synthèse", "CA, nombre de ventes, panier moyen, évolution"],
-        ["Commercial", "CA et quantités par produit, marque, famille, période"],
-        ["Stock", "Ruptures, stock faible, rotation, classe ABC, mouvements"],
+        ["Commercial", "CA, quantités et marge HT par produit, marque, famille, période"],
+        ["Stock", "Stock disponible, produits en rupture, produits en stock faible"],
         ["Clients", "Clients actifs, fréquence, valeur, type de client"],
-        ["Paiements & caisse", "Montants par moyen, évolution, écarts de caisse"],
+        ["Paiements", "Montant encaissé, nombre de paiements, par moyen et période"],
     ], [2.2, 5.1], size=13, row_h=0.52)
     boxtext(s, 8.2, 2.85, 4.6, 3.12, [
         ("Formules clés (cahier §6 et §12)", {"size": 14, "bold": True, "color": NAVY}),
-        ("CA = Σ (Quantité × Prix HT net)", {"size": 13}),
+        ("CA HT = SUM(CA_HT) · Marge HT = CA HT − Coût HT", {"size": 13}),
         ("Croissance = (CA N − CA N-1) / CA N-1 × 100", {"size": 13}),
         ("Panier moyen = CA / Nb de documents", {"size": 13}),
-        ("Taux de rupture = Produits en rupture / Produits suivis × 100", {"size": 13}),
+        ("Rupture : Quantity = 0 · stock faible : 0 < Quantity ≤ seuil", {"size": 13}),
         ("Filtres minimum : période, produit, marque", {"size": 13, "color": MUTED}),
     ], fill=LIGHT, anchor=MSO_ANCHOR.TOP, pad=0.25)
 
@@ -519,19 +556,20 @@ def build(S):
     s = d.slide("Partie ML : quatre cas d'usage, une démarche commune", "3 · Méthodologie de travail",
                 notes="Démarche commune : préparation d'un jeu de données dédié (variables X_ séparées de la cible Y_), "
                       "modèle de référence simple, puis modèles plus avancés, évaluation adaptée au type de problème. "
-                      "Premier signal encourageant : les ventes de compléments alimentaires sont corrélées à la "
-                      "température (-0,51) et à la grippe (+0,33), sur seulement 29 semaines.")
+                      "Premier signal, mesuré sur la seule période réelle comme l'exige le cahier : les ventes de "
+                      "compléments alimentaires sont corrélées à la température et à la grippe. À confirmer par la "
+                      "comparaison du modèle avec et sans ces variables.")
     ml = [("Prévision de la demande", "Régression · séries temporelles",
            f"{fr(S['ml_rows']['ml_11_1_prevision_demande_famille_hebdo'])} semaines × famille",
-           "X : historique (lags), prix, remise, canal, fériés, vacances, météo, épidémies",
+           "X : historique (lags), prix, remise, canal, fériés, météo, épidémies",
            "Référence naïve → SARIMA / Prophet → XGBoost", "Validation temporelle · MAE / RMSE"),
           ("Anomalies sur les ventes", "Non supervisé",
            f"{fr(S['ml_rows']['ml_11_2_anomalies_ventes'])} lignes de vente",
            "X : remise, écart prix / coût moyen, quantité atypique, vendeur, heure",
            "Isolation Forest · LOF", "Contrôle par règles métier et revue manuelle"),
           ("Anomalies de caisse", "Anomalies · classification",
-           f"{fr(S['ml_rows']['ml_11_3_operations_caisse'])} opérations · 437 écarts",
-           "X : montant, utilisateur, heure, taux d'annulation ; Y : annulation (102 cas)",
+           f"{fr(S['ml_rows']['ml_11_3_operations_caisse'])} opérations · {fr(S['ml_rows']['ml_11_3_ecarts_caisse'])} écarts",
+           f"X : montant, utilisateur, heure, taux d'annulation ; Y : annulation ({fr(S['annulations'])} cas)",
            "Isolation Forest · Random Forest pondéré", "Précision / rappel (classes déséquilibrées)"),
           ("Segmentation des clients", "Clustering",
            f"{S['clients_id']} clients identifiés ({fr(S['clients_ca_pct'])} % du CA)",
@@ -548,27 +586,28 @@ def build(S):
                                           ("Modèles", {"size": 11, "color": MUTED, "bold": True}), (model, {"size": 13}),
                                           ("Évaluation", {"size": 11, "color": MUTED, "bold": True}), (ev, {"size": 13})],
              space=2)
-    boxtext(s, 0.55, 6.15, 12.25, 0.6, [("Premier signal : sur 29 semaines, les ventes de compléments alimentaires sont "
-                                         "corrélées à la température (−0,51) et à l'incidence de la grippe (+0,33).",
+    boxtext(s, 0.55, 6.15, 12.25, 0.6, [(f"Premier signal (période réelle, {S['sig_n']} semaines) : ventes de compléments "
+                                         f"alimentaires corrélées à la température ({fr(S['sig_temp'], 2)}) et à la grippe "
+                                         f"({'+' if S['sig_grippe'] >= 0 else ''}{fr(S['sig_grippe'], 2)}) — candidates, à valider.",
                                          {"size": 13, "color": VIOLET, "bold": True})],
             fill="EDE9FE", pad=0.2)
 
     # 13. DWH : schéma ------------------------------------------------------------
     s = d.slide("Modèle du Data Warehouse : une constellation de faits", "4 · Modèle du Data Warehouse",
-                notes="Six tables de faits partagent huit dimensions conformes (constellation). En haut les dimensions "
-                      "temps, document, utilisateur et paiement ; en bas produit, client, fournisseur et géographie. "
+                notes="Trois tables de faits (ventes, stock actuel, paiements) partagent quatre dimensions conformes "
+                      "(temps, produit, client, paiement) : une constellation réduite au strict besoin du cahier. "
                       "Chaque trait relie une clé étrangère (N) à la clé primaire d'une dimension (1). Toutes les clés "
                       "étrangères ont été vérifiées : 100 % retrouvent leur dimension.")
     img = DS / "schema" / "schema_dwh_diagramme.png"
-    s.shapes.add_picture(str(img), Inches(2.4), Inches(1.25), height=Inches(5.72))
-    text(s, 0.4, 2.0, 1.9, 4.0, [("6", {"size": 34, "color": NAVY, "bold": True}), ("tables de faits", {"size": 13, "color": MUTED}),
-                                 ("8", {"size": 34, "color": NAVY, "bold": True}), ("dimensions", {"size": 13, "color": MUTED}),
+    s.shapes.add_picture(str(img), Inches(2.55), Inches(1.4), height=Inches(5.5))
+    text(s, 0.4, 2.0, 1.9, 4.0, [("3", {"size": 34, "color": NAVY, "bold": True}), ("tables de faits", {"size": 13, "color": MUTED}),
+                                 ("4", {"size": 34, "color": NAVY, "bold": True}), ("dimensions", {"size": 13, "color": MUTED}),
                                  ("100 %", {"size": 34, "color": TEAL, "bold": True}),
                                  ("des clés étrangères vérifiées", {"size": 13, "color": MUTED})], space=2)
 
     # 13 bis. Zoom sur l'étoile des ventes -------------------------------------------
     s = d.slide("Zoom : l'étoile des ventes, cœur du modèle", "4 · Modèle du Data Warehouse",
-                notes="La table de faits des ventes et ses six dimensions. Le grain est une ligne de produit vendue dans un "
+                notes="La table de faits des ventes et ses trois dimensions. Le grain est une ligne de produit vendue dans un "
                       "document à une date. Les mesures sont additives et signées. Les clés étrangères pointent chacune "
                       "vers la clé primaire d'une dimension (relation N vers 1).")
 
@@ -579,7 +618,7 @@ def build(S):
         text(s, x + 0.1, y + 0.03, w - 0.2, 0.36, title, size=14, color=WHITE, bold=True, anchor=MSO_ANCHOR.MIDDLE)
         for k, (col, tag) in enumerate(rows):
             yy = y + 0.47 + k * 0.3
-            colr = "B91C1C" if tag.startswith("PK") else "1D4ED8" if tag.startswith("FK") else INK
+            colr = "B91C1C" if tag.startswith("PK") else "1D4ED8" if tag.startswith("FK") else MUTED if tag == "Power BI" else INK
             text(s, x + 0.1, yy, w - 1.1, 0.3, col, size=12, color=colr, bold=bool(tag) and tag != "mesure")
             if tag:
                 text(s, x + w - 1.15, yy, 1.05, 0.3, tag, size=10, color="059669" if tag == "mesure" else colr,
@@ -588,18 +627,14 @@ def build(S):
 
     fx, fy, fw = 4.75, 1.45, 3.85
     # ordre des FK = ordre vertical des dimensions à gauche / à droite → aucun trait ne se croise
-    fact_rows = [("Id", "PK"), ("DateKey", "FK"), ("Product_Id", "FK"), ("Document_Id", "FK"), ("Company_Id", "FK"),
-                 ("CreatedBy", "FK"), ("PaymentMode_Id", "FK"), ("QuantiteVendue", "mesure"), ("CA_HT", "mesure"),
-                 ("CA_TTC", "mesure"), ("Remise_HT", "mesure"), ("Cout_HT", "mesure"), ("Marge_HT", "mesure"),
-                 ("… + 17 colonnes descriptives", "")]
+    fact_rows = [("Id", "PK"), ("DateKey", "FK"), ("Product_Id", "FK"), ("Company_Id", "FK"),
+                 ("Document_Id", "dégénérée"), ("QuantiteVendue", "mesure"), ("Remise_HT", "mesure"), ("CA_HT", "mesure"),
+                 ("Cout_HT", "mesure"), ("Marge HT = CA HT − Cout HT", "Power BI")]
     card(fx, fy, fw, "fait_ventes", fact_rows, "2563EB")
     fk_y = {name: fy + 0.47 + i * 0.3 + 0.15 for i, (name, _) in enumerate(fact_rows)}
-    dims_l = [("dim_temps", [("DateKey", "PK"), ("Date, mois, saison", ""), ("Férié, vacances", ""), ("Météo, épidémies", "")], "DateKey"),
-              ("dim_document", [("Document_Id", "PK"), ("Numéro, type", ""), ("Statut, canal", "")], "Document_Id"),
-              ("dim_utilisateur", [("User_Id", "PK"), ("Nom du vendeur", "")], "CreatedBy")]
-    dims_r = [("dim_produit", [("Product_Id", "PK"), ("Libellé, famille", ""), ("Marque, code-barres", ""), ("Prix, TVA", "")], "Product_Id"),
-              ("dim_client", [("Company_Id", "PK"), ("Nom, type de client", ""), ("Ville → dim_geographie", "")], "Company_Id"),
-              ("dim_paiement", [("PaymentMode_Id", "PK"), ("Moyen de paiement", "")], "PaymentMode_Id")]
+    dims_l = [("dim_temps", [("DateKey", "PK"), ("Date, année, trimestre", ""), ("Mois, semaine ISO", ""), ("Jour férié", "")], "DateKey")]
+    dims_r = [("dim_produit", [("Product_Id", "PK"), ("Libellé, famille", ""), ("Marque", ""), ("Seuil d'alerte", "")], "Product_Id"),
+              ("dim_client", [("Company_Id", "PK"), ("Nom, type de client", ""), ("Client identifié (oui / non)", "")], "Company_Id")]
     for side, dims in (("L", dims_l), ("R", dims_r)):
         y = 1.45
         for name, rows, fk in dims:
@@ -619,53 +654,47 @@ def build(S):
          align=PP_ALIGN.CENTER)
 
     # 14. Faits et mesures ----------------------------------------------------------
-    s = d.slide("Six tables de faits et leurs mesures", "4 · Modèle du Data Warehouse",
+    s = d.slide("Trois tables de faits et leurs mesures", "4 · Modèle du Data Warehouse",
                 notes="La table centrale est fait_ventes, au grain d'une ligne de produit vendue dans un document à une "
                       "date (granularité recommandée par le cahier). Les mesures sont signées : les retours et avoirs "
-                      "viennent en négatif, ce qui permet de simplement additionner.")
+                      "viennent en négatif, ce qui permet de simplement additionner. Les indicateurs dérivés (marge, "
+                      "rupture, stock faible, montant encaissé) sont des mesures Power BI, pas des colonnes.")
     rw = S["rows"]
     table(s, 0.55, 1.45, 12.25, [
         ["Table de faits", "Granularité (1 ligne =)", "Lignes", "Mesures", "Dimensions reliées"],
         ["fait_ventes", "1 produit vendu dans 1 document à 1 date", fr(rw["fait_ventes"]),
-         "QuantiteVendue, CA_HT, CA_TTC, Remise_HT, Cout_HT, Marge_HT", "Temps, Produit, Client, Paiement, Document, Utilisateur"],
-        ["fait_achats", "1 produit acheté sur 1 document fournisseur", fr(rw["fait_achats"]),
-         "QuantiteAchetee, MontantAchat_HT, MontantAchat_TTC", "Temps, Produit, Fournisseur, Document"],
-        ["fait_paiements", "1 paiement", fr(rw["fait_paiements"]), "Amount, UsedAmount", "Temps, Paiement, Client, Fournisseur, Document"],
-        ["fait_stock_mouvements", "1 mouvement de stock", fr(rw["fait_stock_mouvements"]),
-         "Quantity, CurrentBalance, ValeurMouvement_HT", "Temps, Produit, Document, Utilisateur"],
-        ["fait_stock_hebdo", "1 produit × 1 semaine", fr(rw["fait_stock_hebdo"]),
-         "StockFinSemaine, QteEntree, QteSortie, QteVendue, CA_HT", "Temps, Produit"],
-        ["fait_stock_actuel", "1 produit (photo au 30/04/2025)", fr(rw["fait_stock_actuel"]),
-         "Quantity, QteVendue_Periode, Rotation, ValeurStock_HT", "Temps, Produit"],
-    ], [2.35, 3.0, 1.05, 3.4, 2.45], size=12, row_h=0.7)
+         "QuantiteVendue, Remise_HT, CA_HT, Cout_HT\n(+ Document_Id pour compter les ventes)", "Temps, Produit, Client"],
+        ["fait_stock_actuel", "1 produit à la date de snapshot (29/09/2026)", fr(rw["fait_stock_actuel"]),
+         "Quantity", "Temps, Produit"],
+        ["fait_paiements", "1 paiement", fr(rw["fait_paiements"]), "Amount\n(+ EstPaiementFournisseur pour filtrer)", "Temps, Paiement"],
+        ["Mesures Power BI", "calculées, non stockées", "—",
+         "Marge HT, panier moyen, croissance, clients actifs,\nruptures, stock faible, montant encaissé", "selon la mesure"],
+    ], [2.35, 3.0, 1.05, 3.4, 2.45], size=12, row_h=0.95)
 
     # 15. Dimensions ----------------------------------------------------------------
-    s = d.slide("Huit dimensions conformes, partagées par les faits", "4 · Modèle du Data Warehouse",
-                notes="Chaque dimension a une clé primaire simple. La dimension Temps est enrichie avec les données "
-                      "externes : jours fériés, vacances scolaires, météo et indicateurs épidémiques. Des membres -1 "
-                      "« non renseigné » garantissent que chaque clé étrangère retrouve toujours sa dimension.")
+    s = d.slide("Quatre dimensions conformes, partagées par les faits", "4 · Modèle du Data Warehouse",
+                notes="Chaque dimension a une clé primaire simple et seulement les attributs exigés par le cahier. Le "
+                      "calendrier français est calculé ; la météo et les épidémies restent hors du Data Warehouse (jeu ML "
+                      "de prévision). Des membres -1 « non renseigné » garantissent que chaque clé étrangère retrouve sa dimension.")
     table(s, 0.55, 1.45, 12.25, [
         ["Dimension", "Clé primaire", "Attributs principaux", "Lignes"],
-        ["dim_temps", "DateKey", "Jour, semaine, mois, saison, férié, vacances A/B/C, météo, épidémies (Sentinelles)", fr(rw["dim_temps"])],
-        ["dim_produit", "Product_Id", "Libellé, famille, marque, code-barres, prix d'achat / vente, TVA, seuil d'alerte", fr(rw["dim_produit"])],
-        ["dim_client", "Company_Id", "Nom, type (particulier / B2B / comptoir anonyme), ville, solde", fr(rw["dim_client"])],
-        ["dim_fournisseur", "Company_Id", "Nom, ville, solde", fr(rw["dim_fournisseur"])],
-        ["dim_document", "Document_Id", "Numéro, type, statut, canal (comptoir / facture / achat)", fr(rw["dim_document"])],
-        ["dim_paiement", "PaymentMode_Id", "Espèces, carte bancaire, chèque, crédit, jetons", fr(rw["dim_paiement"])],
-        ["dim_utilisateur", "User_Id", "Vendeur / caissier", fr(rw["dim_utilisateur"])],
-        ["dim_geographie", "Geo_Id", "Ville, département, région", fr(rw["dim_geographie"])],
-    ], [2.3, 2.0, 6.75, 1.2], size=12.5, row_h=0.52)
+        ["dim_temps", "DateKey", "Date, année, trimestre, mois, semaine ISO, jour férié (30/09/2024 → 29/09/2026)", fr(rw["dim_temps"])],
+        ["dim_produit", "Product_Id", "Libellé, famille, marque, seuil d'alerte de stock", fr(rw["dim_produit"])],
+        ["dim_client", "Company_Id", "Nom, type (particulier / B2B / comptoir anonyme), client identifié", fr(rw["dim_client"])],
+        ["dim_paiement", "PaymentMode_Id", "Espèces, carte bancaire, chèque, crédit, jetons, non renseigné", fr(rw["dim_paiement"])],
+    ], [2.3, 2.0, 6.75, 1.2], size=13, row_h=0.75)
 
     # 16. Choix de modélisation -----------------------------------------------------
     s = d.slide("Choix de modélisation et garanties de qualité", "4 · Modèle du Data Warehouse",
                 notes="Les décisions de modélisation à défendre devant le jury, et comment nous avons vérifié le modèle.")
-    choix = [("Constellation", "Six processus métier (ventes, achats, paiements, stock) partagent les mêmes dimensions : "
-                               "les analyses se croisent naturellement."),
+    choix = [("Constellation réduite", "Trois processus (ventes, stock, paiements) partagent quatre dimensions : "
+                                       "uniquement ce que le cahier demande."),
              ("Grain le plus fin", "Une ligne de produit vendue : on peut toujours agréger, jamais redescendre."),
              ("Mesures signées", "Retours et avoirs en négatif : un simple SUM donne le CA net."),
              ("Sans double comptage", "Les factures qui refacturent des bons de livraison sont exclues des ventes."),
              ("Intégrité garantie", "Membres -1 « non renseigné » ; 100 % des clés étrangères retrouvent leur dimension."),
-             ("Temps enrichi", "Calendrier français, météo et épidémies reliés par la date ou la semaine.")]
+             ("Stocké ou calculé", "Une colonne n'est stockée que si le cahier l'exige et qu'elle ne peut pas être "
+                                   "recalculée ; marge, rupture, stock faible sont des mesures.")]
     for i, (t, d_) in enumerate(choix):
         x, y = 0.55 + (i % 2) * 6.2, 1.55 + (i // 2) * 1.75
         box(s, x, y, 6.0, 1.55, LIGHT, shape=MSO_SHAPE.RECTANGLE)
@@ -680,15 +709,15 @@ def build(S):
                       "suite du projet.")
     text(s, 0.55, 1.5, 6.0, 0.45, "Limites", size=20, color=AMBER, bold=True)
     text(s, 0.55, 2.05, 6.0, 4.6, [
-        "• **Historique court :** 7 mois, aucun été observé – une seule occurrence de chaque saison.",
+        "• **Historique réel court :** 7 mois ; la prolongation à 2 ans est synthétique (hypothèses documentées) – "
+        "l'apport météo / épidémies se mesure sur le réel.",
         "• **Localisation à confirmer :** le logiciel source est configuré pour la Tunisie, le cahier situe le magasin en France.",
         f"• **Référentiel incomplet :** {fr(S['sans_famille_pct'])} % des produits sans famille ; {fr(S['anonyme_pct'])} % de ventes anonymes.",
-        "• **Chiffres du cahier à revoir :** ventes sous le coût 2,3 % (cahier : 22 %) ; "
-        f"clients identifiés {fr(S['clients_ca_pct'])} % du CA (cahier : ~60 %).",
+        f"• **Moyens de paiement :** {fr(S['sans_mode_pct'])} % des encaissements réels sans moyen renseigné dans la source.",
     ], size=15, space=10)
     text(s, 6.95, 1.5, 6.0, 0.45, "Prochaines étapes", size=20, color=TEAL, bold=True)
     nxt = ["Charger le Data Warehouse dans PostgreSQL", "Construire les 5 tableaux de bord Power BI",
-           "Entraîner et évaluer les 4 modèles ML", "Demander l'extension des données à 12 mois",
+           "Entraîner et évaluer les 4 modèles ML", "Mesurer l'apport météo / épidémies sur la période réelle",
            "Restitution finale et documentation"]
     for i, t in enumerate(nxt):
         y = 2.05 + i * 0.88
