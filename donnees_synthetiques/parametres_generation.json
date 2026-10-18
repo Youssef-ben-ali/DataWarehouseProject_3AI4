@@ -1,0 +1,115 @@
+{
+  "graine": 42,
+  "calendrier": "FR",
+  "periode_generee": [
+    "2025-05-01",
+    "2026-09-29"
+  ],
+  "croissance_frequentation_par_an": 0.06,
+  "indices_mensuels": {
+    "1": 0.9908834572136755,
+    "2": 0.9401525666000291,
+    "3": 1.0823729035767322,
+    "4": 1.2245932405534352,
+    "5": 1.0,
+    "6": 1.04,
+    "7": 1.05,
+    "8": 0.88,
+    "9": 1.0,
+    "10": 0.8965440296572357,
+    "11": 1.0160610464784823,
+    "12": 0.8493927559204104
+  },
+  "indices_mensuels_supposes": {
+    "5": 1.0,
+    "6": 1.04,
+    "7": 1.05,
+    "8": 0.88,
+    "9": 1.0
+  },
+  "facteur_jour_semaine": {
+    "lun": 1.131,
+    "mar": 1.167,
+    "mer": 1.106,
+    "jeu": 1.08,
+    "ven": 1.201,
+    "sam": 0.31
+  },
+  "ventes_comptoir_par_jour_ouvre_reference": 60.2,
+  "facteur_ramadan_observe": 0.794,
+  "hausses_de_prix": [
+    {
+      "date": "2025-09-01",
+      "part_produits": 0.15,
+      "hausse_min": 0.02,
+      "hausse_max": 0.05
+    },
+    {
+      "date": "2026-01-01",
+      "part_produits": 0.6,
+      "hausse_min": 0.02,
+      "hausse_max": 0.07
+    },
+    {
+      "date": "2026-07-01",
+      "part_produits": 0.15,
+      "hausse_min": 0.01,
+      "hausse_max": 0.04
+    }
+  ],
+  "saisonnalite_produits": {
+    "sun": {
+      "1": 0.35,
+      "2": 0.35,
+      "3": 0.55,
+      "4": 0.85,
+      "5": 1.4,
+      "6": 2.1,
+      "7": 2.5,
+      "8": 2.1,
+      "9": 1.2,
+      "10": 0.6,
+      "11": 0.4,
+      "12": 0.35
+    },
+    "mosquito": {
+      "1": 0.4,
+      "2": 0.4,
+      "3": 0.5,
+      "4": 0.8,
+      "5": 1.3,
+      "6": 1.9,
+      "7": 2.3,
+      "8": 2.2,
+      "9": 1.4,
+      "10": 0.7,
+      "11": 0.45,
+      "12": 0.4
+    }
+  },
+  "amplitude_effet_grippe": 0.35,
+  "produits_saisonniers": {
+    "solaires": 227,
+    "anti_moustiques": 5,
+    "orl_immunite": 67
+  },
+  "produits_lances": 150,
+  "produits_arretes": 186,
+  "probabilite_correction": {
+    "6": 0.013596193065941536,
+    "5": 0.1501937984496124,
+    "1": 0.10679611650485436,
+    "20": 0.18047673098751418
+  },
+  "probabilite_paiement_supprime": 0.0109,
+  "stock_negatif_fin": 339,
+  "identifiants_depart": {
+    "doc": 18713,
+    "trans": 18674,
+    "item": 47484,
+    "tp": 16926,
+    "pl": 16869,
+    "sm": 55859,
+    "de": 71384
+  }
+}
