@@ -1,401 +1,140 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Schéma DWH – Health Retailers</title>
-<style>
-@page diagram { size: A3 landscape; margin: 8mm; }
-@page { size: A4; margin: 12mm; }
-body { font-family: "Segoe UI", Arial, sans-serif; color: #0f172a; font-size: 10pt; margin: 0; }
-.diagram { page: diagram; page-break-after: always; }
-.diagram svg { width: 100%; height: auto; max-height: 270mm; }
-h1 { font-size: 20pt; margin: 0 0 4px; color: #1e3a8a; }
-h2 { font-size: 14pt; color: #1e3a8a; border-bottom: 2px solid #1e3a8a; padding-bottom: 2px; margin: 18px 0 8px; }
-h3 { font-size: 12pt; margin: 0 0 4px; } h3 small { font-weight: 400; color: #64748b; font-size: 9pt; margin-left: 6px; }
-.sub { color: #475569; margin: 0 0 6px; }
-table { border-collapse: collapse; width: 100%; font-size: 8.8pt; }
-th, td { border: 1px solid #cbd5e1; padding: 3px 5px; text-align: left; vertical-align: top; }
-th { background: #f1f5f9; }
-.mat td { text-align: center; font-size: 8pt; } .mat td.on { background: #dbeafe; font-weight: 600; color: #1e40af; }
-.mat th:first-child, .mat tr th { white-space: nowrap; }
-code { font-family: Consolas, monospace; font-size: 8.6pt; }
-.card { border: 1px solid #cbd5e1; border-radius: 5px; padding: 8px 10px; margin: 10px 0; page-break-inside: avoid; }
-.meta { margin: 2px 0 6px; font-size: 9pt; }
-.badge { font-size: 8pt; padding: 1px 6px; border-radius: 8px; color: #fff; vertical-align: middle; }
-.badge.d { background: #334155; } .badge.f { background: #2563eb; }
-td.k { white-space: nowrap; color: #1d4ed8; font-weight: 600; }
-tr { page-break-inside: avoid; }
+<!doctype html><html lang='fr'><head><meta charset='utf-8'><title>Schéma du Data Warehouse — Health Retailers</title><style>
+@page { size: A4; margin: 14mm 15mm 16mm 15mm;
+  @bottom-center { content: "Health Retailers — Schéma du Data Warehouse (version B) — page " counter(page) " / " counter(pages); font-family: Arial, sans-serif; font-size: 7pt; color: #666; } }
+@page paysage { size: A4 landscape; margin: 10mm 12mm 14mm 12mm; }
+* { box-sizing: border-box; }
+body { font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 9pt; line-height: 1.38; color: #1d2330; margin: 0; }
+.paysage { page: paysage; page-break-after: always; }
+h1 { font-family: Calibri, Arial, sans-serif; font-size: 21pt; color: #12365e; margin: 0 0 2px; }
+.sub { color: #4a5a70; font-size: 10pt; margin-bottom: 6px; }
+h2 { font-family: Calibri, Arial, sans-serif; font-size: 15pt; color: #12365e; border-bottom: 1.5pt solid #12365e; padding-bottom: 2px; margin: 16px 0 7px; page-break-after: avoid; }
+h3 { font-family: Calibri, Arial, sans-serif; font-size: 11.5pt; color: #12365e; margin: 12px 0 4px; page-break-after: avoid; }
+h3 .tag { font-family: Arial, sans-serif; font-size: 7.5pt; font-weight: 700; padding: 1px 6px; border-radius: 8px; margin-left: 6px; vertical-align: 2px; color: #fff; }
+.dim { background: #1f4e8c; } .fait { background: #1b7a52; } .fp { background: #6b3fa0; }
+p { margin: 0 0 6px; } ul { margin: 0 0 6px 4px; padding-left: 14px; } li { margin: 1px 0; }
+table { border-collapse: collapse; width: 100%; margin: 4px 0 10px; } tr { page-break-inside: avoid; }
+th, td { border: 0.6pt solid #a9b3c1; padding: 3px 5px; font-size: 8pt; vertical-align: top; text-align: left; }
+th { background: #dce6f2; font-weight: 700; }
+code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; padding: 0 2px; border-radius: 2px; }
+.pk { color: #1f4e8c; font-weight: 700; } .fk { color: #1b7a52; font-weight: 700; } .ms { color: #6b3fa0; font-weight: 700; }
+.box { border: 0.8pt solid #a9b3c1; border-left: 3.5pt solid #12365e; background: #f3f6fa; padding: 6px 9px; margin: 6px 0 10px; }
+.schema img { width: 100%; display: block; border: 0.6pt solid #c9d2de; }
+.legend { font-size: 8pt; color: #4a5a70; margin-top: 4px; }
+.keep { break-inside: avoid; page-break-inside: avoid; }
+.small { font-size: 7.6pt; color: #4a5a70; }
 </style></head><body>
-<section class="diagram">
-<h1>Schéma du Data Warehouse – Health Retailers</h1>
-<p class="sub">Modèle en constellation : 6 tables de faits partagent 8 dimensions. Chaque trait relie une clé étrangère (N) à la clé primaire (1) d'une dimension.</p>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1750 1182" width="1750" height="1182" font-family="Segoe UI, Arial, sans-serif">
-<rect width="1750" height="1182" fill="#ffffff"/>
-<defs><marker id="one" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="10" markerHeight="10" orient="auto"><path d="M5,0 L5,10" stroke="#334155" stroke-width="2"/></marker></defs>
-<text x="40" y="46" font-size="15" font-weight="700" fill="#475569" letter-spacing="1">DIMENSIONS</text>
-<text x="40" y="396" font-size="15" font-weight="700" fill="#475569" letter-spacing="1">FAITS (tables de faits)</text>
-<text x="40" y="878" font-size="15" font-weight="700" fill="#475569" letter-spacing="1">DIMENSIONS</text>
-<path d="M165.0,752.0 C165.0,822.0 236.7,832.0 236.7,902.0" fill="none" stroke="#b45309" stroke-width="1.8" opacity="0.85"/>
-<text x="169.0" y="764.0" font-size="11" font-weight="700" fill="#b45309">N</text>
-<text x="240.7" y="896.0" font-size="11" font-weight="700" fill="#b45309">1</text>
-<path d="M165.0,448.0 C165.0,378.0 970.7,368.0 970.7,298.0" fill="none" stroke="#b45309" stroke-width="1.8" opacity="0.85"/>
-<text x="169.0" y="442.0" font-size="11" font-weight="700" fill="#b45309">N</text>
-<text x="974.7" y="312.0" font-size="11" font-weight="700" fill="#b45309">1</text>
-<path d="M449.0,752.0 C449.0,822.0 278.3,832.0 278.3,902.0" fill="none" stroke="#0d9488" stroke-width="1.8" opacity="0.85"/>
-<text x="453.0" y="764.0" font-size="11" font-weight="700" fill="#0d9488">N</text>
-<text x="282.3" y="896.0" font-size="11" font-weight="700" fill="#0d9488">1</text>
-<path d="M449.0,448.0 C449.0,378.0 1006.4,368.0 1006.4,298.0" fill="none" stroke="#0d9488" stroke-width="1.8" opacity="0.85"/>
-<text x="453.0" y="442.0" font-size="11" font-weight="700" fill="#0d9488">N</text>
-<text x="1010.4" y="312.0" font-size="11" font-weight="700" fill="#0d9488">1</text>
-<path d="M795.5,448.0 C795.5,378.0 1042.1,368.0 1042.1,298.0" fill="none" stroke="#059669" stroke-width="1.8" opacity="0.85"/>
-<text x="799.5" y="442.0" font-size="11" font-weight="700" fill="#059669">N</text>
-<text x="1046.1" y="312.0" font-size="11" font-weight="700" fill="#059669">1</text>
-<path d="M733.0,752.0 C733.0,822.0 320.0,832.0 320.0,902.0" fill="none" stroke="#059669" stroke-width="1.8" opacity="0.85"/>
-<text x="737.0" y="764.0" font-size="11" font-weight="700" fill="#059669">N</text>
-<text x="324.0" y="896.0" font-size="11" font-weight="700" fill="#059669">1</text>
-<path d="M733.0,448.0 C733.0,378.0 615.0,368.0 615.0,298.0" fill="none" stroke="#059669" stroke-width="1.8" opacity="0.85"/>
-<text x="737.0" y="442.0" font-size="11" font-weight="700" fill="#059669">N</text>
-<text x="619.0" y="312.0" font-size="11" font-weight="700" fill="#059669">1</text>
-<path d="M670.5,448.0 C670.5,378.0 278.3,368.0 278.3,298.0" fill="none" stroke="#059669" stroke-width="1.8" opacity="0.85"/>
-<text x="674.5" y="442.0" font-size="11" font-weight="700" fill="#059669">N</text>
-<text x="282.3" y="312.0" font-size="11" font-weight="700" fill="#059669">1</text>
-<path d="M975.3,448.0 C975.3,378.0 665.0,368.0 665.0,298.0" fill="none" stroke="#d97706" stroke-width="1.8" opacity="0.85"/>
-<text x="979.3" y="442.0" font-size="11" font-weight="700" fill="#d97706">N</text>
-<text x="669.0" y="312.0" font-size="11" font-weight="700" fill="#d97706">1</text>
-<path d="M1058.7,448.0 C1058.7,378.0 1077.9,368.0 1077.9,298.0" fill="none" stroke="#d97706" stroke-width="1.8" opacity="0.85"/>
-<text x="1062.7" y="442.0" font-size="11" font-weight="700" fill="#d97706">N</text>
-<text x="1081.9" y="312.0" font-size="11" font-weight="700" fill="#d97706">1</text>
-<path d="M975.3,752.0 C975.3,822.0 361.7,832.0 361.7,902.0" fill="none" stroke="#d97706" stroke-width="1.8" opacity="0.85"/>
-<text x="979.3" y="764.0" font-size="11" font-weight="700" fill="#d97706">N</text>
-<text x="365.7" y="896.0" font-size="11" font-weight="700" fill="#d97706">1</text>
-<path d="M1058.7,752.0 C1058.7,822.0 648.3,832.0 648.3,902.0" fill="none" stroke="#d97706" stroke-width="1.8" opacity="0.85"/>
-<text x="1062.7" y="764.0" font-size="11" font-weight="700" fill="#d97706">N</text>
-<text x="652.3" y="896.0" font-size="11" font-weight="700" fill="#d97706">1</text>
-<path d="M1276.0,448.0 C1276.0,378.0 715.0,368.0 715.0,298.0" fill="none" stroke="#2563eb" stroke-width="1.8" opacity="0.85"/>
-<text x="1280.0" y="442.0" font-size="11" font-weight="700" fill="#2563eb">N</text>
-<text x="719.0" y="312.0" font-size="11" font-weight="700" fill="#2563eb">1</text>
-<path d="M1326.0,448.0 C1326.0,378.0 1113.6,368.0 1113.6,298.0" fill="none" stroke="#2563eb" stroke-width="1.8" opacity="0.85"/>
-<text x="1330.0" y="442.0" font-size="11" font-weight="700" fill="#2563eb">N</text>
-<text x="1117.6" y="312.0" font-size="11" font-weight="700" fill="#2563eb">1</text>
-<path d="M1259.3,752.0 C1259.3,822.0 403.3,832.0 403.3,902.0" fill="none" stroke="#2563eb" stroke-width="1.8" opacity="0.85"/>
-<text x="1263.3" y="764.0" font-size="11" font-weight="700" fill="#2563eb">N</text>
-<text x="407.3" y="896.0" font-size="11" font-weight="700" fill="#2563eb">1</text>
-<path d="M1342.7,752.0 C1342.7,822.0 1018.3,832.0 1018.3,902.0" fill="none" stroke="#2563eb" stroke-width="1.8" opacity="0.85"/>
-<text x="1346.7" y="764.0" font-size="11" font-weight="700" fill="#2563eb">N</text>
-<text x="1022.3" y="896.0" font-size="11" font-weight="700" fill="#2563eb">1</text>
-<path d="M1376.0,448.0 C1376.0,378.0 1388.3,368.0 1388.3,298.0" fill="none" stroke="#2563eb" stroke-width="1.8" opacity="0.85"/>
-<text x="1380.0" y="442.0" font-size="11" font-weight="700" fill="#2563eb">N</text>
-<text x="1392.3" y="312.0" font-size="11" font-weight="700" fill="#2563eb">1</text>
-<path d="M1226.0,448.0 C1226.0,378.0 361.7,368.0 361.7,298.0" fill="none" stroke="#2563eb" stroke-width="1.8" opacity="0.85"/>
-<text x="1230.0" y="442.0" font-size="11" font-weight="700" fill="#2563eb">N</text>
-<text x="365.7" y="312.0" font-size="11" font-weight="700" fill="#2563eb">1</text>
-<path d="M1585.0,448.0 C1585.0,378.0 1149.3,368.0 1149.3,298.0" fill="none" stroke="#7c3aed" stroke-width="1.8" opacity="0.85"/>
-<text x="1589.0" y="442.0" font-size="11" font-weight="700" fill="#7c3aed">N</text>
-<text x="1153.3" y="312.0" font-size="11" font-weight="700" fill="#7c3aed">1</text>
-<path d="M1626.7,752.0 C1626.7,822.0 1101.7,832.0 1101.7,902.0" fill="none" stroke="#7c3aed" stroke-width="1.8" opacity="0.85"/>
-<text x="1630.7" y="764.0" font-size="11" font-weight="700" fill="#7c3aed">N</text>
-<text x="1105.7" y="896.0" font-size="11" font-weight="700" fill="#7c3aed">1</text>
-<path d="M1543.3,752.0 C1543.3,822.0 731.7,832.0 731.7,902.0" fill="none" stroke="#7c3aed" stroke-width="1.8" opacity="0.85"/>
-<text x="1547.3" y="764.0" font-size="11" font-weight="700" fill="#7c3aed">N</text>
-<text x="735.7" y="896.0" font-size="11" font-weight="700" fill="#7c3aed">1</text>
-<path d="M1647.5,448.0 C1647.5,378.0 1471.7,368.0 1471.7,298.0" fill="none" stroke="#7c3aed" stroke-width="1.8" opacity="0.85"/>
-<text x="1651.5" y="442.0" font-size="11" font-weight="700" fill="#7c3aed">N</text>
-<text x="1475.7" y="312.0" font-size="11" font-weight="700" fill="#7c3aed">1</text>
-<path d="M1522.5,448.0 C1522.5,378.0 765.0,368.0 765.0,298.0" fill="none" stroke="#7c3aed" stroke-width="1.8" opacity="0.85"/>
-<text x="1526.5" y="442.0" font-size="11" font-weight="700" fill="#7c3aed">N</text>
-<text x="769.0" y="312.0" font-size="11" font-weight="700" fill="#7c3aed">1</text>
-<path d="M690.0,70.0 C690.0,15.0 1060.0,15.0 1060.0,70.0" fill="none" stroke="#64748b" stroke-width="1.8" opacity="0.85" stroke-dasharray="6 4"/>
-<text x="694.0" y="64.0" font-size="11" font-weight="700" fill="#64748b">N</text>
-<text x="1064.0" y="64.0" font-size="11" font-weight="700" fill="#64748b">1</text>
-<path d="M752.5,70.0 C752.5,15.0 1430.0,15.0 1430.0,70.0" fill="none" stroke="#64748b" stroke-width="1.8" opacity="0.85" stroke-dasharray="6 4"/>
-<text x="756.5" y="64.0" font-size="11" font-weight="700" fill="#64748b">N</text>
-<text x="1434.0" y="64.0" font-size="11" font-weight="700" fill="#64748b">1</text>
-<path d="M627.5,70.0 C627.5,15.0 320.0,15.0 320.0,70.0" fill="none" stroke="#64748b" stroke-width="1.8" opacity="0.85" stroke-dasharray="6 4"/>
-<text x="631.5" y="64.0" font-size="11" font-weight="700" fill="#64748b">N</text>
-<text x="324.0" y="64.0" font-size="11" font-weight="700" fill="#64748b">1</text>
-<path d="M690.0,1092.0 C690.0,1147.0 1388.3,1147.0 1388.3,1092.0" fill="none" stroke="#64748b" stroke-width="1.8" opacity="0.85" stroke-dasharray="6 4"/>
-<text x="694.0" y="1104.0" font-size="11" font-weight="700" fill="#64748b">N</text>
-<text x="1392.3" y="1106.0" font-size="11" font-weight="700" fill="#64748b">1</text>
-<path d="M1060.0,1092.0 C1060.0,1147.0 1471.7,1147.0 1471.7,1092.0" fill="none" stroke="#64748b" stroke-width="1.8" opacity="0.85" stroke-dasharray="6 4"/>
-<text x="1064.0" y="1104.0" font-size="11" font-weight="700" fill="#64748b">N</text>
-<text x="1475.7" y="1106.0" font-size="11" font-weight="700" fill="#64748b">1</text>
-<rect x="195.0" y="70" width="250" height="228" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.6"/>
-<path d="M195.0,76 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#334155"/>
-<text x="205.0" y="90" font-size="14" font-weight="700" fill="#fff">dim_utilisateur</text>
-<text x="437.0" y="90" font-size="10.5" fill="#e2e8f0" text-anchor="end">7 lignes</text>
-<text x="205.0" y="115" font-size="11.5" font-weight="700" fill="#b91c1c">User_Id</text>
-<text x="437.0" y="115" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="205.0" y="134" font-size="11.5" font-weight="400" fill="#0f172a">FullName</text>
-<text x="205.0" y="153" font-size="11.5" font-weight="400" fill="#0f172a">IsStaff</text>
-<rect x="565.0" y="70" width="250" height="228" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.6"/>
-<path d="M565.0,76 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#334155"/>
-<text x="575.0" y="90" font-size="14" font-weight="700" fill="#fff">dim_document</text>
-<text x="807.0" y="90" font-size="10.5" fill="#e2e8f0" text-anchor="end">12,543 lignes</text>
-<text x="575.0" y="115" font-size="11.5" font-weight="700" fill="#b91c1c">Document_Id</text>
-<text x="807.0" y="115" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="575.0" y="134" font-size="11.5" font-weight="700" fill="#1d4ed8">DateKey</text>
-<text x="807.0" y="134" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_temps</text>
-<text x="575.0" y="153" font-size="11.5" font-weight="700" fill="#1d4ed8">PaymentMode_Id</text>
-<text x="807.0" y="153" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_paiement</text>
-<text x="575.0" y="172" font-size="11.5" font-weight="700" fill="#1d4ed8">CreatedBy</text>
-<text x="807.0" y="172" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_utilisateur</text>
-<text x="575.0" y="191" font-size="11.5" font-weight="400" fill="#0f172a">DocumentNumber</text>
-<text x="575.0" y="210" font-size="11.5" font-weight="400" fill="#0f172a">TypeDocument</text>
-<text x="575.0" y="229" font-size="11.5" font-weight="400" fill="#0f172a">Flow</text>
-<text x="575.0" y="248" font-size="11.5" font-weight="400" fill="#0f172a">Canal</text>
-<text x="575.0" y="267" font-size="11.5" font-weight="400" fill="#0f172a">IsValidated</text>
-<text x="575.0" y="286" font-size="10.5" font-style="italic" fill="#64748b">+ 6 autres colonnes (voir dictionnaire)</text>
-<rect x="935.0" y="70" width="250" height="228" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.6"/>
-<path d="M935.0,76 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#334155"/>
-<text x="945.0" y="90" font-size="14" font-weight="700" fill="#fff">dim_temps</text>
-<text x="1177.0" y="90" font-size="10.5" fill="#e2e8f0" text-anchor="end">487 lignes</text>
-<text x="945.0" y="115" font-size="11.5" font-weight="700" fill="#b91c1c">DateKey</text>
-<text x="1177.0" y="115" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="945.0" y="134" font-size="11.5" font-weight="400" fill="#0f172a">Date</text>
-<text x="945.0" y="153" font-size="11.5" font-weight="400" fill="#0f172a">Annee</text>
-<text x="945.0" y="172" font-size="11.5" font-weight="400" fill="#0f172a">Mois</text>
-<text x="945.0" y="191" font-size="11.5" font-weight="400" fill="#0f172a">SemaineISO</text>
-<text x="945.0" y="210" font-size="11.5" font-weight="400" fill="#0f172a">NomJour</text>
-<text x="945.0" y="229" font-size="11.5" font-weight="400" fill="#0f172a">EstFerie</text>
-<text x="945.0" y="248" font-size="11.5" font-weight="400" fill="#0f172a">VacancesZoneC</text>
-<text x="945.0" y="267" font-size="11.5" font-weight="400" fill="#0f172a">Saison</text>
-<text x="945.0" y="286" font-size="10.5" font-style="italic" fill="#64748b">+ 23 autres colonnes (voir dictionnaire)</text>
-<rect x="1305.0" y="70" width="250" height="228" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.6"/>
-<path d="M1305.0,76 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#334155"/>
-<text x="1315.0" y="90" font-size="14" font-weight="700" fill="#fff">dim_paiement</text>
-<text x="1547.0" y="90" font-size="10.5" fill="#e2e8f0" text-anchor="end">7 lignes</text>
-<text x="1315.0" y="115" font-size="11.5" font-weight="700" fill="#b91c1c">PaymentMode_Id</text>
-<text x="1547.0" y="115" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="1315.0" y="134" font-size="11.5" font-weight="400" fill="#0f172a">PaymentModeName</text>
-<text x="1315.0" y="153" font-size="11.5" font-weight="400" fill="#0f172a">EstEspeces</text>
-<text x="1315.0" y="172" font-size="10.5" font-style="italic" fill="#64748b">+ 1 autres colonnes (voir dictionnaire)</text>
-<rect x="40.0" y="448" width="250" height="304" rx="6" fill="#ffffff" stroke="#b45309" stroke-width="1.6"/>
-<path d="M40.0,454 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#b45309"/>
-<text x="50.0" y="468" font-size="14" font-weight="700" fill="#fff">fait_stock_actuel</text>
-<text x="282.0" y="468" font-size="10.5" fill="#e2e8f0" text-anchor="end">6,842 lignes</text>
-<text x="50.0" y="493" font-size="11.5" font-weight="700" fill="#b91c1c">Product_Id</text>
-<text x="282.0" y="493" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK FK → dim_produit</text>
-<text x="50.0" y="512" font-size="11.5" font-weight="700" fill="#1d4ed8">DateKey</text>
-<text x="282.0" y="512" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_temps</text>
-<text x="50.0" y="531" font-size="11.5" font-weight="400" fill="#0f172a">Quantity</text>
-<text x="282.0" y="531" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="50.0" y="550" font-size="11.5" font-weight="400" fill="#0f172a">EnRupture</text>
-<text x="50.0" y="569" font-size="11.5" font-weight="400" fill="#0f172a">StockFaible</text>
-<text x="50.0" y="588" font-size="11.5" font-weight="400" fill="#0f172a">Rotation</text>
-<text x="282.0" y="588" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="50.0" y="607" font-size="11.5" font-weight="400" fill="#0f172a">ClasseABC</text>
-<text x="50.0" y="626" font-size="10.5" font-style="italic" fill="#64748b">+ 10 autres colonnes (voir dictionnaire)</text>
-<rect x="324.0" y="448" width="250" height="304" rx="6" fill="#ffffff" stroke="#0d9488" stroke-width="1.6"/>
-<path d="M324.0,454 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#0d9488"/>
-<text x="334.0" y="468" font-size="14" font-weight="700" fill="#fff">fait_stock_hebdo</text>
-<text x="566.0" y="468" font-size="10.5" fill="#e2e8f0" text-anchor="end">190,626 lignes</text>
-<text x="334.0" y="493" font-size="11.5" font-weight="700" fill="#b91c1c">Product_Id</text>
-<text x="566.0" y="493" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK FK → dim_produit</text>
-<text x="334.0" y="512" font-size="11.5" font-weight="700" fill="#b91c1c">SemaineDebut</text>
-<text x="566.0" y="512" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="334.0" y="531" font-size="11.5" font-weight="700" fill="#1d4ed8">DateKey</text>
-<text x="566.0" y="531" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_temps</text>
-<text x="334.0" y="550" font-size="11.5" font-weight="400" fill="#0f172a">StockFinSemaine</text>
-<text x="566.0" y="550" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="334.0" y="569" font-size="11.5" font-weight="400" fill="#0f172a">QteVendue</text>
-<text x="566.0" y="569" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="334.0" y="588" font-size="11.5" font-weight="400" fill="#0f172a">EnRupture</text>
-<text x="334.0" y="607" font-size="10.5" font-style="italic" fill="#64748b">+ 5 autres colonnes (voir dictionnaire)</text>
-<rect x="608.0" y="448" width="250" height="304" rx="6" fill="#ffffff" stroke="#059669" stroke-width="1.6"/>
-<path d="M608.0,454 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#059669"/>
-<text x="618.0" y="468" font-size="14" font-weight="700" fill="#fff">fait_stock_mouvements</text>
-<text x="850.0" y="468" font-size="10.5" fill="#e2e8f0" text-anchor="end">49,609 lignes</text>
-<text x="618.0" y="493" font-size="11.5" font-weight="700" fill="#b91c1c">Id</text>
-<text x="850.0" y="493" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="618.0" y="512" font-size="11.5" font-weight="700" fill="#1d4ed8">DateKey</text>
-<text x="850.0" y="512" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_temps</text>
-<text x="618.0" y="531" font-size="11.5" font-weight="700" fill="#1d4ed8">Product_Id</text>
-<text x="850.0" y="531" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_produit</text>
-<text x="618.0" y="550" font-size="11.5" font-weight="700" fill="#1d4ed8">Document_Id</text>
-<text x="850.0" y="550" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_document</text>
-<text x="618.0" y="569" font-size="11.5" font-weight="700" fill="#1d4ed8">User_Id</text>
-<text x="850.0" y="569" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_utilisateur</text>
-<text x="618.0" y="588" font-size="11.5" font-weight="400" fill="#0f172a">SourceKind</text>
-<text x="618.0" y="607" font-size="11.5" font-weight="400" fill="#0f172a">Quantity</text>
-<text x="850.0" y="607" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="618.0" y="626" font-size="11.5" font-weight="400" fill="#0f172a">CurrentBalance</text>
-<text x="618.0" y="645" font-size="11.5" font-weight="400" fill="#0f172a">ValeurMouvement_HT</text>
-<text x="850.0" y="645" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="618.0" y="664" font-size="10.5" font-style="italic" fill="#64748b">+ 7 autres colonnes (voir dictionnaire)</text>
-<rect x="892.0" y="448" width="250" height="304" rx="6" fill="#ffffff" stroke="#d97706" stroke-width="1.6"/>
-<path d="M892.0,454 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#d97706"/>
-<text x="902.0" y="468" font-size="14" font-weight="700" fill="#fff">fait_achats</text>
-<text x="1134.0" y="468" font-size="10.5" fill="#e2e8f0" text-anchor="end">6,980 lignes</text>
-<text x="902.0" y="493" font-size="11.5" font-weight="700" fill="#b91c1c">Id</text>
-<text x="1134.0" y="493" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="902.0" y="512" font-size="11.5" font-weight="700" fill="#1d4ed8">Document_Id</text>
-<text x="1134.0" y="512" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_document</text>
-<text x="902.0" y="531" font-size="11.5" font-weight="700" fill="#1d4ed8">DateKey</text>
-<text x="1134.0" y="531" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_temps</text>
-<text x="902.0" y="550" font-size="11.5" font-weight="700" fill="#1d4ed8">Product_Id</text>
-<text x="1134.0" y="550" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_produit</text>
-<text x="902.0" y="569" font-size="11.5" font-weight="700" fill="#1d4ed8">Company_Id</text>
-<text x="1134.0" y="569" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_fournisseur</text>
-<text x="902.0" y="588" font-size="11.5" font-weight="400" fill="#0f172a">QuantiteAchetee</text>
-<text x="1134.0" y="588" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="902.0" y="607" font-size="11.5" font-weight="400" fill="#0f172a">MontantAchat_HT</text>
-<text x="1134.0" y="607" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="902.0" y="626" font-size="11.5" font-weight="400" fill="#0f172a">EstUniteGratuite</text>
-<text x="902.0" y="645" font-size="10.5" font-style="italic" fill="#64748b">+ 9 autres colonnes (voir dictionnaire)</text>
-<rect x="1176.0" y="448" width="250" height="304" rx="6" fill="#ffffff" stroke="#2563eb" stroke-width="1.6"/>
-<path d="M1176.0,454 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#2563eb"/>
-<text x="1186.0" y="468" font-size="14" font-weight="700" fill="#fff">fait_ventes</text>
-<text x="1418.0" y="468" font-size="10.5" fill="#e2e8f0" text-anchor="end">25,743 lignes</text>
-<text x="1186.0" y="493" font-size="11.5" font-weight="700" fill="#b91c1c">Id</text>
-<text x="1418.0" y="493" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="1186.0" y="512" font-size="11.5" font-weight="700" fill="#1d4ed8">Document_Id</text>
-<text x="1418.0" y="512" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_document</text>
-<text x="1186.0" y="531" font-size="11.5" font-weight="700" fill="#1d4ed8">DateKey</text>
-<text x="1418.0" y="531" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_temps</text>
-<text x="1186.0" y="550" font-size="11.5" font-weight="700" fill="#1d4ed8">Product_Id</text>
-<text x="1418.0" y="550" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_produit</text>
-<text x="1186.0" y="569" font-size="11.5" font-weight="700" fill="#1d4ed8">Company_Id</text>
-<text x="1418.0" y="569" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_client</text>
-<text x="1186.0" y="588" font-size="11.5" font-weight="700" fill="#1d4ed8">PaymentMode_Id</text>
-<text x="1418.0" y="588" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_paiement</text>
-<text x="1186.0" y="607" font-size="11.5" font-weight="700" fill="#1d4ed8">CreatedBy</text>
-<text x="1418.0" y="607" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_utilisateur</text>
-<text x="1186.0" y="626" font-size="11.5" font-weight="400" fill="#0f172a">QuantiteVendue</text>
-<text x="1418.0" y="626" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="1186.0" y="645" font-size="11.5" font-weight="400" fill="#0f172a">Remise_HT</text>
-<text x="1418.0" y="645" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="1186.0" y="664" font-size="11.5" font-weight="400" fill="#0f172a">CA_HT</text>
-<text x="1418.0" y="664" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="1186.0" y="683" font-size="11.5" font-weight="400" fill="#0f172a">CA_TTC</text>
-<text x="1418.0" y="683" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="1186.0" y="702" font-size="11.5" font-weight="400" fill="#0f172a">Cout_HT</text>
-<text x="1418.0" y="702" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="1186.0" y="721" font-size="11.5" font-weight="400" fill="#0f172a">Marge_HT</text>
-<text x="1418.0" y="721" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="1186.0" y="740" font-size="10.5" font-style="italic" fill="#64748b">+ 17 autres colonnes (voir dictionnaire)</text>
-<rect x="1460.0" y="448" width="250" height="304" rx="6" fill="#ffffff" stroke="#7c3aed" stroke-width="1.6"/>
-<path d="M1460.0,454 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#7c3aed"/>
-<text x="1470.0" y="468" font-size="14" font-weight="700" fill="#fff">fait_paiements</text>
-<text x="1702.0" y="468" font-size="10.5" fill="#e2e8f0" text-anchor="end">10,899 lignes</text>
-<text x="1470.0" y="493" font-size="11.5" font-weight="700" fill="#b91c1c">Id</text>
-<text x="1702.0" y="493" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="1470.0" y="512" font-size="11.5" font-weight="700" fill="#1d4ed8">DateKey</text>
-<text x="1702.0" y="512" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_temps</text>
-<text x="1470.0" y="531" font-size="11.5" font-weight="700" fill="#1d4ed8">Client_Id</text>
-<text x="1702.0" y="531" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_client</text>
-<text x="1470.0" y="550" font-size="11.5" font-weight="700" fill="#1d4ed8">Fournisseur_Id</text>
-<text x="1702.0" y="550" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_fournisseur</text>
-<text x="1470.0" y="569" font-size="11.5" font-weight="700" fill="#1d4ed8">PaymentMode_Id</text>
-<text x="1702.0" y="569" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_paiement</text>
-<text x="1470.0" y="588" font-size="11.5" font-weight="700" fill="#1d4ed8">Document_Id</text>
-<text x="1702.0" y="588" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_document</text>
-<text x="1470.0" y="607" font-size="11.5" font-weight="400" fill="#0f172a">Amount</text>
-<text x="1702.0" y="607" font-size="9.5" fill="#059669" text-anchor="end">mesure</text>
-<text x="1470.0" y="626" font-size="11.5" font-weight="400" fill="#0f172a">EstPaiementFournisseur</text>
-<text x="1470.0" y="645" font-size="11.5" font-weight="400" fill="#0f172a">CaisseName</text>
-<text x="1470.0" y="664" font-size="10.5" font-style="italic" fill="#64748b">+ 10 autres colonnes (voir dictionnaire)</text>
-<rect x="195.0" y="902" width="250" height="190" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.6"/>
-<path d="M195.0,908 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#334155"/>
-<text x="205.0" y="922" font-size="14" font-weight="700" fill="#fff">dim_produit</text>
-<text x="437.0" y="922" font-size="10.5" fill="#e2e8f0" text-anchor="end">6,842 lignes</text>
-<text x="205.0" y="947" font-size="11.5" font-weight="700" fill="#b91c1c">Product_Id</text>
-<text x="437.0" y="947" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="205.0" y="966" font-size="11.5" font-weight="400" fill="#0f172a">Libellé</text>
-<text x="205.0" y="985" font-size="11.5" font-weight="400" fill="#0f172a">CodeBarre</text>
-<text x="205.0" y="1004" font-size="11.5" font-weight="400" fill="#0f172a">Famille</text>
-<text x="205.0" y="1023" font-size="11.5" font-weight="400" fill="#0f172a">Marque</text>
-<text x="205.0" y="1042" font-size="11.5" font-weight="400" fill="#0f172a">Prix d&#x27;achat HT</text>
-<text x="205.0" y="1061" font-size="11.5" font-weight="400" fill="#0f172a">Prix de vente HT</text>
-<text x="205.0" y="1080" font-size="10.5" font-style="italic" fill="#64748b">+ 11 autres colonnes (voir dictionnaire)</text>
-<rect x="565.0" y="902" width="250" height="190" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.6"/>
-<path d="M565.0,908 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#334155"/>
-<text x="575.0" y="922" font-size="14" font-weight="700" fill="#fff">dim_fournisseur</text>
-<text x="807.0" y="922" font-size="10.5" fill="#e2e8f0" text-anchor="end">116 lignes</text>
-<text x="575.0" y="947" font-size="11.5" font-weight="700" fill="#b91c1c">Company_Id</text>
-<text x="807.0" y="947" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="575.0" y="966" font-size="11.5" font-weight="700" fill="#1d4ed8">Geo_Id</text>
-<text x="807.0" y="966" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_geographie</text>
-<text x="575.0" y="985" font-size="11.5" font-weight="400" fill="#0f172a">Nom</text>
-<text x="575.0" y="1004" font-size="11.5" font-weight="400" fill="#0f172a">Ville</text>
-<text x="575.0" y="1023" font-size="11.5" font-weight="400" fill="#0f172a">Solde</text>
-<text x="575.0" y="1042" font-size="10.5" font-style="italic" fill="#64748b">+ 1 autres colonnes (voir dictionnaire)</text>
-<rect x="935.0" y="902" width="250" height="190" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.6"/>
-<path d="M935.0,908 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#334155"/>
-<text x="945.0" y="922" font-size="14" font-weight="700" fill="#fff">dim_client</text>
-<text x="1177.0" y="922" font-size="10.5" fill="#e2e8f0" text-anchor="end">82 lignes</text>
-<text x="945.0" y="947" font-size="11.5" font-weight="700" fill="#b91c1c">Company_Id</text>
-<text x="1177.0" y="947" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="945.0" y="966" font-size="11.5" font-weight="700" fill="#1d4ed8">Geo_Id</text>
-<text x="1177.0" y="966" font-size="9.5" font-weight="700" fill="#1d4ed8" text-anchor="end">FK → dim_geographie</text>
-<text x="945.0" y="985" font-size="11.5" font-weight="400" fill="#0f172a">Nom</text>
-<text x="945.0" y="1004" font-size="11.5" font-weight="400" fill="#0f172a">TypeClient</text>
-<text x="945.0" y="1023" font-size="11.5" font-weight="400" fill="#0f172a">Ville</text>
-<text x="945.0" y="1042" font-size="11.5" font-weight="400" fill="#0f172a">Solde</text>
-<text x="945.0" y="1061" font-size="10.5" font-style="italic" fill="#64748b">+ 3 autres colonnes (voir dictionnaire)</text>
-<rect x="1305.0" y="902" width="250" height="190" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.6"/>
-<path d="M1305.0,908 a6,6 0 0 1 6,-6 h238 a6,6 0 0 1 6,6 v24 h-250 z" fill="#334155"/>
-<text x="1315.0" y="922" font-size="14" font-weight="700" fill="#fff">dim_geographie</text>
-<text x="1547.0" y="922" font-size="10.5" fill="#e2e8f0" text-anchor="end">12 lignes</text>
-<text x="1315.0" y="947" font-size="11.5" font-weight="700" fill="#b91c1c">Geo_Id</text>
-<text x="1547.0" y="947" font-size="9.5" font-weight="700" fill="#b91c1c" text-anchor="end">PK</text>
-<text x="1315.0" y="966" font-size="11.5" font-weight="400" fill="#0f172a">Ville</text>
-<text x="1315.0" y="985" font-size="11.5" font-weight="400" fill="#0f172a">Departement</text>
-<text x="1315.0" y="1004" font-size="11.5" font-weight="400" fill="#0f172a">Region</text>
-<text x="1315.0" y="1023" font-size="10.5" font-style="italic" fill="#64748b">+ 1 autres colonnes (voir dictionnaire)</text>
-<text x="40" y="1148" font-size="12" font-weight="700" fill="#b91c1c">■</text>
-<text x="56" y="1148" font-size="12" fill="#334155">PK = clé primaire</text>
-<text x="172.2" y="1148" font-size="12" font-weight="700" fill="#1d4ed8">■</text>
-<text x="188.2" y="1148" font-size="12" fill="#334155">FK → table = clé étrangère vers la dimension</text>
-<text x="482.59999999999997" y="1148" font-size="12" font-weight="700" fill="#059669">■</text>
-<text x="498.59999999999997" y="1148" font-size="12" fill="#334155">mesure = valeur additive</text>
-<text x="661.0" y="1148" font-size="12" fill="#334155">· trait plein = fait → dimension (N–1) · pointillé = dimension → dimension (flocon)</text>
-</svg>
-</section>
-<h2>1. Matrice des liens (quelle table est reliée à quelle dimension)</h2>
-<p class="sub">Chaque case indique la colonne clé étrangère qui fait le lien. Case vide = pas de lien.</p>
-<table class="mat"><tr><th>Fait \ Dimension</th><th>dim_temps</th><th>dim_geographie</th><th>dim_produit</th><th>dim_client</th><th>dim_fournisseur</th><th>dim_paiement</th><th>dim_utilisateur</th><th>dim_document</th></tr><tr><th>fait_ventes</th><td class="on">DateKey</td><td class=""></td><td class="on">Product_Id</td><td class="on">Company_Id</td><td class=""></td><td class="on">PaymentMode_Id</td><td class="on">CreatedBy</td><td class="on">Document_Id</td></tr><tr><th>fait_achats</th><td class="on">DateKey</td><td class=""></td><td class="on">Product_Id</td><td class=""></td><td class="on">Company_Id</td><td class=""></td><td class=""></td><td class="on">Document_Id</td></tr><tr><th>fait_paiements</th><td class="on">DateKey</td><td class=""></td><td class=""></td><td class="on">Client_Id</td><td class="on">Fournisseur_Id</td><td class="on">PaymentMode_Id</td><td class=""></td><td class="on">Document_Id</td></tr><tr><th>fait_stock_mouvements</th><td class="on">DateKey</td><td class=""></td><td class="on">Product_Id</td><td class=""></td><td class=""></td><td class=""></td><td class="on">User_Id</td><td class="on">Document_Id</td></tr><tr><th>fait_stock_hebdo</th><td class="on">DateKey</td><td class=""></td><td class="on">Product_Id</td><td class=""></td><td class=""></td><td class=""></td><td class=""></td><td class=""></td></tr><tr><th>fait_stock_actuel</th><td class="on">DateKey</td><td class=""></td><td class="on">Product_Id</td><td class=""></td><td class=""></td><td class=""></td><td class=""></td><td class=""></td></tr><tr><th>dim_document</th><td class="on">DateKey</td><td class=""></td><td class=""></td><td class=""></td><td class=""></td><td class="on">PaymentMode_Id</td><td class="on">CreatedBy</td><td class=""></td></tr><tr><th>dim_client</th><td class=""></td><td class="on">Geo_Id</td><td class=""></td><td class=""></td><td class=""></td><td class=""></td><td class=""></td><td class=""></td></tr><tr><th>dim_fournisseur</th><td class=""></td><td class="on">Geo_Id</td><td class=""></td><td class=""></td><td class=""></td><td class=""></td><td class=""></td><td class=""></td></tr></table>
-<h2>2. Liste des relations (clé étrangère → clé primaire)</h2>
-<table class="rel"><tr><th>Table (clé étrangère)</th><th>Colonne FK</th><th>→ Table référencée</th><th>Clé primaire</th><th>Cardinalité</th></tr><tr><td>fait_ventes</td><td><code>Document_Id</code></td><td>dim_document</td><td><code>Document_Id</code></td><td>N – 1</td></tr><tr><td>fait_ventes</td><td><code>DateKey</code></td><td>dim_temps</td><td><code>DateKey</code></td><td>N – 1</td></tr><tr><td>fait_ventes</td><td><code>Product_Id</code></td><td>dim_produit</td><td><code>Product_Id</code></td><td>N – 1</td></tr><tr><td>fait_ventes</td><td><code>Company_Id</code></td><td>dim_client</td><td><code>Company_Id</code></td><td>N – 1</td></tr><tr><td>fait_ventes</td><td><code>PaymentMode_Id</code></td><td>dim_paiement</td><td><code>PaymentMode_Id</code></td><td>N – 1</td></tr><tr><td>fait_ventes</td><td><code>CreatedBy</code></td><td>dim_utilisateur</td><td><code>User_Id</code></td><td>N – 1</td></tr><tr><td>fait_achats</td><td><code>Document_Id</code></td><td>dim_document</td><td><code>Document_Id</code></td><td>N – 1</td></tr><tr><td>fait_achats</td><td><code>DateKey</code></td><td>dim_temps</td><td><code>DateKey</code></td><td>N – 1</td></tr><tr><td>fait_achats</td><td><code>Product_Id</code></td><td>dim_produit</td><td><code>Product_Id</code></td><td>N – 1</td></tr><tr><td>fait_achats</td><td><code>Company_Id</code></td><td>dim_fournisseur</td><td><code>Company_Id</code></td><td>N – 1</td></tr><tr><td>fait_paiements</td><td><code>DateKey</code></td><td>dim_temps</td><td><code>DateKey</code></td><td>N – 1</td></tr><tr><td>fait_paiements</td><td><code>Client_Id</code></td><td>dim_client</td><td><code>Company_Id</code></td><td>N – 1</td></tr><tr><td>fait_paiements</td><td><code>Fournisseur_Id</code></td><td>dim_fournisseur</td><td><code>Company_Id</code></td><td>N – 1</td></tr><tr><td>fait_paiements</td><td><code>PaymentMode_Id</code></td><td>dim_paiement</td><td><code>PaymentMode_Id</code></td><td>N – 1</td></tr><tr><td>fait_paiements</td><td><code>Document_Id</code></td><td>dim_document</td><td><code>Document_Id</code></td><td>N – 1</td></tr><tr><td>fait_stock_mouvements</td><td><code>DateKey</code></td><td>dim_temps</td><td><code>DateKey</code></td><td>N – 1</td></tr><tr><td>fait_stock_mouvements</td><td><code>Product_Id</code></td><td>dim_produit</td><td><code>Product_Id</code></td><td>N – 1</td></tr><tr><td>fait_stock_mouvements</td><td><code>Document_Id</code></td><td>dim_document</td><td><code>Document_Id</code></td><td>N – 1</td></tr><tr><td>fait_stock_mouvements</td><td><code>User_Id</code></td><td>dim_utilisateur</td><td><code>User_Id</code></td><td>N – 1</td></tr><tr><td>fait_stock_hebdo</td><td><code>Product_Id</code></td><td>dim_produit</td><td><code>Product_Id</code></td><td>N – 1</td></tr><tr><td>fait_stock_hebdo</td><td><code>DateKey</code></td><td>dim_temps</td><td><code>DateKey</code></td><td>N – 1</td></tr><tr><td>fait_stock_actuel</td><td><code>Product_Id</code></td><td>dim_produit</td><td><code>Product_Id</code></td><td>N – 1</td></tr><tr><td>fait_stock_actuel</td><td><code>DateKey</code></td><td>dim_temps</td><td><code>DateKey</code></td><td>N – 1</td></tr><tr><td>dim_client</td><td><code>Geo_Id</code></td><td>dim_geographie</td><td><code>Geo_Id</code></td><td>N – 1</td></tr><tr><td>dim_fournisseur</td><td><code>Geo_Id</code></td><td>dim_geographie</td><td><code>Geo_Id</code></td><td>N – 1</td></tr><tr><td>dim_document</td><td><code>DateKey</code></td><td>dim_temps</td><td><code>DateKey</code></td><td>N – 1</td></tr><tr><td>dim_document</td><td><code>PaymentMode_Id</code></td><td>dim_paiement</td><td><code>PaymentMode_Id</code></td><td>N – 1</td></tr><tr><td>dim_document</td><td><code>CreatedBy</code></td><td>dim_utilisateur</td><td><code>User_Id</code></td><td>N – 1</td></tr></table>
-<p class="sub">Membres « inconnu » : <code>-1</code> dans dim_client, dim_fournisseur, dim_document, dim_paiement et dim_geographie, pour que chaque clé étrangère retrouve toujours sa dimension. Dans fait_paiements, une seule des deux clés <code>Client_Id</code> / <code>Fournisseur_Id</code> est remplie.</p>
-<h2>3. Dictionnaire des tables</h2>
-<p class="sub">Types : INT entier, DEC décimal, TEXTE chaîne, DATE date ISO, BOOL true/false. MESURE = colonne additive à agréger dans les tableaux de bord.</p>
-<section class="card"><h3><span class="badge d">Dimension</span> dim_temps
-<small>487 lignes · 32 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 jour (01/09/2024 → 31/12/2025)<br><b>Clé primaire :</b> <code>DateKey</code><br><b>Clés étrangères :</b> —</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>DateKey</code></td><td>INT</td><td class="k">PK</td><td>Date au format AAAAMMJJ (clé de jointure de tous les faits)</td></tr><tr><td><code>Date</code></td><td>DATE</td><td class="k"></td><td>Date du jour</td></tr><tr><td><code>Annee</code></td><td>INT</td><td class="k"></td><td>Année</td></tr><tr><td><code>Trimestre</code></td><td>INT</td><td class="k"></td><td>Trimestre (1 à 4)</td></tr><tr><td><code>Mois</code></td><td>INT</td><td class="k"></td><td>Mois (1 à 12)</td></tr><tr><td><code>NomMois</code></td><td>TEXTE</td><td class="k"></td><td>Nom du mois</td></tr><tr><td><code>AnneeMois</code></td><td>TEXTE</td><td class="k"></td><td>Année-mois (AAAA-MM)</td></tr><tr><td><code>SemaineISO</code></td><td>INT</td><td class="k"></td><td>Numéro de semaine ISO</td></tr><tr><td><code>AnneeSemaine</code></td><td>TEXTE</td><td class="k"></td><td>Année-semaine ISO (AAAA-Sxx)</td></tr><tr><td><code>DebutSemaine</code></td><td>DATE</td><td class="k"></td><td>Lundi de la semaine</td></tr><tr><td><code>Jour</code></td><td>INT</td><td class="k"></td><td>Jour du mois</td></tr><tr><td><code>JourSemaine</code></td><td>INT</td><td class="k"></td><td>Jour de la semaine (1 = lundi … 7 = dimanche)</td></tr><tr><td><code>NomJour</code></td><td>TEXTE</td><td class="k"></td><td>Nom du jour</td></tr><tr><td><code>EstWeekend</code></td><td>BOOL</td><td class="k"></td><td>Samedi ou dimanche</td></tr><tr><td><code>EstFerie</code></td><td>BOOL</td><td class="k"></td><td>Jour férié en France</td></tr><tr><td><code>NomFerie</code></td><td>TEXTE</td><td class="k"></td><td>Nom du jour férié</td></tr><tr><td><code>VacancesZoneA</code></td><td>BOOL</td><td class="k"></td><td>Vacances scolaires zone A</td></tr><tr><td><code>VacancesZoneB</code></td><td>BOOL</td><td class="k"></td><td>Vacances scolaires zone B</td></tr><tr><td><code>VacancesZoneC</code></td><td>BOOL</td><td class="k"></td><td>Vacances scolaires zone C (Paris, Toulouse)</td></tr><tr><td><code>EstVacances</code></td><td>BOOL</td><td class="k"></td><td>Vacances dans au moins une zone</td></tr><tr><td><code>Saison</code></td><td>TEXTE</td><td class="k"></td><td>Hiver / Printemps / Été / Automne</td></tr><tr><td><code>DansPeriodeDonnees</code></td><td>BOOL</td><td class="k"></td><td>Jour compris dans la période des transactions (30/09/2024 – 30/04/2025)</td></tr><tr><td><code>Meteo_TempMoy</code></td><td>DEC</td><td class="k"></td><td>EXTERNE Open-Meteo (Paris) – température moyenne du jour (°C)</td></tr><tr><td><code>Meteo_TempMin</code></td><td>DEC</td><td class="k"></td><td>EXTERNE Open-Meteo – température minimale (°C)</td></tr><tr><td><code>Meteo_TempMax</code></td><td>DEC</td><td class="k"></td><td>EXTERNE Open-Meteo – température maximale (°C)</td></tr><tr><td><code>Meteo_Pluie_mm</code></td><td>DEC</td><td class="k"></td><td>EXTERNE Open-Meteo – précipitations du jour (mm)</td></tr><tr><td><code>Meteo_Ensoleillement_h</code></td><td>DEC</td><td class="k"></td><td>EXTERNE Open-Meteo – durée d&#x27;ensoleillement (heures)</td></tr><tr><td><code>Meteo_Rayonnement_MJm2</code></td><td>DEC</td><td class="k"></td><td>EXTERNE Open-Meteo – rayonnement solaire (MJ/m²)</td></tr><tr><td><code>Senti_Grippe_Inc100</code></td><td>DEC</td><td class="k"></td><td>EXTERNE Sentinelles – syndromes grippaux, incidence /100 000 hab. (valeur de la semaine)</td></tr><tr><td><code>Senti_IRA_Inc100</code></td><td>DEC</td><td class="k"></td><td>EXTERNE Sentinelles – infections respiratoires aiguës /100 000 hab. (semaine)</td></tr><tr><td><code>Senti_Gastro_Inc100</code></td><td>DEC</td><td class="k"></td><td>EXTERNE Sentinelles – diarrhée aiguë /100 000 hab. (semaine)</td></tr><tr><td><code>Senti_Varicelle_Inc100</code></td><td>DEC</td><td class="k"></td><td>EXTERNE Sentinelles – varicelle /100 000 hab. (semaine)</td></tr></table></section><section class="card"><h3><span class="badge d">Dimension</span> dim_geographie
-<small>12 lignes · 5 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 ville (-1 = non renseigné)<br><b>Clé primaire :</b> <code>Geo_Id</code><br><b>Clés étrangères :</b> —</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>Geo_Id</code></td><td>INT</td><td class="k">PK</td><td>Identifiant de la ville</td></tr><tr><td><code>Ville</code></td><td>TEXTE</td><td class="k"></td><td>Ville</td></tr><tr><td><code>Departement</code></td><td>TEXTE</td><td class="k"></td><td>Numéro de département (déduit de la ville)</td></tr><tr><td><code>Region</code></td><td>TEXTE</td><td class="k"></td><td>Région</td></tr><tr><td><code>Pays</code></td><td>TEXTE</td><td class="k"></td><td>Pays</td></tr></table></section><section class="card"><h3><span class="badge d">Dimension</span> dim_produit
-<small>6,842 lignes · 18 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 produit du référentiel interne<br><b>Clé primaire :</b> <code>Product_Id</code><br><b>Clés étrangères :</b> —</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>Product_Id</code></td><td>INT</td><td class="k">PK</td><td>Identifiant produit du logiciel</td></tr><tr><td><code>ProductStock_Id</code></td><td>INT</td><td class="k"></td><td>Identifiant de la fiche stock du produit</td></tr><tr><td><code>Libellé</code></td><td>TEXTE</td><td class="k"></td><td>Nom du produit</td></tr><tr><td><code>Code</code></td><td>TEXTE</td><td class="k"></td><td>Code de l&#x27;export Produits (GUID ou ART…)</td></tr><tr><td><code>CodeBarre</code></td><td>TEXTE</td><td class="k"></td><td>Code-barres EAN-13</td></tr><tr><td><code>Famille</code></td><td>TEXTE</td><td class="k"></td><td>Famille / catégorie du produit</td></tr><tr><td><code>FamilyGroup</code></td><td>TEXTE</td><td class="k"></td><td>Famille regroupée (petites familles → AUTRES)</td></tr><tr><td><code>Marque</code></td><td>TEXTE</td><td class="k"></td><td>Marque</td></tr><tr><td><code>MarqueSource</code></td><td>TEXTE</td><td class="k"></td><td>Origine de la marque (Produits / déduite du libellé / absent)</td></tr><tr><td><code>Prix d&#x27;achat HT</code></td><td>DEC</td><td class="k"></td><td>Prix d&#x27;achat hors taxe</td></tr><tr><td><code>Prix de vente HT</code></td><td>DEC</td><td class="k"></td><td>Prix de vente hors taxe</td></tr><tr><td><code>Tva</code></td><td>DEC</td><td class="k"></td><td>Taux de TVA (%)</td></tr><tr><td><code>Prix de vente TTC</code></td><td>DEC</td><td class="k"></td><td>Prix de vente toutes taxes</td></tr><tr><td><code>CoutMoyenPondere</code></td><td>DEC</td><td class="k"></td><td>Dernier coût moyen pondéré (CUMP) connu</td></tr><tr><td><code>Quantité d&#x27;Alerte</code></td><td>DEC</td><td class="k"></td><td>Seuil d&#x27;alerte de stock</td></tr><tr><td><code>AlerteSource</code></td><td>TEXTE</td><td class="k"></td><td>Origine du seuil (Produits / paramètre par défaut 5)</td></tr><tr><td><code>IsDeletedInSoftware</code></td><td>BOOL</td><td class="k"></td><td>Produit supprimé dans le logiciel</td></tr><tr><td><code>ProductIdSource</code></td><td>TEXTE</td><td class="k"></td><td>Méthode de rapprochement avec l&#x27;export Produits</td></tr></table></section><section class="card"><h3><span class="badge d">Dimension</span> dim_client
-<small>82 lignes · 9 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 client (-1 = non renseigné, 2 = client comptoir anonyme)<br><b>Clé primaire :</b> <code>Company_Id</code><br><b>Clés étrangères :</b> <code>Geo_Id</code> → dim_geographie.Geo_Id</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>Company_Id</code></td><td>INT</td><td class="k">PK</td><td>Identifiant du client (celui des transactions)</td></tr><tr><td><code>Code</code></td><td>TEXTE</td><td class="k"></td><td>Code client (CL…)</td></tr><tr><td><code>Nom</code></td><td>TEXTE</td><td class="k"></td><td>Nom du client</td></tr><tr><td><code>TypeClient</code></td><td>TEXTE</td><td class="k"></td><td>PARTICULIER / B2B / COMPTOIR_ANONYME / NON RENSEIGNE</td></tr><tr><td><code>Ville</code></td><td>TEXTE</td><td class="k"></td><td>Ville</td></tr><tr><td><code>Geo_Id</code></td><td>INT</td><td class="k">FK → dim_geographie.Geo_Id</td><td>Ville du client</td></tr><tr><td><code>Solde</code></td><td>DEC</td><td class="k"></td><td>Solde du compte client (créance)</td></tr><tr><td><code>EstClientIdentifie</code></td><td>BOOL</td><td class="k"></td><td>Faux pour le client comptoir anonyme</td></tr><tr><td><code>CompanyType</code></td><td>TEXTE</td><td class="k"></td><td>Type de société dans CompaniesList</td></tr></table></section><section class="card"><h3><span class="badge d">Dimension</span> dim_fournisseur
-<small>116 lignes · 6 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 fournisseur (-1 = non renseigné)<br><b>Clé primaire :</b> <code>Company_Id</code><br><b>Clés étrangères :</b> <code>Geo_Id</code> → dim_geographie.Geo_Id</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>Company_Id</code></td><td>INT</td><td class="k">PK</td><td>Identifiant du fournisseur</td></tr><tr><td><code>Code</code></td><td>TEXTE</td><td class="k"></td><td>Code fournisseur (FOU…)</td></tr><tr><td><code>Nom</code></td><td>TEXTE</td><td class="k"></td><td>Nom du fournisseur</td></tr><tr><td><code>Ville</code></td><td>TEXTE</td><td class="k"></td><td>Ville</td></tr><tr><td><code>Geo_Id</code></td><td>INT</td><td class="k">FK → dim_geographie.Geo_Id</td><td>Ville du fournisseur</td></tr><tr><td><code>Solde</code></td><td>DEC</td><td class="k"></td><td>Solde du compte fournisseur (dette)</td></tr></table></section><section class="card"><h3><span class="badge d">Dimension</span> dim_paiement
-<small>7 lignes · 4 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 moyen de paiement (-1 = non renseigné)<br><b>Clé primaire :</b> <code>PaymentMode_Id</code><br><b>Clés étrangères :</b> —</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>PaymentMode_Id</code></td><td>INT</td><td class="k">PK</td><td>Identifiant du moyen de paiement</td></tr><tr><td><code>PaymentModeName</code></td><td>TEXTE</td><td class="k"></td><td>Espèces, Carte bancaire, Chèque, Crédit, Jetons…</td></tr><tr><td><code>EstEspeces</code></td><td>BOOL</td><td class="k"></td><td>Paiement en espèces</td></tr><tr><td><code>EstDiffere</code></td><td>BOOL</td><td class="k"></td><td>Paiement différé (crédit)</td></tr></table></section><section class="card"><h3><span class="badge d">Dimension</span> dim_utilisateur
-<small>7 lignes · 3 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 utilisateur (vendeur / caissier)<br><b>Clé primaire :</b> <code>User_Id</code><br><b>Clés étrangères :</b> —</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>User_Id</code></td><td>INT</td><td class="k">PK</td><td>Identifiant de l&#x27;utilisateur</td></tr><tr><td><code>FullName</code></td><td>TEXTE</td><td class="k"></td><td>Nom</td></tr><tr><td><code>IsStaff</code></td><td>BOOL</td><td class="k"></td><td>Faux pour les comptes administrateur / système</td></tr></table></section><section class="card"><h3><span class="badge d">Dimension</span> dim_document
-<small>12,543 lignes · 15 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 document (-1 = aucun document)<br><b>Clé primaire :</b> <code>Document_Id</code><br><b>Clés étrangères :</b> <code>DateKey</code> → dim_temps.DateKey<br><code>PaymentMode_Id</code> → dim_paiement.PaymentMode_Id<br><code>CreatedBy</code> → dim_utilisateur.User_Id</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>Document_Id</code></td><td>INT</td><td class="k">PK</td><td>Identifiant du document</td></tr><tr><td><code>DocumentNumber</code></td><td>TEXTE</td><td class="k"></td><td>Numéro de pièce (VC0001/24, BL…, FV…)</td></tr><tr><td><code>DateKey</code></td><td>INT</td><td class="k">FK → dim_temps.DateKey</td><td>Date du document</td></tr><tr><td><code>DocumentType_Id</code></td><td>INT</td><td class="k"></td><td>Code du type de document</td></tr><tr><td><code>TypeDocument</code></td><td>TEXTE</td><td class="k"></td><td>Vente comptoir, Bon de livraison, Facture client, Facture fournisseur…</td></tr><tr><td><code>Flow</code></td><td>TEXTE</td><td class="k"></td><td>SALE / SALE_RETURN / PURCHASE / PURCHASE_RETURN / QUOTE / ORDER</td></tr><tr><td><code>Canal</code></td><td>TEXTE</td><td class="k"></td><td>COMPTOIR / FACTURE / ACHAT / DEVIS / COMMANDE</td></tr><tr><td><code>State</code></td><td>INT</td><td class="k"></td><td>Statut d&#x27;origine (1 = validé, 0 = brouillon)</td></tr><tr><td><code>IsValidated</code></td><td>BOOL</td><td class="k"></td><td>Document validé</td></tr><tr><td><code>EstFactureDeBL</code></td><td>BOOL</td><td class="k"></td><td>Facture qui regroupe des BL déjà comptés (exclue des ventes)</td></tr><tr><td><code>PaymentMode_Id</code></td><td>INT</td><td class="k">FK → dim_paiement.PaymentMode_Id</td><td>Moyen de paiement du document</td></tr><tr><td><code>CreatedBy</code></td><td>INT</td><td class="k">FK → dim_utilisateur.User_Id</td><td>Utilisateur qui a créé le document</td></tr><tr><td><code>Heure</code></td><td>INT</td><td class="k"></td><td>Heure de création</td></tr><tr><td><code>TotalNetHt</code></td><td>DEC</td><td class="k"></td><td>Total net hors taxe du document</td></tr><tr><td><code>TotalTtc</code></td><td>DEC</td><td class="k"></td><td>Total toutes taxes du document</td></tr></table></section><section class="card"><h3><span class="badge f">Fait</span> fait_ventes
-<small>25,743 lignes · 30 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 produit vendu (ou retourné) dans 1 document validé à 1 date<br><b>Clé primaire :</b> <code>Id</code><br><b>Clés étrangères :</b> <code>Document_Id</code> → dim_document.Document_Id<br><code>DateKey</code> → dim_temps.DateKey<br><code>Product_Id</code> → dim_produit.Product_Id<br><code>Company_Id</code> → dim_client.Company_Id<br><code>PaymentMode_Id</code> → dim_paiement.PaymentMode_Id<br><code>CreatedBy</code> → dim_utilisateur.User_Id</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>Id</code></td><td>INT</td><td class="k">PK</td><td>Identifiant de la ligne de document</td></tr><tr><td><code>Document_Id</code></td><td>INT</td><td class="k">FK → dim_document.Document_Id</td><td>Document de vente</td></tr><tr><td><code>DocumentNumber</code></td><td>TEXTE</td><td class="k"></td><td>Numéro de pièce</td></tr><tr><td><code>DateKey</code></td><td>INT</td><td class="k">FK → dim_temps.DateKey</td><td>Date de la vente</td></tr><tr><td><code>Date</code></td><td>DATE</td><td class="k"></td><td>Date de la vente</td></tr><tr><td><code>Heure</code></td><td>INT</td><td class="k"></td><td>Heure de la vente</td></tr><tr><td><code>Product_Id</code></td><td>INT</td><td class="k">FK → dim_produit.Product_Id</td><td>Produit vendu</td></tr><tr><td><code>Company_Id</code></td><td>INT</td><td class="k">FK → dim_client.Company_Id</td><td>Client</td></tr><tr><td><code>PaymentMode_Id</code></td><td>INT</td><td class="k">FK → dim_paiement.PaymentMode_Id</td><td>Moyen de paiement</td></tr><tr><td><code>DocumentType_Id</code></td><td>INT</td><td class="k"></td><td>Type de document (6 comptoir, 5 BL, 1 facture, 4/7 retours)</td></tr><tr><td><code>Canal</code></td><td>TEXTE</td><td class="k"></td><td>COMPTOIR / FACTURE</td></tr><tr><td><code>CreatedBy</code></td><td>INT</td><td class="k">FK → dim_utilisateur.User_Id</td><td>Vendeur</td></tr><tr><td><code>Signe</code></td><td>INT</td><td class="k"></td><td>+1 vente, -1 retour</td></tr><tr><td><code>Quantity</code></td><td>DEC</td><td class="k"></td><td>Quantité (valeur d&#x27;origine, non signée)</td></tr><tr><td><code>PrixHt</code></td><td>DEC</td><td class="k"></td><td>Prix unitaire HT avant remise</td></tr><tr><td><code>DiscountPourcentage</code></td><td>DEC</td><td class="k"></td><td>Remise en %</td></tr><tr><td><code>Tva</code></td><td>DEC</td><td class="k"></td><td>Taux de TVA (%)</td></tr><tr><td><code>PrixTotalHt</code></td><td>DEC</td><td class="k"></td><td>Total HT de la ligne après remise (d&#x27;origine)</td></tr><tr><td><code>TotalTva</code></td><td>DEC</td><td class="k"></td><td>TVA de la ligne (d&#x27;origine)</td></tr><tr><td><code>PrixTotalTtc</code></td><td>DEC</td><td class="k"></td><td>Total TTC de la ligne (d&#x27;origine)</td></tr><tr><td><code>QuantiteVendue</code></td><td>DEC</td><td class="k"></td><td>MESURE – quantité signée</td></tr><tr><td><code>Remise_HT</code></td><td>DEC</td><td class="k"></td><td>MESURE – montant de remise HT signé</td></tr><tr><td><code>CA_HT</code></td><td>DEC</td><td class="k"></td><td>MESURE – chiffre d&#x27;affaires HT signé</td></tr><tr><td><code>TVA_Montant</code></td><td>DEC</td><td class="k"></td><td>MESURE – TVA signée</td></tr><tr><td><code>CA_TTC</code></td><td>DEC</td><td class="k"></td><td>MESURE – chiffre d&#x27;affaires TTC signé</td></tr><tr><td><code>CoutUnitaire</code></td><td>DEC</td><td class="k"></td><td>Coût unitaire (CUMP au moment de la vente)</td></tr><tr><td><code>SourceCout</code></td><td>TEXTE</td><td class="k"></td><td>Origine du coût (CUMP_MOUVEMENT / PRIX_ACHAT_PRODUIT / ABSENT)</td></tr><tr><td><code>Cout_HT</code></td><td>DEC</td><td class="k"></td><td>MESURE – coût de revient signé</td></tr><tr><td><code>Marge_HT</code></td><td>DEC</td><td class="k"></td><td>MESURE – marge HT signée (CA_HT − Cout_HT)</td></tr><tr><td><code>VenteSousCout</code></td><td>BOOL</td><td class="k"></td><td>Ligne vendue sous le coût</td></tr></table></section><section class="card"><h3><span class="badge f">Fait</span> fait_achats
-<small>6,980 lignes · 17 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 produit acheté sur 1 document fournisseur validé<br><b>Clé primaire :</b> <code>Id</code><br><b>Clés étrangères :</b> <code>Document_Id</code> → dim_document.Document_Id<br><code>DateKey</code> → dim_temps.DateKey<br><code>Product_Id</code> → dim_produit.Product_Id<br><code>Company_Id</code> → dim_fournisseur.Company_Id</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>Id</code></td><td>INT</td><td class="k">PK</td><td>Identifiant de la ligne de document</td></tr><tr><td><code>Document_Id</code></td><td>INT</td><td class="k">FK → dim_document.Document_Id</td><td>Facture / avoir fournisseur</td></tr><tr><td><code>DocumentNumber</code></td><td>TEXTE</td><td class="k"></td><td>Numéro de pièce</td></tr><tr><td><code>DateKey</code></td><td>INT</td><td class="k">FK → dim_temps.DateKey</td><td>Date de l&#x27;achat</td></tr><tr><td><code>Date</code></td><td>DATE</td><td class="k"></td><td>Date de l&#x27;achat</td></tr><tr><td><code>Product_Id</code></td><td>INT</td><td class="k">FK → dim_produit.Product_Id</td><td>Produit acheté</td></tr><tr><td><code>Company_Id</code></td><td>INT</td><td class="k">FK → dim_fournisseur.Company_Id</td><td>Fournisseur</td></tr><tr><td><code>DocumentType_Id</code></td><td>INT</td><td class="k"></td><td>Type de document (20 facture, 23 avoir)</td></tr><tr><td><code>Signe</code></td><td>INT</td><td class="k"></td><td>+1 achat, -1 avoir</td></tr><tr><td><code>Quantity</code></td><td>DEC</td><td class="k"></td><td>Quantité (d&#x27;origine)</td></tr><tr><td><code>PrixHt</code></td><td>DEC</td><td class="k"></td><td>Prix unitaire HT</td></tr><tr><td><code>DiscountPourcentage</code></td><td>DEC</td><td class="k"></td><td>Remise en %</td></tr><tr><td><code>PrixTotalHt</code></td><td>DEC</td><td class="k"></td><td>Total HT de la ligne (d&#x27;origine)</td></tr><tr><td><code>QuantiteAchetee</code></td><td>DEC</td><td class="k"></td><td>MESURE – quantité signée</td></tr><tr><td><code>MontantAchat_HT</code></td><td>DEC</td><td class="k"></td><td>MESURE – montant HT signé</td></tr><tr><td><code>MontantAchat_TTC</code></td><td>DEC</td><td class="k"></td><td>MESURE – montant TTC signé</td></tr><tr><td><code>EstUniteGratuite</code></td><td>BOOL</td><td class="k"></td><td>Unité offerte par le fournisseur (remise 100 %)</td></tr></table></section><section class="card"><h3><span class="badge f">Fait</span> fait_paiements
-<small>10,899 lignes · 19 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 paiement<br><b>Clé primaire :</b> <code>Id</code><br><b>Clés étrangères :</b> <code>DateKey</code> → dim_temps.DateKey<br><code>Client_Id</code> → dim_client.Company_Id<br><code>Fournisseur_Id</code> → dim_fournisseur.Company_Id<br><code>PaymentMode_Id</code> → dim_paiement.PaymentMode_Id<br><code>Document_Id</code> → dim_document.Document_Id</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>Id</code></td><td>INT</td><td class="k">PK</td><td>Identifiant du paiement</td></tr><tr><td><code>DateKey</code></td><td>INT</td><td class="k">FK → dim_temps.DateKey</td><td>Date du paiement</td></tr><tr><td><code>Date</code></td><td>DATE</td><td class="k"></td><td>Date du paiement</td></tr><tr><td><code>Heure</code></td><td>INT</td><td class="k"></td><td>Heure du paiement</td></tr><tr><td><code>Company_Id</code></td><td>INT</td><td class="k"></td><td>Société d&#x27;origine (client OU fournisseur)</td></tr><tr><td><code>Client_Id</code></td><td>INT</td><td class="k">FK → dim_client.Company_Id</td><td>Client (rempli si paiement client)</td></tr><tr><td><code>Fournisseur_Id</code></td><td>INT</td><td class="k">FK → dim_fournisseur.Company_Id</td><td>Fournisseur (rempli si paiement fournisseur)</td></tr><tr><td><code>PaymentMode_Id</code></td><td>INT</td><td class="k">FK → dim_paiement.PaymentMode_Id</td><td>Moyen de paiement</td></tr><tr><td><code>Amount</code></td><td>DEC</td><td class="k"></td><td>MESURE – montant payé</td></tr><tr><td><code>UsedAmount</code></td><td>DEC</td><td class="k"></td><td>Montant affecté aux pièces</td></tr><tr><td><code>IsPurchase</code></td><td>BOOL</td><td class="k"></td><td>Paiement d&#x27;achat selon le libellé</td></tr><tr><td><code>EstPaiementFournisseur</code></td><td>BOOL</td><td class="k"></td><td>Paiement fait à un fournisseur</td></tr><tr><td><code>DocumentNumber</code></td><td>TEXTE</td><td class="k"></td><td>Numéro de la pièce payée</td></tr><tr><td><code>Document_Id</code></td><td>INT</td><td class="k">FK → dim_document.Document_Id</td><td>Document payé (-1 si introuvable)</td></tr><tr><td><code>CaisseId</code></td><td>TEXTE</td><td class="k"></td><td>Caisse qui a encaissé</td></tr><tr><td><code>CaisseName</code></td><td>TEXTE</td><td class="k"></td><td>Nom de la caisse</td></tr><tr><td><code>BankAccountId</code></td><td>TEXTE</td><td class="k"></td><td>Compte bancaire</td></tr><tr><td><code>Extra_gA</code></td><td>DEC</td><td class="k"></td><td>Espèces données par le client</td></tr><tr><td><code>Extra_rA</code></td><td>DEC</td><td class="k"></td><td>Monnaie rendue</td></tr></table></section><section class="card"><h3><span class="badge f">Fait</span> fait_stock_mouvements
-<small>49,609 lignes · 16 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 mouvement de stock d&#x27;un produit<br><b>Clé primaire :</b> <code>Id</code><br><b>Clés étrangères :</b> <code>DateKey</code> → dim_temps.DateKey<br><code>Product_Id</code> → dim_produit.Product_Id<br><code>Document_Id</code> → dim_document.Document_Id<br><code>User_Id</code> → dim_utilisateur.User_Id</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>Id</code></td><td>INT</td><td class="k">PK</td><td>Identifiant du mouvement</td></tr><tr><td><code>DateKey</code></td><td>INT</td><td class="k">FK → dim_temps.DateKey</td><td>Date du mouvement</td></tr><tr><td><code>Date</code></td><td>DATE</td><td class="k"></td><td>Date du mouvement</td></tr><tr><td><code>Heure</code></td><td>INT</td><td class="k"></td><td>Heure du mouvement</td></tr><tr><td><code>Product_Id</code></td><td>INT</td><td class="k">FK → dim_produit.Product_Id</td><td>Produit</td></tr><tr><td><code>ProductStock_Id</code></td><td>INT</td><td class="k"></td><td>Fiche stock du produit</td></tr><tr><td><code>DocumentId</code></td><td>INT</td><td class="k"></td><td>Document d&#x27;origine (valeur brute)</td></tr><tr><td><code>Document_Id</code></td><td>INT</td><td class="k">FK → dim_document.Document_Id</td><td>Document lié (-1 = stock initial / ajustement)</td></tr><tr><td><code>Action</code></td><td>TEXTE</td><td class="k"></td><td>VALIDATION / CORRECTION / MANUAL / INITIAL</td></tr><tr><td><code>SourceKind</code></td><td>TEXTE</td><td class="k"></td><td>COUNTER_SALE, DELIVERY_NOTE, SUPPLIER_INVOICE, INITIAL_STOCK…</td></tr><tr><td><code>Direction</code></td><td>TEXTE</td><td class="k"></td><td>IN / OUT / NONE</td></tr><tr><td><code>Quantity</code></td><td>DEC</td><td class="k"></td><td>MESURE – quantité (+ entrée, − sortie)</td></tr><tr><td><code>CurrentBalance</code></td><td>DEC</td><td class="k"></td><td>Stock du produit après le mouvement</td></tr><tr><td><code>Extra_cump</code></td><td>DEC</td><td class="k"></td><td>Coût moyen pondéré au moment du mouvement</td></tr><tr><td><code>ValeurMouvement_HT</code></td><td>DEC</td><td class="k"></td><td>MESURE – Quantity × CUMP</td></tr><tr><td><code>User_Id</code></td><td>INT</td><td class="k">FK → dim_utilisateur.User_Id</td><td>Utilisateur</td></tr></table></section><section class="card"><h3><span class="badge f">Fait</span> fait_stock_hebdo
-<small>190,626 lignes · 11 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 produit × 1 semaine (clé composée)<br><b>Clé primaire :</b> <code>Product_Id, SemaineDebut</code><br><b>Clés étrangères :</b> <code>Product_Id</code> → dim_produit.Product_Id<br><code>DateKey</code> → dim_temps.DateKey</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>Product_Id</code></td><td>INT</td><td class="k">PK · FK → dim_produit.Product_Id</td><td>Produit</td></tr><tr><td><code>SemaineDebut</code></td><td>DATE</td><td class="k">PK</td><td>Lundi de la semaine</td></tr><tr><td><code>DateKey</code></td><td>INT</td><td class="k">FK → dim_temps.DateKey</td><td>Lundi de la semaine (AAAAMMJJ)</td></tr><tr><td><code>AnneeSemaine</code></td><td>TEXTE</td><td class="k"></td><td>Année-semaine ISO</td></tr><tr><td><code>StockFinSemaine</code></td><td>DEC</td><td class="k"></td><td>MESURE – stock en fin de semaine</td></tr><tr><td><code>QteEntree</code></td><td>DEC</td><td class="k"></td><td>MESURE – quantités entrées</td></tr><tr><td><code>QteSortie</code></td><td>DEC</td><td class="k"></td><td>MESURE – quantités sorties</td></tr><tr><td><code>QteVendue</code></td><td>DEC</td><td class="k"></td><td>MESURE – quantités vendues</td></tr><tr><td><code>CA_HT</code></td><td>DEC</td><td class="k"></td><td>MESURE – CA HT de la semaine</td></tr><tr><td><code>EnRupture</code></td><td>BOOL</td><td class="k"></td><td>Stock ≤ 0 en fin de semaine</td></tr><tr><td><code>SemaineComplete</code></td><td>BOOL</td><td class="k"></td><td>Faux pour la dernière semaine (partielle)</td></tr></table></section><section class="card"><h3><span class="badge f">Fait</span> fait_stock_actuel
-<small>6,842 lignes · 17 colonnes</small></h3>
-<p class="meta"><b>Granularité :</b> 1 ligne = 1 produit (photo au 30/04/2025)<br><b>Clé primaire :</b> <code>Product_Id</code><br><b>Clés étrangères :</b> <code>Product_Id</code> → dim_produit.Product_Id<br><code>DateKey</code> → dim_temps.DateKey</p>
-<table class="dict"><tr><th>Colonne</th><th>Type</th><th>Clé</th><th>Contenu</th></tr><tr><td><code>Product_Id</code></td><td>INT</td><td class="k">PK · FK → dim_produit.Product_Id</td><td>Produit</td></tr><tr><td><code>DateKey</code></td><td>INT</td><td class="k">FK → dim_temps.DateKey</td><td>Date de la photo (20250430)</td></tr><tr><td><code>Quantity</code></td><td>DEC</td><td class="k"></td><td>MESURE – stock disponible</td></tr><tr><td><code>Quantité d&#x27;Alerte</code></td><td>DEC</td><td class="k"></td><td>Seuil d&#x27;alerte</td></tr><tr><td><code>EnRupture</code></td><td>BOOL</td><td class="k"></td><td>Stock = 0</td></tr><tr><td><code>StockNegatif</code></td><td>BOOL</td><td class="k"></td><td>Stock &lt; 0</td></tr><tr><td><code>StockFaible</code></td><td>BOOL</td><td class="k"></td><td>0 &lt; stock ≤ seuil d&#x27;alerte</td></tr><tr><td><code>QteVendue_Periode</code></td><td>DEC</td><td class="k"></td><td>MESURE – quantité vendue sur la période</td></tr><tr><td><code>CA_HT_Periode</code></td><td>DEC</td><td class="k"></td><td>MESURE – CA HT sur la période</td></tr><tr><td><code>StockMoyenHebdo</code></td><td>DEC</td><td class="k"></td><td>Stock moyen de fin de semaine</td></tr><tr><td><code>Rotation</code></td><td>DEC</td><td class="k"></td><td>MESURE – quantité vendue / stock moyen</td></tr><tr><td><code>CouvertureJours</code></td><td>DEC</td><td class="k"></td><td>Nombre de jours de vente couverts par le stock</td></tr><tr><td><code>DateDerniereVente</code></td><td>DATE</td><td class="k"></td><td>Date de la dernière vente</td></tr><tr><td><code>JoursDepuisDerniereVente</code></td><td>INT</td><td class="k"></td><td>Jours depuis la dernière vente</td></tr><tr><td><code>ValeurStock_HT</code></td><td>DEC</td><td class="k"></td><td>MESURE – stock × CUMP</td></tr><tr><td><code>ClasseABC</code></td><td>TEXTE</td><td class="k"></td><td>A / B / C selon le CA (Pareto)</td></tr><tr><td><code>EstProduitActif</code></td><td>BOOL</td><td class="k"></td><td>Vendu au moins une fois sur la période</td></tr></table></section>
-</body></html>
+<section class='paysage'><h1>Schéma du Data Warehouse — Health Retailers</h1><div class='sub'>Modèle BI final simplifié (version B) : 4 dimensions et 3 tables de faits — descriptif détaillé</div><div class='schema'><img src='schema_dwh_diagramme.png' alt='Schéma du Data Warehouse'></div><div class='legend'>Clés primaires (PK), clés étrangères (FK) et mesures. La couleur d'un lien est celle de la dimension d'origine. Volumes de la période chargée (30/09/2024 → 29/09/2026) : données réelles du 30/09/2024 → 30/04/2025, puis données synthétiques. Le détail de chaque table, des relations et des mesures figure dans les pages suivantes.</div></section>
+<h2>1. Présentation du modèle</h2>
+<p>Le Data Warehouse de Health Retailers est un <b>modèle dimensionnel en constellation</b> : trois tables de faits partagent des dimensions communes. Chaque table de faits enregistre un processus métier (une vente, l'état du stock, un paiement) au niveau de détail utile au cahier de spécification ; chaque dimension apporte le contexte d'analyse (quand, quoi, qui, comment).</p>
+<table><tr><th style='width:22%'>Élément</th><th>Choix retenu</th></tr><tr><td>Dimensions (4)</td><td><code>dim_temps</code>, <code>dim_produit</code>, <code>dim_client</code>, <code>dim_paiement</code></td></tr><tr><td>Tables de faits (3)</td><td><code>fait_ventes</code>, <code>fait_stock_actuel</code>, <code>fait_paiements</code></td></tr><tr><td>Règle de conservation d'une colonne</td><td>Une colonne n'est stockée que si elle est <b>exigée par le cahier</b> (KPI, filtre ou attribut cité) <b>et</b> qu'elle <b>ne peut pas être recalculée</b> à partir des autres colonnes du Data Warehouse. Tout le reste est calculé dans Power BI ou reste en zone ETL.</td></tr><tr><td>Principe des mesures</td><td>Une mesure est définie une seule fois dans Power BI ; les vues par produit, marque, client, période ou moyen de paiement sont obtenues par les dimensions et les filtres.</td></tr><tr><td>Période</td><td>Données réelles du 30/09/2024 → 30/04/2025 (7 mois), prolongées par des données synthétiques jusqu'au 29/09/2026 (2 ans au total).</td></tr><tr><td>Délimitation réel / synthétique</td><td>Par la date, sans colonne dédiée : toute donnée datée jusqu'au 30/04/2025 inclus est réelle ; toute donnée à partir du 01/05/2025 est synthétique.</td></tr><tr><td>Données externes</td><td>Météo (Open-Meteo) et indicateurs épidémiques (Réseau Sentinelles) : réservés au jeu ML de prévision de la demande, <b>hors du Data Warehouse</b>. Le calendrier français (jours fériés) est calculé dans <code>dim_temps</code>.</td></tr><tr><td>Machine Learning</td><td>Les jeux ML sont construits à partir des données nettoyées (zone ETL), pas à partir du Data Warehouse : retirer une colonne du DW n'enlève rien aux cas ML.</td></tr></table>
+<h2>2. Vue d'ensemble des tables</h2>
+<table><tr><th>Table</th><th>Type</th><th>Grain</th><th>Clé primaire</th><th>Clés étrangères</th><th>Col.</th><th>Lignes</th></tr>
+<tr><td><code>dim_temps</code></td><td>Dimension</td><td>1 ligne = 1 date</td><td>DateKey</td><td>—</td><td>7</td><td>730</td></tr>
+<tr><td><code>dim_produit</code></td><td>Dimension</td><td>1 ligne = 1 produit</td><td>Product_Id</td><td>—</td><td>5</td><td>6 842</td></tr>
+<tr><td><code>dim_client</code></td><td>Dimension</td><td>1 ligne = 1 client, y compris le client comptoir anonyme</td><td>Company_Id</td><td>—</td><td>4</td><td>82</td></tr>
+<tr><td><code>dim_paiement</code></td><td>Dimension</td><td>1 ligne = 1 moyen de paiement</td><td>PaymentMode_Id</td><td>—</td><td>2</td><td>6</td></tr>
+<tr><td><code>fait_ventes</code></td><td>Fait</td><td>1 produit vendu dans 1 document à 1 date</td><td>Id</td><td>DateKey, Product_Id, Company_Id</td><td>9</td><td>91 995</td></tr>
+<tr><td><code>fait_stock_actuel</code></td><td>Fait (snapshot)</td><td>1 produit à la date de snapshot</td><td>Product_Id</td><td>Product_Id, DateKey</td><td>3</td><td>6 842</td></tr>
+<tr><td><code>fait_paiements</code></td><td>Fait</td><td>1 paiement</td><td>Id</td><td>DateKey, PaymentMode_Id</td><td>5</td><td>40 160</td></tr>
+</table>
+<p class='small'>fait_ventes : 25 743 lignes réelles et 66 252 synthétiques ; fait_paiements : 10 899 réels et 29 261 synthétiques ; fait_stock_actuel : photo au 29/09/2026.</p>
+<h2>3. Relations</h2><p>Toutes les relations vont d'une dimension (côté 1) vers une table de faits (côté N).</p>
+<table><tr><th>Dimension (1)</th><th>Table de faits (N)</th><th>Clé de jointure</th><th>Utilisation</th></tr>
+<tr><td><code>dim_temps</code></td><td><code>fait_ventes</code></td><td>DateKey</td><td>Évolution du CA, des ventes, du panier ; croissance</td></tr>
+<tr><td><code>dim_temps</code></td><td><code>fait_stock_actuel</code></td><td>DateKey</td><td>Date du snapshot de stock</td></tr>
+<tr><td><code>dim_temps</code></td><td><code>fait_paiements</code></td><td>DateKey</td><td>Évolution des encaissements</td></tr>
+<tr><td><code>dim_produit</code></td><td><code>fait_ventes</code></td><td>Product_Id</td><td>Ventes et marge par produit, famille, marque</td></tr>
+<tr><td><code>dim_produit</code></td><td><code>fait_stock_actuel</code></td><td>Product_Id</td><td>Stock disponible, ruptures, stock faible par produit, famille, marque</td></tr>
+<tr><td><code>dim_client</code></td><td><code>fait_ventes</code></td><td>Company_Id</td><td>Analyse des clients identifiés, clients actifs</td></tr>
+<tr><td><code>dim_paiement</code></td><td><code>fait_paiements</code></td><td>PaymentMode_Id</td><td>Répartition des encaissements par moyen de paiement</td></tr>
+</table><div class='box'>Les tables de faits ne sont <b>pas reliées entre elles</b> : une analyse croisée (par exemple ventes et stock d'un même produit) passe par la dimension commune, ici <code>dim_produit</code>.</div>
+<h2>4. Dictionnaire des données</h2><p class='small'>Légende : <span class='pk'>PK</span> clé primaire · <span class='fk'>FK</span> clé étrangère · <span class='ms'>mesure</span> valeur additive.</p>
+<div class='keep'><h3>dim_temps <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
+<tr><td>DateKey</td><td><span class="pk">PK</span></td><td>Clé de la date au format AAAAMMJJ (ex. 20250430).</td></tr>
+<tr><td>Date</td><td>attribut</td><td>Date calendaire.</td></tr>
+<tr><td>Annee</td><td>attribut</td><td>Année civile.</td></tr>
+<tr><td>Trimestre</td><td>attribut</td><td>Trimestre (1 à 4) ; vues trimestrielles de la direction (§6.1).</td></tr>
+<tr><td>Mois</td><td>attribut</td><td>Numéro du mois (1 à 12).</td></tr>
+<tr><td>SemaineISO</td><td>attribut</td><td>Numéro de semaine ISO 8601 (granularité de la prévision ML).</td></tr>
+<tr><td>EstFerie</td><td>attribut</td><td>Jour férié français (fêtes fixes et fêtes mobiles calculées à partir de Pâques). Remplace une source externe de calendrier.</td></tr>
+</table></div>
+<div class='keep'><h3>dim_produit <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
+<tr><td>Product_Id</td><td><span class="pk">PK</span></td><td>Identifiant numérique du produit dans le logiciel (référentiel ProductStocks).</td></tr>
+<tr><td>Libellé</td><td>attribut</td><td>Nom du produit (export Produits, sinon dernier libellé connu dans les événements ou les lignes de vente).</td></tr>
+<tr><td>Famille</td><td>attribut</td><td>Catégorie du produit ; NON RENSEIGNE si inconnue.</td></tr>
+<tr><td>Marque</td><td>attribut</td><td>Marque (export Produits, ou déduite du début du libellé) ; NON RENSEIGNE si inconnue.</td></tr>
+<tr><td>QuantiteAlerte</td><td>attribut</td><td>Seuil d&#x27;alerte de stock choisi par le magasin (export Produits, sinon paramètre par défaut du logiciel = 5). Non calculable : c&#x27;est un paramètre, pas une mesure du stock.</td></tr>
+</table></div>
+<div class='box'>Seuils d'alerte les plus fréquents : 5 (3 868 produits), 1 (2 970 produits).</div>
+<div class='keep'><h3>dim_client <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
+<tr><td>Company_Id</td><td><span class="pk">PK</span></td><td>Identifiant de la société dans le logiciel (CompaniesList) ; -1 = client non renseigné.</td></tr>
+<tr><td>Nom</td><td>attribut</td><td>Nom du client, pour l&#x27;affichage dans le dashboard Clients.</td></tr>
+<tr><td>TypeClient</td><td>attribut</td><td>PARTICULIER, B2B (laboratoires), COMPTOIR_ANONYME (client de passage, Company_Id = 2) ou NON RENSEIGNE. Axe « type client » du cahier (§6, §10).</td></tr>
+<tr><td>EstClientIdentifie</td><td>attribut</td><td>false pour le client comptoir anonyme et la ligne -1 : filtre de tous les KPI clients. Gardé bien que théoriquement déductible : il porte une règle métier (quels clients sont anonymes), définie une seule fois.</td></tr>
+</table></div>
+<div class='box'>Types : NON RENSEIGNE (34), PARTICULIER (29), B2B (18), COMPTOIR_ANONYME (1).</div>
+<div class='keep'><h3>dim_paiement <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
+<tr><td>PaymentMode_Id</td><td><span class="pk">PK</span></td><td>Identifiant du moyen de paiement : 11 Espèces, 5 Carte bancaire, 1 Chèque, 7 Crédit (paiement différé), 21 Jetons, -1 Non renseigné.</td></tr>
+<tr><td>PaymentModeName</td><td>attribut</td><td>Libellé affiché dans les graphiques et les filtres du dashboard Paiements (§9 : « Libellé / type de moyen »).</td></tr>
+</table></div>
+<div class='keep'><h3>fait_ventes <span class='tag fait'>FAIT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
+<tr><td>Id</td><td><span class="pk">PK</span></td><td>Identifiant de la ligne de document source.</td></tr>
+<tr><td>Document_Id</td><td>dimension dégénérée</td><td>Identifiant du document (ticket, bon de livraison, facture) : permet de compter les ventes et de calculer le panier moyen, sans dimension Document.</td></tr>
+<tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date du document.</td></tr>
+<tr><td>Product_Id</td><td><span class="fk">FK</span> → dim_produit</td><td>Produit vendu.</td></tr>
+<tr><td>Company_Id</td><td><span class="fk">FK</span> → dim_client</td><td>Client de la transaction ; -1 si non renseigné.</td></tr>
+<tr><td>QuantiteVendue</td><td><span class="ms">mesure</span></td><td>Quantité vendue, négative pour un retour ou un avoir.</td></tr>
+<tr><td>Remise_HT</td><td><span class="ms">mesure</span></td><td>Montant total de la remise HT accordée sur la ligne (cité par le cahier, §9).</td></tr>
+<tr><td>CA_HT</td><td><span class="ms">mesure</span></td><td>Chiffre d&#x27;affaires HT de la ligne, remises déduites, signé (négatif pour un retour).</td></tr>
+<tr><td>Cout_HT</td><td><span class="ms">mesure</span></td><td>Coût d&#x27;achat HT = quantité × coût unitaire à la date de la vente (coût moyen pondéré du mouvement de stock, à défaut prix d&#x27;achat du produit), calculé dans l&#x27;ETL. Vide si aucun coût n&#x27;est connu.</td></tr>
+</table></div>
+<div class='box'><b>Exemple réel — Document_Id 15 (ticket VC0013/24) :</b> 3 lignes, CA HT = 86,05 + 34,96 + 34,96 = 155,97 € ; coût HT = 134,89 € ; marge HT = 21,08 €. Il compte pour <b>1 vente</b> (91 995 lignes = 42 540 ventes). Lignes chargées : ventes comptoir, bons de livraison, factures client et retours validés ; brouillons, lignes de commentaire et factures qui regroupent des bons de livraison déjà comptés sont exclus.</div>
+<div class='keep'><h3>fait_stock_actuel <span class='tag fait'>FAIT · SNAPSHOT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
+<tr><td>Product_Id</td><td><span class="pk">PK</span> / <span class="fk">FK</span> → dim_produit</td><td>Produit (une ligne par produit).</td></tr>
+<tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date de la photo du stock (fin de la période chargée).</td></tr>
+<tr><td>Quantity</td><td><span class="ms">mesure</span></td><td>Quantité en stock selon le logiciel ; peut être négative quand une vente est enregistrée avant ou sans la réception de la marchandise (le logiciel l&#x27;autorise pour les ventes comptoir et les bons de livraison).</td></tr>
+</table></div>
+<div class='box'>Au snapshot : 1 777 produits à 0, 2 470 en stock faible, 339 à stock négatif. Rupture et stock faible ne sont <b>pas stockés</b> : mesures Power BI à partir de <code>Quantity</code> et <code>dim_produit.QuantiteAlerte</code> (§9).</div>
+<div class='keep'><h3>fait_paiements <span class='tag fait'>FAIT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
+<tr><td>Id</td><td><span class="pk">PK</span></td><td>Identifiant du paiement.</td></tr>
+<tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date du paiement.</td></tr>
+<tr><td>PaymentMode_Id</td><td><span class="fk">FK</span> → dim_paiement</td><td>Moyen de paiement ; -1 si non renseigné.</td></tr>
+<tr><td>Amount</td><td><span class="ms">mesure</span></td><td>Montant TTC réellement versé. Valeur de base non recalculable : elle diffère du CA (impayés, paiements fractionnés ou différés, TVA).</td></tr>
+<tr><td>EstPaiementFournisseur</td><td>indicateur</td><td>true pour un paiement à un fournisseur. Non déductible du montant (tous les montants sont positifs) ; filtre exigé par le cahier pour le montant encaissé (§6.5, §9, §12).</td></tr>
+</table></div>
+<div class='box'>Encaissé clients : 3 026 072 € sur 38 541 paiements ; paiements fournisseurs : 1 619 (1 930 937 €), exclus du montant encaissé. 37 659 paiements clients (98 %) n'ont pas de moyen renseigné dans la source.</div>
+<h2>5. Mesures et KPI (Power BI)</h2><table><tr><th style='width:20%'>Mesure / KPI</th><th style='width:32%'>Formule</th><th style='width:18%'>Tables</th><th>Dashboards</th></tr>
+<tr><td>CA HT</td><td><code>SUM(CA_HT)</code></td><td>fait_ventes</td><td>Synthèse, Commercial, Clients</td></tr>
+<tr><td>Quantité vendue</td><td><code>SUM(QuantiteVendue)</code></td><td>fait_ventes</td><td>Commercial</td></tr>
+<tr><td>Nombre de ventes</td><td><code>COUNT(DISTINCT Document_Id)</code></td><td>fait_ventes</td><td>Synthèse, Clients</td></tr>
+<tr><td>Panier moyen</td><td><code>CA HT / Nombre de ventes</code></td><td>fait_ventes</td><td>Synthèse, Commercial, Clients</td></tr>
+<tr><td>Taux de croissance du CA</td><td><code>(CA_N − CA_N-1) / CA_N-1 × 100</code></td><td>fait_ventes + dim_temps</td><td>Synthèse</td></tr>
+<tr><td>Marge HT</td><td><code>SUM(CA_HT) − SUM(Cout_HT), lignes sans coût exclues</code></td><td>fait_ventes</td><td>Commercial</td></tr>
+<tr><td>Clients actifs</td><td><code>DISTINCTCOUNT(Company_Id) avec au moins une vente, filtre EstClientIdentifie = true</code></td><td>fait_ventes + dim_client</td><td>Clients</td></tr>
+<tr><td>Stock disponible</td><td><code>SUM(Quantity)</code></td><td>fait_stock_actuel</td><td>Stock</td></tr>
+<tr><td>Produits en rupture</td><td><code>COUNT(Product_Id) où Quantity = 0</code></td><td>fait_stock_actuel</td><td>Stock</td></tr>
+<tr><td>Produits en stock faible</td><td><code>COUNT(Product_Id) où 0 &lt; Quantity ≤ QuantiteAlerte</code></td><td>fait_stock_actuel + dim_produit</td><td>Stock</td></tr>
+<tr><td>Montant encaissé</td><td><code>SUM(Amount) où EstPaiementFournisseur = false</code></td><td>fait_paiements</td><td>Paiements</td></tr>
+<tr><td>Nombre de paiements</td><td><code>COUNT(Id)</code></td><td>fait_paiements</td><td>Paiements</td></tr>
+</table>
+<h2>6. Différences avec le modèle précédent (version A)</h2><table><tr><th style='width:36%'>Élément retiré</th><th>Raison</th></tr>
+<tr><td>dim_document</td><td>Document_Id est gardé directement dans fait_ventes ; aucun KPI n&#x27;analyse le type ou le statut du document.</td></tr>
+<tr><td>dim_fournisseur, fait_achats</td><td>Analyse fournisseur hors périmètre ; les factures fournisseur restent en zone ETL (coût, stock).</td></tr>
+<tr><td>dim_geographie, dim_utilisateur</td><td>Analyses géographique et par utilisateur hors périmètre BI.</td></tr>
+<tr><td>fait_stock_hebdo, fait_stock_mouvements</td><td>Pas d&#x27;historique de stock dans le BI ; les mouvements restent en source / ETL.</td></tr>
+<tr><td>dim_temps : météo, épidémies, vacances, AnneeMois, NomJour, Saison…</td><td>Météo et épidémies réservées au ML ; vacances non retenues ; le reste se déduit de la date.</td></tr>
+<tr><td>dim_produit : codes, prix, TVA, coût moyen pondéré…</td><td>Aucun KPI ne les utilise ; prix et coût servent dans l&#x27;ETL au calcul de CA_HT et Cout_HT.</td></tr>
+<tr><td>dim_client : Code, Solde, Ville, Geo_Id</td><td>Code = clé de jointure de l&#x27;ETL ; aucun KPI n&#x27;utilise le solde ni la ville.</td></tr>
+<tr><td>dim_paiement : EstEspeces, EstDiffere, ligne « Inconnu (4) »</td><td>Déductibles du moyen de paiement ; la ligne 4 n&#x27;est utilisée par aucun paiement.</td></tr>
+<tr><td>fait_ventes : CA_TTC, Marge_HT, CoutUnitaire, Signe, taux de remise, colonnes brutes</td><td>Recalculables ou non utilisées par les KPI ; la marge devient une mesure.</td></tr>
+<tr><td>fait_stock_actuel : EnRupture, StockFaible, ValeurStock_HT, rotation, couverture…</td><td>Rupture et stock faible deviennent des mesures ; les autres ne sont pas des KPI du cahier.</td></tr>
+<tr><td>fait_paiements : UsedAmount, client, fournisseur, document, heure, caisse</td><td>UsedAmount = Amount à 99,9 % ; aucun KPI n&#x27;utilise les autres colonnes.</td></tr>
+</table><h2>7. Règles de chargement et limites</h2><ul>
+<li><b>Valeurs inconnues :</b> un client ou un moyen de paiement absent pointe vers la ligne -1 « NON RENSEIGNE » de <code>dim_client</code> ou <code>dim_paiement</code> ; le produit et la date sont toujours renseignés.</li>
+<li><b>Documents :</b> seuls les documents validés sont chargés ; retours et avoirs signés négativement ; pas de double comptage entre factures et bons de livraison.</li>
+<li><b>Ventes anonymes :</b> conservées (client comptoir) mais exclues des KPI clients par <code>EstClientIdentifie</code>.</li>
+<li><b>Encaissements :</b> paiements fournisseurs exclus du montant encaissé par <code>EstPaiementFournisseur</code>.</li>
+<li><b>Stock :</b> quantité du logiciel conservée, y compris les stocks négatifs (signalés par les contrôles qualité).</li>
+<li><b>Données synthétiques :</b> générées par simulation (hypothèses documentées dans la branche data-external) ; l'apport de la météo et des épidémies se mesure sur la période réelle uniquement.</li>
+<li><b>Sources brutes :</b> jamais modifiées ; le nettoyage produit des copies, puis le chargement du Data Warehouse.</li>
+</ul></body></html>
