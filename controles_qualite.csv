@@ -1,18 +1,19 @@
 Controle,Table,NbConcernes,NbTotal,Pourcentage,Statut,Detail
-Ligne de document sans document,documentItemm,0,38705,0.00,OK,
-Ligne de document sans produit,documentItemm,1038,38705,2.68,ATTENTION,
-Identifiant de document en double,Documents,0,12542,0.00,OK,
-Quantité ≤ 0 sur une ligne,documentItemm,1165,38705,3.01,ATTENTION,quantités nulles / négatives
-Prix unitaire HT ≤ 0,documentItemm,1085,38705,2.80,ATTENTION,
-Remise > 100 %,documentItemm,1,38705,0.00,ATTENTION,
-Document hors période 30/09/2024 – 30/04/2025,Documents,0,12542,0.00,OK,
-Document brouillon (non validé),Documents,56,12542,0.45,ATTENTION,exclus des faits
-Facture client regroupant des BL (double comptage évité),Documents,24,249,9.64,ATTENTION,"exclues de fait_ventes, les BL sont comptés"
-Code postal incohérent avec la ville,Clients/Fournisseurs,10,211,4.74,ATTENTION,"ex. NICE avec codes postaux 60…69 : la géographie est donc prise depuis la ville, pas le code postal"
-Produit du référentiel interne absent de l'export Produits,dim_produit,2376,6842,34.73,ATTENTION,famille / prix d'achat indisponibles pour ces produits ; libellé repris des événements ou des lignes de vente
-Company_Id client (ventes / paiements) absent de CompaniesList,"fait_ventes, fait_paiements",19,80,23.75,ATTENTION,ajoutés dans dim_client comme 'CLIENT INCONNU <id>' ; -1 = client non renseigné
-Client du fichier Clients sans Company_Id (non reliable aux ventes),Clients,46,93,49.46,ATTENTION,
-Company_Id fournisseur (achats / paiements) absent des fournisseurs de CompaniesList,"fait_achats, fait_paiements",21,115,18.26,ATTENTION,ajoutés dans dim_fournisseur (nom CompaniesList ou 'FOURNISSEUR INCONNU <id>')
-Ligne de vente sans coût (marge non calculable),fait_ventes,2,25743,0.01,ATTENTION,
-Ligne de vente sous le coût,fait_ventes,589,25743,2.29,ATTENTION,
-Paiement sans document retrouvé,fait_paiements,456,10899,4.18,ATTENTION,
+Ligne de document sans document,documentItemm,0,122570,0.00,OK,
+Ligne de document sans produit,documentItemm,1379,122570,1.13,ATTENTION,"lignes de commentaire / mise en page des factures, exclues des ventes"
+Identifiant de document en double,Documents,0,45868,0.00,OK,
+Quantité ≤ 0 sur une ligne,documentItemm,1848,122570,1.51,ATTENTION,quantités nulles / négatives
+Prix unitaire HT ≤ 0,documentItemm,1426,122570,1.16,ATTENTION,
+Remise > 100 %,documentItemm,1,122570,0.00,ATTENTION,
+Document hors période 30/09/2024 – 29/09/2026,Documents,0,45868,0.00,OK,
+Document brouillon (non validé),Documents,137,45868,0.30,ATTENTION,exclus des faits
+Facture client regroupant des BL (double comptage évité),Documents,24,1051,2.28,ATTENTION,"exclues de fait_ventes, les BL sont comptés"
+Produit du référentiel interne absent de l'export Produits,dim_produit,2376,6842,34.73,ATTENTION,famille indisponible ; libellé repris des événements ou des lignes de vente ; seuil d'alerte = 5
+Company_Id client absent de CompaniesList,fait_ventes,19,80,23.75,ATTENTION,ajoutés dans dim_client comme 'CLIENT INCONNU <id>' ; -1 = client non renseigné
+Ligne de vente sans coût (marge non calculable),fait_ventes,2,91995,0.00,ATTENTION,
+Produit à stock négatif (vente enregistrée sans réception),fait_stock_actuel,339,6842,4.95,ATTENTION,conservé tel quel (défaut de saisie du logiciel) ; compte comme rupture potentielle
+Paiement client sans moyen de paiement renseigné,fait_paiements,37659,38541,97.71,ATTENTION,limite de la source (encaissements de caisse) : la répartition par moyen est dominée par « Non renseigné »
+Clé Product_Id de fait_ventes absente de la dimension,fait_ventes,0,91995,0.00,OK,
+Clé Company_Id de fait_ventes absente de la dimension,fait_ventes,0,91995,0.00,OK,
+Clé DateKey de fait_ventes absente de la dimension,fait_ventes,0,91995,0.00,OK,
+Ligne de vente sous le coût,fait_ventes,3010,91952,3.27,ATTENTION,règle d'interprétation du ML 11.2
