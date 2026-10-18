@@ -3,6 +3,11 @@
 Copies nettoyées des fichiers de [`data-original`](../../tree/data-original), produites par `clean_data.py`
 (branche `main`). **Chaque action appliquée à chaque fichier est détaillée dans [`CLEANING_REPORT.md`](CLEANING_REPORT.md).**
 
+Le dossier [`synthetique/`](synthetique/) contient, **à part**, les données synthétiques nettoyées (prolongation
+01/05/2025 → 29/09/2026, branche [`data-external`](../../tree/data-external)), produites par
+`clean_data.py --synthetique` avec les mêmes règles et son propre rapport. Réel et synthétique ne sont jamais
+mélangés dans un même dossier ; `build_dataset.py` les empile dans le Data Warehouse (délimitation par la date).
+
 Règles communes :
 - UTF-8, séparateur virgule, décimale `.`, dates ISO `AAAA-MM-JJ [HH:MM]`, booléens `true` / `false` ;
 - **noms de colonnes d'origine conservés** ; les colonnes ajoutées suivent le style du logiciel
@@ -43,5 +48,24 @@ Règles communes :
 | `treasury_events.csv` | 21 743 | 8.2 Mo |
 | `treasury_payments.csv` | 10 168 | 1.3 Mo |
 | `users.csv` | 7 | 0 Ko |
+
+## Données synthétiques nettoyées (`synthetique/`)
+
+| Fichier | Lignes | Taille |
+|---|---|---|
+| `cash_operations.csv` | 28 446 | 4.6 Mo |
+| `cash_register_events.csv` | 3 646 | 0.5 Mo |
+| `document_items.csv` | 83 865 | 8.7 Mo |
+| `documents.csv` | 33 326 | 5.9 Mo |
+| `payments.csv` | 29 261 | 3.7 Mo |
+| `product_stocks.csv` | 6 842 | 0.2 Mo |
+| `stock_movements.csv` | 95 733 | 13.6 Mo |
+| `transaction_payments.csv` | 29 261 | 0.8 Mo |
+| `transactions.csv` | 33 326 | 1.6 Mo |
+| `treasury_events.csv` | 63 412 | 24.1 Mo |
+| `treasury_payments.csv` | 29 261 | 3.8 Mo |
+
+Les tables de référence (produits, clients, fournisseurs, utilisateurs, caisses…) ne sont pas répétées : celles de la
+racine servent aux deux périodes.
 
 Retour à la vue d'ensemble : branche [`main`](../../tree/main).
