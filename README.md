@@ -18,6 +18,7 @@ Chaque branche est indépendante et contient **un seul type de contenu** avec so
 | [`data-original`](../../tree/data-original) | Les 29 CSV bruts, à l'identique de l'export reçu | Export du logiciel |
 | [`data-external`](../../tree/data-external) | Données externes : météo (Open-Meteo), épidémies (Réseau Sentinelles), données synthétiques (prolongation à 2 ans) | `build_dataset.py` (téléchargement), `generate_external_data.py` |
 | [`data-cleaned`](../../tree/data-cleaned) | Fichiers nettoyés + rapport de nettoyage ; `synthetique/` pour la période générée | `clean_data.py` |
+| [`script-cleaning`](../../tree/script-cleaning) | Le nettoyage découpé en un script par fichier brut (`script_cleaning_<fichier>.py`), mêmes résultats que `clean_data.py` | — |
 | [`dataset-dwh`](../../tree/dataset-dwh) | Data Warehouse : 4 dimensions, 3 tables de faits, dictionnaire, contrôles qualité | `build_dataset.py` |
 | [`dataset-ml`](../../tree/dataset-ml) | 6 jeux de données Machine Learning (variables `X_`, cibles `Y_`) | `build_dataset.py` |
 | [`dwh-schema`](../../tree/dwh-schema) | Schéma du DWH : diagramme, descriptif PDF, script SQL (PK / FK) | `build_schema.py` |
@@ -74,6 +75,7 @@ git clone https://github.com/Youssef-ben-ali/DataWarehouseProject_3AI4.git healt
 git worktree add fichiers data-original
 git worktree add externe  data-external
 git worktree add cleaned  data-cleaned
+git worktree add scripts_cleaning script-cleaning   # optionnel : un script de nettoyage par fichier
 mkdir dataset
 git worktree add dataset/dwh    dataset-dwh
 git worktree add dataset/ml     dataset-ml
