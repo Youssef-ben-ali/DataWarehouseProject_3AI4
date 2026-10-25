@@ -20,7 +20,7 @@ Construit par `build_dataset.py` (branche `main`) à partir de `cleaned/` (réel
 | Responsable commercial | Produits, familles, marques les plus vendus et les plus rentables, panier moyen | SUM(CA_HT) ; SUM(QuantiteVendue) ; Marge HT = SUM(CA_HT) − SUM(Cout_HT) | fait_ventes × dim_produit × dim_temps |
 | Responsable relation client | Clients actifs, valeur, fréquence, panier | DISTINCTCOUNT(Company_Id) avec EstClientIdentifie = true ; SUM(CA_HT) ; COUNT(DISTINCT Document_Id) | fait_ventes × dim_client × dim_temps ; ml_11_4 |
 | Responsable approvisionnement / stock | Stock disponible, ruptures, stock faible, demande à anticiper | SUM(Quantity) ; COUNT où Quantity = 0 ; COUNT où 0 < Quantity ≤ QuantiteAlerte | fait_stock_actuel × dim_produit ; ml_11_1 |
-| Responsable financier / caisse | Montant encaissé, montant payé par chaque client, montant payé à chaque fournisseur, nombre de paiements, répartition par moyen | SUM(Amount) où Fournisseur_Id = -1 ; SUM(Amount) par client ou par fournisseur ; COUNT(Id) | fait_paiements × dim_paiement × dim_client × dim_fournisseur × dim_temps ; ml_11_3 |
+| Responsable financier / caisse | Montant encaissé, montant payé par chaque client, montant payé à chaque fournisseur, nombre de paiements, répartition par moyen, quelle vente ou facture chaque paiement règle | SUM(Amount) où Fournisseur_Id = -1 ; SUM(Amount) par client, fournisseur ou Document_Id ; DISTINCTCOUNT(Payment_Id) | fait_paiements × dim_paiement × dim_client × dim_fournisseur × dim_temps ; ml_11_3 |
 | Responsable achats | Achats par fournisseur et par produit, quel produit vient de quel fournisseur | SUM(MontantAchat_HT) ; SUM(QuantiteAchetee) ; COUNT(DISTINCT Document_Id) | fait_achats × dim_fournisseur × dim_produit × dim_temps |
 
 ## Tables du Data Warehouse
@@ -94,15 +94,15 @@ Dimension Paiement : moyen de paiement.
 Fait Ventes : ligne de produit vendue (ou retournée) dans un document validé à une date donnée.
 
 - **Granularité :** 1 ligne = 1 produit vendu dans 1 document à 1 date
-- **Lignes :** 91 995
+- **Lignes :** 91 015
 - **Sources :** documentItemm, Documents, Transactions, StockMovements (coût) — réel + synthétique
 - **Cahier :** §6.1, §6.2, §6.3 ; §9 fait_ventes (Document_Id, QuantiteVendue, CA_HT, Remise_HT, Cout_HT)
 - **Colonnes :** `Id`, `Document_Id`, `DateKey`, `Product_Id`, `Company_Id`, `QuantiteVendue`, `Remise_HT`, `CA_HT`, `Cout_HT`
-- 25 743 lignes de la période réelle et 66 252 lignes de la période synthétique (délimitation par la date : réel jusqu'au 30/04/2025).
+- 25 743 lignes de la période réelle et 65 272 lignes de la période synthétique (délimitation par la date : réel jusqu'au 30/04/2025).
 - Ventes = vente comptoir (6), bon de livraison (5), facture client (1) ; retours = avoir (4) et bon de retour (7) en négatif : `QuantiteVendue`, `CA_HT`, `Remise_HT`, `Cout_HT` sont signés.
 - `Document_Id` est une dimension dégénérée : Nombre de ventes = COUNT(DISTINCT Document_Id), panier moyen = SUM(CA_HT) / Nombre de ventes.
-- Exclusions : ligne de commentaire sans produit ni montant : 1 341 lignes; facture client regroupant des BL déjà comptés : 4 003 lignes; document brouillon (State = 0) : 923 lignes.
-- Coût : {'CUMP_MOUVEMENT': 91935, 'PRIX_ACHAT_PRODUIT': 58, 'ABSENT': 2} — CUMP = coût moyen pondéré au moment de la vente (StockMovements), sinon prix d'achat HT du produit. Marge HT = SUM(CA_HT) − SUM(Cout_HT) est une mesure Power BI, pas une colonne.
+- Exclusions : ligne de commentaire sans produit ni montant : 1 326 lignes; facture client regroupant des BL déjà comptés : 4 003 lignes; document brouillon (State = 0) : 873 lignes.
+- Coût : {'CUMP_MOUVEMENT': 90955, 'PRIX_ACHAT_PRODUIT': 58, 'ABSENT': 2} — CUMP = coût moyen pondéré au moment de la vente (StockMovements), sinon prix d'achat HT du produit. Marge HT = SUM(CA_HT) − SUM(Cout_HT) est une mesure Power BI, pas une colonne.
 - Retirés de la version précédente : CA_TTC (recalculable), Marge_HT (mesure), coût unitaire, signe, taux de remise, colonnes brutes et colonnes document / utilisateur / moyen de paiement.
 
 ### `dwh/fait_achats.csv`
@@ -110,15 +110,15 @@ Fait Ventes : ligne de produit vendue (ou retournée) dans un document validé �
 Fait Achats : ligne de produit achetée (ou retournée) à un fournisseur dans une facture validée.
 
 - **Granularité :** 1 ligne = 1 produit acheté dans 1 facture fournisseur à 1 date
-- **Lignes :** 24 045
+- **Lignes :** 23 738
 - **Sources :** documentItemm, Documents (factures et avoirs fournisseurs), Transactions — réel + synthétique
 - **Cahier :** §6.6 Achats ; §9 fait_achats (Document_Id, QuantiteAchetee, MontantAchat_HT)
 - **Colonnes :** `Id`, `Document_Id`, `DateKey`, `Product_Id`, `Fournisseur_Id`, `QuantiteAchetee`, `MontantAchat_HT`
-- 6 980 lignes de la période réelle et 17 065 lignes de la période synthétique.
+- 6 980 lignes de la période réelle et 16 758 lignes de la période synthétique.
 - Achats = facture fournisseur (20) ; retours = avoir fournisseur (23) en négatif : `QuantiteAchetee` et `MontantAchat_HT` sont signés. Aucune facture fournisseur ne regroupe d'autres documents : pas de double comptage.
 - `Document_Id` est une dimension dégénérée : Nombre de factures fournisseurs = COUNT(DISTINCT Document_Id).
 - `MontantAchat_HT` = montant HT de la ligne après remise. Le prix d'achat unitaire n'est pas stocké : SUM(MontantAchat_HT) / SUM(QuantiteAchetee).
-- Exclusions : ligne de commentaire sans produit ni montant : 38 lignes; document brouillon (State = 0) : 109 lignes.
+- Exclusions : ligne de commentaire sans produit ni montant : 51 lignes; document brouillon (State = 0) : 157 lignes.
 
 ### `dwh/fait_stock_actuel.csv`
 
@@ -129,27 +129,31 @@ Fait Stock actuel : quantité en stock et seuil d'alerte de chaque produit à la
 - **Sources :** ProductStocks (données synthétiques, état au 29/09/2026), Produits (seuil d'alerte)
 - **Cahier :** §6.4 Gestion du stock ; §9 « Quantity, QuantiteAlerte. Rupture et stock faible sont calculés »
 - **Colonnes :** `Product_Id`, `DateKey`, `Quantity`, `QuantiteAlerte`
-- Au snapshot : 1 777 produits à 0 (rupture), 2 470 en stock faible (0 < Quantity ≤ QuantiteAlerte), 339 à stock négatif.
+- Au snapshot : 1 834 produits à 0 (rupture), 2 472 en stock faible (0 < Quantity ≤ QuantiteAlerte), 308 à stock négatif.
 - Rupture et stock faible ne sont pas stockés : mesures Power BI à partir de `Quantity` et de `QuantiteAlerte`, dans la même table.
 - QuantiteAlerte : {'paramètre par défaut (5)': 2376, 'export Produits': 4466}. Seuil choisi par le magasin pour chaque produit (pas une valeur calculable). Une ligne par produit : le seuil n'est stocké qu'une fois.
 - Pas d'historique de stock dans le BI (rotation non retenue, §6.4) : les mouvements restent en zone ETL.
 
 ### `dwh/fait_paiements.csv`
 
-Fait Paiements : montant réellement versé, moyen de paiement, date ; client qui paie ou fournisseur payé.
+Fait Paiements : montant réellement versé, imputé au document qu'il règle ; client qui paie ou fournisseur payé.
 
-- **Granularité :** 1 ligne = 1 paiement
-- **Lignes :** 40 160
-- **Sources :** PaymentsList + Payment (fusionnés), CompaniesList — réel + synthétique
-- **Cahier :** §6.5 Paiements ; §6.6 Achats ; §9 fait_paiements (Amount ; client ; fournisseur)
-- **Colonnes :** `Id`, `DateKey`, `PaymentMode_Id`, `Company_Id`, `Fournisseur_Id`, `Amount`
-- 10 899 paiements de la période réelle et 29 261 de la période synthétique.
+- **Granularité :** 1 ligne = 1 paiement imputé à 1 document réglé (vente ou facture fournisseur)
+- **Lignes :** 40 367
+- **Sources :** PaymentsList + Payment (fusionnés), TransactionPayments (imputation), Documents, RelatedDocuments, CompaniesList — réel + synthétique
+- **Cahier :** §6.5 Paiements ; §6.6 Achats ; §9 fait_paiements (Amount ; client ; fournisseur ; document réglé)
+- **Colonnes :** `Id`, `Payment_Id`, `Document_Id`, `DateKey`, `PaymentMode_Id`, `Company_Id`, `Fournisseur_Id`, `Amount`
+- 39 770 paiements (10 899 de la période réelle) sur 40 367 lignes d'imputation : un seul document : 39 712, réparti sur plusieurs documents : 58, sans imputation dans la source : 2.
+- `Payment_Id` = numéro du paiement (dimension dégénérée) : Nombre de paiements = DISTINCTCOUNT(Payment_Id). `Id` = clé technique de la ligne d'imputation.
+- `Document_Id` = document réglé, même clé que dans `fait_ventes` (encaissement client) ou `fait_achats` (paiement fournisseur) : répond à « quelle vente / quelle facture ce paiement règle-t-il ? ». -1 si le paiement n'a pas d'imputation dans la source.
+- Imputation : celle de TransactionPayments (paiement → transaction → montant). Quand une transaction règle plusieurs documents chargés — facture client regroupant des bons de livraison (seuls les bons sont dans fait_ventes), document et avoir — le montant est réparti au prorata du total TTC des documents de total positif.
+- La somme des lignes d'un paiement est exactement son montant : SUM(Amount) = total des paiements de la source.
 - Encaissement client : `Company_Id` = client qui paie (2 = client comptoir anonyme), `Fournisseur_Id` = -1. Paiement fournisseur : `Fournisseur_Id` = fournisseur payé, `Company_Id` = -1.
-- Montant encaissé = SUM(Amount) où Fournisseur_Id = -1 : 3 026 072 sur 38 541 paiements clients (dont 36 466 au comptoir) ; 1 619 paiements fournisseurs (1 930 937).
-- Le client et le fournisseur viennent directement du paiement source (`Company_Id` de PaymentsList, identique à celui de la transaction réglée sur 100 % des liens TransactionPayments).
-- `Amount` est TTC et n'est pas le CA : impayés, paiements fractionnés ou différés.
+- Montant encaissé = SUM(Amount) où Fournisseur_Id = -1 : 3 007 313 sur 38 142 paiements clients (dont 36 041 au comptoir) ; 1 628 paiements fournisseurs (1 976 938).
+- `Amount` est TTC et n'est pas le CA : impayés, paiements fractionnés ou différés. Aucun paiement n'est négatif : l'argent rendu lors d'un retour n'est pas enregistré comme paiement dans la source (les retours apparaissent en négatif dans fait_ventes et fait_achats).
+- Moyen de paiement : saisi par le logiciel seulement pendant les premières semaines (sept.-oct. 2024), presque jamais ensuite ; la répartition par moyen n'est représentative que sur cette période.
 - `EstPaiementFournisseur` est retiré : il se recalcule (paiement fournisseur ⇔ Fournisseur_Id ≠ -1).
-- Retirés de la version précédente : UsedAmount (égal à Amount à 99,9 %), document, heure, caisse, compte bancaire.
+- Retirés de la version précédente : UsedAmount (égal à Amount à 99,9 %), heure, caisse, compte bancaire.
 
 
 ## Jeux de données Machine Learning
@@ -190,13 +194,13 @@ ML 11.1 – Prévision de la demande : quantité vendue par marque et par semain
 ML 11.2 – Détection d'anomalies sur les lignes de vente (remise, prix vs coût, quantité, utilisateur, heure).
 
 - **Granularité :** 1 ligne = 1 ligne de vente (retours exclus)
-- **Lignes :** 91 952
+- **Lignes :** 90 972
 - **Sources :** fait_ventes + colonnes de la zone ETL (heure, vendeur, prix, remise)
 - **Cahier :** §11.2 Détection d'anomalies (non supervisé : Isolation Forest, LOF…)
 - **Colonnes :** `Id`, `Document_Id`, `DateKey`, `Product_Id`, `FamilyGroup`, `X_CreatedBy`, `X_Heure`, `X_JourSemaine`, `X_Canal`, `X_Quantity`, `X_Quantity_ZScoreProduit`, `X_PrixHt`, `X_PrixHt_Reference`, `X_EcartPrixReferencePct`, `X_DiscountPourcentage`, `X_PrixTotalHt`, `X_Cout_HT`, `X_SourceCout`, `X_EcartPrixTotalHtCoutPct`, `X_NbLignesDocument`, `X_RemiseMoyenneUtilisateur`, `Regle_RemiseSup50`, `Regle_VenteSousCout`, `Regle_QuantiteAtypique`, `ScoreRegles`
 - Pas de cible Y étiquetée : apprentissage non supervisé sur les colonnes `X_`.
 - Les colonnes `Regle_*` sont des règles métier pour contrôler les résultats, pas une vérité terrain : ne pas les utiliser comme X.
-- 195 lignes avec remise > 50 % ; 3 010 lignes vendues sous le coût (3.3 % des lignes ayant un coût).
+- 174 lignes avec remise > 50 % ; 2 857 lignes vendues sous le coût (3.1 % des lignes ayant un coût).
 - Le jeu couvre les deux périodes ; les anomalies de la période synthétique sont simulées : à interpréter en priorité sur la période réelle.
 
 ### `ml/ml_11_3_operations_caisse.csv`
@@ -204,11 +208,11 @@ ML 11.2 – Détection d'anomalies sur les lignes de vente (remise, prix vs coû
 ML 11.3 – Opérations de caisse : montant, utilisateur, heure, fréquence d'annulation par utilisateur.
 
 - **Granularité :** 1 ligne = 1 opération de caisse
-- **Lignes :** 38 153
+- **Lignes :** 37 767
 - **Sources :** CaisseOperations (+ noms des caisses issus de DomainEvents) — réel + synthétique
 - **Cahier :** §11.3 Détection d'anomalies de caisse ; Y possible = IsCancelled
 - **Colonnes :** `Id`, `CaisseId`, `CaisseName`, `DateKey`, `AddedAtUtc`, `X_AddedByUserId`, `X_HeureUtc`, `X_JourSemaine`, `X_Amount`, `X_EstMontantNegatif`, `X_Amount_ZScoreUtilisateur`, `X_Status`, `X_TauxAnnulationUtilisateur`, `X_NbOperationsJourUtilisateur`, `X_NbAnnulationsJourUtilisateur`, `Y_IsCancelled`, `DelaiAnnulationMinutes`
-- `Y_IsCancelled` = annulation enregistrée (405 cas) : cible d'une classification d'annulation, sinon détection d'anomalies sur les `X_`.
+- `Y_IsCancelled` = annulation enregistrée (404 cas) : cible d'une classification d'annulation, sinon détection d'anomalies sur les `X_`.
 - `X_NbAnnulationsJourUtilisateur` exclut l'opération elle-même (pas de fuite de la cible). `DelaiAnnulationMinutes` n'est connu qu'après annulation : à ne pas utiliser comme X.
 - Heures en UTC. Une opération annulée n'est pas automatiquement frauduleuse : validation humaine (§11.3).
 
@@ -217,11 +221,11 @@ ML 11.3 – Opérations de caisse : montant, utilisateur, heure, fréquence d'an
 ML 11.3 – Écarts de caisse détectés à l'ouverture / la fermeture (attendu vs trouvé).
 
 - **Granularité :** 1 ligne = 1 écart de caisse
-- **Lignes :** 2 107
+- **Lignes :** 2 189
 - **Sources :** DomainEvents (CaisseDiscrepancyIdentified) — réel + synthétique
 - **Cahier :** §11.3
 - **Colonnes :** `Id`, `DateKey`, `UtcTimestamp`, `AggregateId`, `CaisseName`, `X_UserId`, `X_HeureUtc`, `X_JourSemaine`, `X_DetectedAt`, `X_Data_expectedBalance`, `X_Data_foundBalance`, `X_Data_amount`, `X_EcartAbsolu`, `X_EcartRelatifPct`, `X_NbEcartsUtilisateur`, `X_NbEcartsCaisse`, `EstFondDeCaisseRetire`
-- 2 107 écarts.
+- 2 189 écarts.
 - `EstFondDeCaisseRetire` = écart à l'ouverture avec caisse trouvée à 0 : fond de caisse retiré la veille, pas une perte — à traiter à part avant de parler de comportement à risque.
 
 ### `ml/ml_11_4_segmentation_clients.csv`
@@ -241,32 +245,35 @@ ML 11.4 – Segmentation client : CA, fréquence, panier moyen, récence, ancien
 
 | Contrôle | Table | Concernés | Total | % | Statut |
 |---|---|---|---|---|---|
-| Ligne de document sans document | documentItemm | 0 | 122 570 | 0.00 | OK |
-| Ligne de document sans produit | documentItemm | 1 379 | 122 570 | 1.13 | ATTENTION |
-| Identifiant de document en double | Documents | 0 | 45 868 | 0.00 | OK |
-| Quantité ≤ 0 sur une ligne | documentItemm | 1 848 | 122 570 | 1.51 | ATTENTION |
-| Prix unitaire HT ≤ 0 | documentItemm | 1 426 | 122 570 | 1.16 | ATTENTION |
-| Remise > 100 % | documentItemm | 1 | 122 570 | 0.00 | ATTENTION |
-| Document hors période 30/09/2024 – 29/09/2026 | Documents | 0 | 45 868 | 0.00 | OK |
-| Document brouillon (non validé) | Documents | 137 | 45 868 | 0.30 | ATTENTION |
-| Facture client regroupant des BL (double comptage évité) | Documents | 24 | 1 051 | 2.28 | ATTENTION |
+| Ligne de document sans document | documentItemm | 0 | 121 279 | 0.00 | OK |
+| Ligne de document sans produit | documentItemm | 1 377 | 121 279 | 1.14 | ATTENTION |
+| Identifiant de document en double | Documents | 0 | 45 448 | 0.00 | OK |
+| Quantité ≤ 0 sur une ligne | documentItemm | 1 824 | 121 279 | 1.50 | ATTENTION |
+| Prix unitaire HT ≤ 0 | documentItemm | 1 424 | 121 279 | 1.17 | ATTENTION |
+| Remise > 100 % | documentItemm | 1 | 121 279 | 0.00 | ATTENTION |
+| Document hors période 30/09/2024 – 29/09/2026 | Documents | 0 | 45 448 | 0.00 | OK |
+| Document brouillon (non validé) | Documents | 117 | 45 448 | 0.26 | ATTENTION |
+| Facture client regroupant des BL (double comptage évité) | Documents | 24 | 1 052 | 2.28 | ATTENTION |
 | Produit du référentiel interne absent de l'export Produits | dim_produit | 2 376 | 6 842 | 34.73 | ATTENTION |
 | Company_Id client absent de CompaniesList | fait_ventes / fait_paiements | 19 | 80 | 23.75 | ATTENTION |
 | Fournisseur d'un achat ou d'un paiement absent de CompaniesList | fait_achats / fait_paiements | 21 | 115 | 18.26 | ATTENTION |
-| Ligne de vente sans coût (marge non calculable) | fait_ventes | 2 | 91 995 | 0.00 | ATTENTION |
-| Ligne d'achat sans fournisseur identifié | fait_achats | 13 | 24 045 | 0.05 | ATTENTION |
-| Produit à stock négatif (vente enregistrée sans réception) | fait_stock_actuel | 339 | 6 842 | 4.95 | ATTENTION |
-| Paiement client sans moyen de paiement renseigné | fait_paiements | 37 659 | 38 541 | 97.71 | ATTENTION |
-| Paiement fournisseur sans fournisseur identifié | fait_paiements | 0 | 1 619 | 0.00 | OK |
-| Paiement client sans client identifié | fait_paiements | 0 | 38 541 | 0.00 | OK |
-| Clé Product_Id de fait_ventes absente de la dimension | fait_ventes | 0 | 91 995 | 0.00 | OK |
-| Clé Company_Id de fait_ventes absente de la dimension | fait_ventes | 0 | 91 995 | 0.00 | OK |
-| Clé DateKey de fait_ventes absente de la dimension | fait_ventes | 0 | 91 995 | 0.00 | OK |
-| Clé Product_Id de fait_achats absente de la dimension | fait_achats | 0 | 24 045 | 0.00 | OK |
-| Clé Fournisseur_Id de fait_achats absente de la dimension | fait_achats | 0 | 24 045 | 0.00 | OK |
-| Clé DateKey de fait_achats absente de la dimension | fait_achats | 0 | 24 045 | 0.00 | OK |
-| Clé Company_Id de fait_paiements absente de la dimension | fait_paiements | 0 | 40 160 | 0.00 | OK |
-| Clé Fournisseur_Id de fait_paiements absente de la dimension | fait_paiements | 0 | 40 160 | 0.00 | OK |
-| Clé PaymentMode_Id de fait_paiements absente de la dimension | fait_paiements | 0 | 40 160 | 0.00 | OK |
-| Clé DateKey de fait_paiements absente de la dimension | fait_paiements | 0 | 40 160 | 0.00 | OK |
-| Ligne de vente sous le coût | fait_ventes | 3 010 | 91 952 | 3.27 | ATTENTION |
+| Ligne de vente sans coût (marge non calculable) | fait_ventes | 2 | 91 015 | 0.00 | ATTENTION |
+| Ligne d'achat sans fournisseur identifié | fait_achats | 13 | 23 738 | 0.05 | ATTENTION |
+| Produit à stock négatif (vente enregistrée sans réception) | fait_stock_actuel | 308 | 6 842 | 4.50 | ATTENTION |
+| Paiement client sans moyen de paiement renseigné | fait_paiements | 37 264 | 38 142 | 97.70 | ATTENTION |
+| Paiement fournisseur sans fournisseur identifié | fait_paiements | 0 | 1 628 | 0.00 | OK |
+| Paiement client sans client identifié | fait_paiements | 0 | 38 142 | 0.00 | OK |
+| Paiement non rattaché à un document chargé | fait_paiements | 6 | 39 770 | 0.02 | ATTENTION |
+| Paiement rattaché à un document de l'autre sens (client ↔ fournisseur) | fait_paiements | 0 | 40 367 | 0.00 | OK |
+| Écart entre la somme des paiements source et fait_paiements (centimes) | fait_paiements | 0 | 498 425 121 | 0.00 | OK |
+| Clé Product_Id de fait_ventes absente de la dimension | fait_ventes | 0 | 91 015 | 0.00 | OK |
+| Clé Company_Id de fait_ventes absente de la dimension | fait_ventes | 0 | 91 015 | 0.00 | OK |
+| Clé DateKey de fait_ventes absente de la dimension | fait_ventes | 0 | 91 015 | 0.00 | OK |
+| Clé Product_Id de fait_achats absente de la dimension | fait_achats | 0 | 23 738 | 0.00 | OK |
+| Clé Fournisseur_Id de fait_achats absente de la dimension | fait_achats | 0 | 23 738 | 0.00 | OK |
+| Clé DateKey de fait_achats absente de la dimension | fait_achats | 0 | 23 738 | 0.00 | OK |
+| Clé Company_Id de fait_paiements absente de la dimension | fait_paiements | 0 | 40 367 | 0.00 | OK |
+| Clé Fournisseur_Id de fait_paiements absente de la dimension | fait_paiements | 0 | 40 367 | 0.00 | OK |
+| Clé PaymentMode_Id de fait_paiements absente de la dimension | fait_paiements | 0 | 40 367 | 0.00 | OK |
+| Clé DateKey de fait_paiements absente de la dimension | fait_paiements | 0 | 40 367 | 0.00 | OK |
+| Ligne de vente sous le coût | fait_ventes | 2 857 | 90 972 | 3.14 | ATTENTION |
