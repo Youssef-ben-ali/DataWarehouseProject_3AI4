@@ -1,0 +1,117 @@
+Fournisseur_Id,Nom
+4,PharmaNova France
+5,PharmaNexa France
+6,MediNova France
+9,MediNexa France
+11,BioNova France
+13,BioNexa France
+16,PharmaVital France
+17,PharmaVita France
+18,MedicaNova France
+20,MedicaNexa France
+21,BioVitalis France
+22,BioVitan France
+24,PharmaCelis France
+25,PharmaCelia France
+26,MediCelis France
+27,MediCelia France
+28,BioPharmaPlus France
+29,BioPharmaPro France
+30,PharmaSante France
+31,PharmaSantéa France
+32,NovaPharm Lyon
+34,NexaPharm Lyon
+36,MediLyon Pharma
+37,BioLyon Pharma
+38,PharmaRhône
+39,MediRhône
+43,BioRhône Santé
+45,PharmaLys France
+46,MediLys France
+48,NovaMedi Rhône
+49,PharmaAzur Marseille
+50,MediAzur Marseille
+51,BioAzur Marseille
+53,NovaMed Provence
+54,NexaMed Provence
+55,PharmaProvence
+59,MediProvence
+61,PharmaCalanques
+64,MediCalanques
+65,NovaPharm Toulouse
+68,NexaPharm Toulouse
+69,MediGaronne
+70,BioGaronne
+74,MediOccitanie
+76,BioOccitanie
+77,NovaMedi Garonne
+79,MediToulouse Santé
+80,PharmaAtlantique Nantes
+81,MediAtlantique Nantes
+82,BioAtlantique
+83,NovaPharm Loire
+84,NexaPharm Loire
+85,PharmaLoire Santé
+86,MediLoire Santé
+88,BioLoire Pharma
+89,NovaMedi Nantes
+92,PharmaNantes Pro
+93,PharmaNord Lille
+96,MediNord Lille
+98,BioNord Lille
+99,NovaPharm Flandre
+102,PharmaFlandre Santé
+103,MediFlandre Santé
+105,BioFlandre Pharma
+106,NovaMedi Nord
+107,Biomedica Distribution
+110,Laboratoires Orélia
+111,PharmaLille Pro
+112,PharmaAlpes Grenoble
+115,MediAlpes Grenoble
+118,BioAlpes Grenoble
+120,Pharmadis Pharma
+121,NovaPharm Isère
+123,Médévia Pharma
+125,NexaPharm Isère
+126,PharmaIsère Santé
+128,MediIsère Santé
+137,NovaMedi Alpes
+141,PharmaGrenoble Pro
+142,PharmaRiviera Nice
+143,MediRiviera Nice
+146,Laboratoires Lyséa Pharma
+149,BioRiviera Nice
+152,NovaPharm CôteAzur
+154,NexaPharm CôteAzur
+158,PharmaCôteAzur Santé
+160,MediCôteAzur Santé
+161,Biothélys France
+168,BioCôteAzur Pharma
+186,Pharmavance France
+188,Médoria Laboratories
+191,MediBordeaux Atlantique
+192,Pharmelia Laboratories
+206,MediGironde Santé
+71,FOURNISSEUR INCONNU 71
+78,FOURNISSEUR INCONNU 78
+100,FOURNISSEUR INCONNU 100
+109,FOURNISSEUR INCONNU 109
+134,FOURNISSEUR INCONNU 134
+136,FOURNISSEUR INCONNU 136
+176,FOURNISSEUR INCONNU 176
+177,FOURNISSEUR INCONNU 177
+179,FOURNISSEUR INCONNU 179
+183,FOURNISSEUR INCONNU 183
+185,FOURNISSEUR INCONNU 185
+189,FOURNISSEUR INCONNU 189
+195,FOURNISSEUR INCONNU 195
+197,FOURNISSEUR INCONNU 197
+198,FOURNISSEUR INCONNU 198
+202,FOURNISSEUR INCONNU 202
+203,FOURNISSEUR INCONNU 203
+209,FOURNISSEUR INCONNU 209
+210,FOURNISSEUR INCONNU 210
+212,FOURNISSEUR INCONNU 212
+213,FOURNISSEUR INCONNU 213
+-1,NON RENSEIGNE

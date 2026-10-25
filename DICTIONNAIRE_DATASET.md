@@ -6,10 +6,10 @@ Construit par `build_dataset.py` (branche `main`) à partir de `cleaned/` (réel
 
 ## Règles
 
-- Modèle du §9 du cahier : 4 dimensions (`dim_temps`, `dim_produit`, `dim_client`, `dim_paiement`) et 3 faits (`fait_ventes`, `fait_stock_actuel`, `fait_paiements`).
+- Modèle du §9 du cahier : 5 dimensions (`dim_temps`, `dim_produit`, `dim_client`, `dim_fournisseur`, `dim_paiement`) et 4 faits (`fait_ventes`, `fait_achats`, `fait_stock_actuel`, `fait_paiements`).
 - Une colonne n'est stockée que si le cahier l'exige **et** qu'elle ne peut pas être recalculée. Les mesures (marge, rupture, stock faible, montant encaissé…) sont calculées dans Power BI.
 - CSV UTF-8, séparateur virgule, décimale `.`, dates ISO, booléens `true/false`. `DateKey` = `AAAAMMJJ`.
-- Membres `-1` « NON RENSEIGNE » dans `dim_client` et `dim_paiement` : toutes les clés étrangères retrouvent leur dimension.
+- Membres `-1` « NON RENSEIGNE » dans `dim_client`, `dim_fournisseur` et `dim_paiement` : toutes les clés étrangères retrouvent leur dimension.
 - Jeux ML : variables explicatives `X_…`, cibles `Y_…`, règles d'interprétation `Regle_…` (ni X ni Y). Ils sont construits depuis la zone ETL (données nettoyées), pas depuis le Data Warehouse.
 
 ## Besoins du cahier → tables
@@ -20,7 +20,8 @@ Construit par `build_dataset.py` (branche `main`) à partir de `cleaned/` (réel
 | Responsable commercial | Produits, familles, marques les plus vendus et les plus rentables, panier moyen | SUM(CA_HT) ; SUM(QuantiteVendue) ; Marge HT = SUM(CA_HT) − SUM(Cout_HT) | fait_ventes × dim_produit × dim_temps |
 | Responsable relation client | Clients actifs, valeur, fréquence, panier | DISTINCTCOUNT(Company_Id) avec EstClientIdentifie = true ; SUM(CA_HT) ; COUNT(DISTINCT Document_Id) | fait_ventes × dim_client × dim_temps ; ml_11_4 |
 | Responsable approvisionnement / stock | Stock disponible, ruptures, stock faible, demande à anticiper | SUM(Quantity) ; COUNT où Quantity = 0 ; COUNT où 0 < Quantity ≤ QuantiteAlerte | fait_stock_actuel × dim_produit ; ml_11_1 |
-| Responsable financier / caisse | Montant encaissé, nombre de paiements, répartition par moyen | SUM(Amount) où EstPaiementFournisseur = false ; COUNT(Id) | fait_paiements × dim_paiement × dim_temps ; ml_11_3 |
+| Responsable financier / caisse | Montant encaissé, montant payé par chaque client, montant payé à chaque fournisseur, nombre de paiements, répartition par moyen | SUM(Amount) où Fournisseur_Id = -1 ; SUM(Amount) par client ou par fournisseur ; COUNT(Id) | fait_paiements × dim_paiement × dim_client × dim_fournisseur × dim_temps ; ml_11_3 |
+| Responsable achats | Achats par fournisseur et par produit, quel produit vient de quel fournisseur | SUM(MontantAchat_HT) ; SUM(QuantiteAchetee) ; COUNT(DISTINCT Document_Id) | fait_achats × dim_fournisseur × dim_produit × dim_temps |
 
 ## Tables du Data Warehouse
 
@@ -39,16 +40,16 @@ Dimension Temps : date, année, trimestre, mois, semaine ISO, jour férié.
 
 ### `dwh/dim_produit.csv`
 
-Dimension Produit : libellé, famille, marque, seuil d'alerte de stock.
+Dimension Produit : libellé, famille, marque.
 
 - **Granularité :** 1 ligne = 1 produit du référentiel interne (ProductStocks), clé Product_Id
 - **Lignes :** 6 842
 - **Sources :** ProductStocks, Produits, Events (libellés), ProductBrands, users_settings (seuil par défaut)
-- **Cahier :** §7 et §9 du cahier : « Libellé, Famille, Marque, QuantiteAlerte » ; §6.2, §6.4
-- **Colonnes :** `Product_Id`, `Libellé`, `Famille`, `Marque`, `QuantiteAlerte`
+- **Cahier :** §7 et §9 du cahier : « Libellé, Famille, Marque » ; §6.2, §6.4, §6.6
+- **Colonnes :** `Product_Id`, `Libellé`, `Famille`, `Marque`
 - Libellé : {'Events': 159, 'absent': 2182, 'documentItemm': 35, 'Produits': 4466}.
 - Marque manquante : déduite si le libellé commence par un nom de ProductBrands, sinon `NON RENSEIGNE`.
-- QuantiteAlerte : {'paramètre par défaut (5)': 2376, 'export Produits': 4466}. C'est un paramètre choisi par le magasin, pas une valeur calculable.
+- Le seuil d'alerte de stock (QuantiteAlerte) est stocké dans `fait_stock_actuel`, à côté de la quantité.
 - Les prix d'achat / de vente et le coût moyen pondéré restent en zone ETL : ils servent à calculer `CA_HT` et `Cout_HT`, aucun KPI n'utilise le prix catalogue.
 
 ### `dwh/dim_client.csv`
@@ -63,6 +64,18 @@ Dimension Client : nom, type de client, client identifié ou non.
 - TypeClient : {'COMPTOIR_ANONYME': 1, 'PARTICULIER': 29, 'NON RENSEIGNE': 34, 'B2B': 18}. Company_Id 2 = client comptoir anonyme (la majorité des ventes comptoir).
 - `EstClientIdentifie` = false pour le client comptoir et la ligne -1 : filtre de tous les KPI clients (§6.3 : les transactions anonymes ne sont pas utilisées pour les KPI clients).
 - Le nom vient du fichier Clients quand le code y existe (les noms de CompaniesList ont été anonymisés différemment) ; le code client sert seulement à cette jointure dans l'ETL.
+
+### `dwh/dim_fournisseur.csv`
+
+Dimension Fournisseur : nom du fournisseur.
+
+- **Granularité :** 1 ligne = 1 fournisseur (clé Fournisseur_Id = identifiant de la société dans le logiciel)
+- **Lignes :** 116
+- **Sources :** CompaniesList (sociétés de type fournisseur), Fournisseurs (noms), Transactions
+- **Cahier :** §6.6 Achats ; §6.5 Paiements ; §9 Dimension Fournisseur
+- **Colonnes :** `Fournisseur_Id`, `Nom`
+- Le nom vient du fichier Fournisseurs quand le code y existe (les noms de CompaniesList ont été anonymisés différemment) ; le code fournisseur sert seulement à cette jointure dans l'ETL.
+- 21 fournisseurs cités par des factures ou des paiements sont absents de CompaniesList : conservés comme 'FOURNISSEUR INCONNU <id>'. -1 = fournisseur non renseigné (et valeur des lignes qui ne concernent pas un fournisseur dans fait_paiements).
 
 ### `dwh/dim_paiement.csv`
 
@@ -92,32 +105,51 @@ Fait Ventes : ligne de produit vendue (ou retournée) dans un document validé �
 - Coût : {'CUMP_MOUVEMENT': 91935, 'PRIX_ACHAT_PRODUIT': 58, 'ABSENT': 2} — CUMP = coût moyen pondéré au moment de la vente (StockMovements), sinon prix d'achat HT du produit. Marge HT = SUM(CA_HT) − SUM(Cout_HT) est une mesure Power BI, pas une colonne.
 - Retirés de la version précédente : CA_TTC (recalculable), Marge_HT (mesure), coût unitaire, signe, taux de remise, colonnes brutes et colonnes document / utilisateur / moyen de paiement.
 
+### `dwh/fait_achats.csv`
+
+Fait Achats : ligne de produit achetée (ou retournée) à un fournisseur dans une facture validée.
+
+- **Granularité :** 1 ligne = 1 produit acheté dans 1 facture fournisseur à 1 date
+- **Lignes :** 24 045
+- **Sources :** documentItemm, Documents (factures et avoirs fournisseurs), Transactions — réel + synthétique
+- **Cahier :** §6.6 Achats ; §9 fait_achats (Document_Id, QuantiteAchetee, MontantAchat_HT)
+- **Colonnes :** `Id`, `Document_Id`, `DateKey`, `Product_Id`, `Fournisseur_Id`, `QuantiteAchetee`, `MontantAchat_HT`
+- 6 980 lignes de la période réelle et 17 065 lignes de la période synthétique.
+- Achats = facture fournisseur (20) ; retours = avoir fournisseur (23) en négatif : `QuantiteAchetee` et `MontantAchat_HT` sont signés. Aucune facture fournisseur ne regroupe d'autres documents : pas de double comptage.
+- `Document_Id` est une dimension dégénérée : Nombre de factures fournisseurs = COUNT(DISTINCT Document_Id).
+- `MontantAchat_HT` = montant HT de la ligne après remise. Le prix d'achat unitaire n'est pas stocké : SUM(MontantAchat_HT) / SUM(QuantiteAchetee).
+- Exclusions : ligne de commentaire sans produit ni montant : 38 lignes; document brouillon (State = 0) : 109 lignes.
+
 ### `dwh/fait_stock_actuel.csv`
 
-Fait Stock actuel : quantité en stock de chaque produit à la date du snapshot.
+Fait Stock actuel : quantité en stock et seuil d'alerte de chaque produit à la date du snapshot.
 
 - **Granularité :** 1 ligne = 1 produit à la date de snapshot (29/09/2026, fin de la période chargée)
 - **Lignes :** 6 842
-- **Sources :** ProductStocks (données synthétiques, état au 29/09/2026)
-- **Cahier :** §6.4 Gestion du stock ; §9 « Quantity. Rupture et stock faible sont calculés »
-- **Colonnes :** `Product_Id`, `DateKey`, `Quantity`
+- **Sources :** ProductStocks (données synthétiques, état au 29/09/2026), Produits (seuil d'alerte)
+- **Cahier :** §6.4 Gestion du stock ; §9 « Quantity, QuantiteAlerte. Rupture et stock faible sont calculés »
+- **Colonnes :** `Product_Id`, `DateKey`, `Quantity`, `QuantiteAlerte`
 - Au snapshot : 1 777 produits à 0 (rupture), 2 470 en stock faible (0 < Quantity ≤ QuantiteAlerte), 339 à stock négatif.
-- Rupture et stock faible ne sont pas stockés : mesures Power BI à partir de `Quantity` et de `dim_produit.QuantiteAlerte`.
+- Rupture et stock faible ne sont pas stockés : mesures Power BI à partir de `Quantity` et de `QuantiteAlerte`, dans la même table.
+- QuantiteAlerte : {'paramètre par défaut (5)': 2376, 'export Produits': 4466}. Seuil choisi par le magasin pour chaque produit (pas une valeur calculable). Une ligne par produit : le seuil n'est stocké qu'une fois.
 - Pas d'historique de stock dans le BI (rotation non retenue, §6.4) : les mouvements restent en zone ETL.
 
 ### `dwh/fait_paiements.csv`
 
-Fait Paiements : montant réellement versé, moyen de paiement, date ; encaissement client ou paiement fournisseur.
+Fait Paiements : montant réellement versé, moyen de paiement, date ; client qui paie ou fournisseur payé.
 
 - **Granularité :** 1 ligne = 1 paiement
 - **Lignes :** 40 160
-- **Sources :** PaymentsList + Payment (fusionnés) — réel + synthétique
-- **Cahier :** §6.5 Paiements ; §9 fait_paiements (Amount ; indicateur client / fournisseur)
-- **Colonnes :** `Id`, `DateKey`, `PaymentMode_Id`, `Amount`, `EstPaiementFournisseur`
+- **Sources :** PaymentsList + Payment (fusionnés), CompaniesList — réel + synthétique
+- **Cahier :** §6.5 Paiements ; §6.6 Achats ; §9 fait_paiements (Amount ; client ; fournisseur)
+- **Colonnes :** `Id`, `DateKey`, `PaymentMode_Id`, `Company_Id`, `Fournisseur_Id`, `Amount`
 - 10 899 paiements de la période réelle et 29 261 de la période synthétique.
-- Montant encaissé = SUM(Amount) où EstPaiementFournisseur = false : 3 026 072 sur 38 541 paiements clients ; 1 619 paiements fournisseurs (1 930 937) à exclure.
+- Encaissement client : `Company_Id` = client qui paie (2 = client comptoir anonyme), `Fournisseur_Id` = -1. Paiement fournisseur : `Fournisseur_Id` = fournisseur payé, `Company_Id` = -1.
+- Montant encaissé = SUM(Amount) où Fournisseur_Id = -1 : 3 026 072 sur 38 541 paiements clients (dont 36 466 au comptoir) ; 1 619 paiements fournisseurs (1 930 937).
+- Le client et le fournisseur viennent directement du paiement source (`Company_Id` de PaymentsList, identique à celui de la transaction réglée sur 100 % des liens TransactionPayments).
 - `Amount` est TTC et n'est pas le CA : impayés, paiements fractionnés ou différés.
-- Retirés de la version précédente : UsedAmount (égal à Amount à 99,9 %), client, fournisseur, document, heure, caisse, compte bancaire.
+- `EstPaiementFournisseur` est retiré : il se recalcule (paiement fournisseur ⇔ Fournisseur_Id ≠ -1).
+- Retirés de la version précédente : UsedAmount (égal à Amount à 99,9 %), document, heure, caisse, compte bancaire.
 
 
 ## Jeux de données Machine Learning
@@ -219,11 +251,22 @@ ML 11.4 – Segmentation client : CA, fréquence, panier moyen, récence, ancien
 | Document brouillon (non validé) | Documents | 137 | 45 868 | 0.30 | ATTENTION |
 | Facture client regroupant des BL (double comptage évité) | Documents | 24 | 1 051 | 2.28 | ATTENTION |
 | Produit du référentiel interne absent de l'export Produits | dim_produit | 2 376 | 6 842 | 34.73 | ATTENTION |
-| Company_Id client absent de CompaniesList | fait_ventes | 19 | 80 | 23.75 | ATTENTION |
+| Company_Id client absent de CompaniesList | fait_ventes / fait_paiements | 19 | 80 | 23.75 | ATTENTION |
+| Fournisseur d'un achat ou d'un paiement absent de CompaniesList | fait_achats / fait_paiements | 21 | 115 | 18.26 | ATTENTION |
 | Ligne de vente sans coût (marge non calculable) | fait_ventes | 2 | 91 995 | 0.00 | ATTENTION |
+| Ligne d'achat sans fournisseur identifié | fait_achats | 13 | 24 045 | 0.05 | ATTENTION |
 | Produit à stock négatif (vente enregistrée sans réception) | fait_stock_actuel | 339 | 6 842 | 4.95 | ATTENTION |
 | Paiement client sans moyen de paiement renseigné | fait_paiements | 37 659 | 38 541 | 97.71 | ATTENTION |
+| Paiement fournisseur sans fournisseur identifié | fait_paiements | 0 | 1 619 | 0.00 | OK |
+| Paiement client sans client identifié | fait_paiements | 0 | 38 541 | 0.00 | OK |
 | Clé Product_Id de fait_ventes absente de la dimension | fait_ventes | 0 | 91 995 | 0.00 | OK |
 | Clé Company_Id de fait_ventes absente de la dimension | fait_ventes | 0 | 91 995 | 0.00 | OK |
 | Clé DateKey de fait_ventes absente de la dimension | fait_ventes | 0 | 91 995 | 0.00 | OK |
+| Clé Product_Id de fait_achats absente de la dimension | fait_achats | 0 | 24 045 | 0.00 | OK |
+| Clé Fournisseur_Id de fait_achats absente de la dimension | fait_achats | 0 | 24 045 | 0.00 | OK |
+| Clé DateKey de fait_achats absente de la dimension | fait_achats | 0 | 24 045 | 0.00 | OK |
+| Clé Company_Id de fait_paiements absente de la dimension | fait_paiements | 0 | 40 160 | 0.00 | OK |
+| Clé Fournisseur_Id de fait_paiements absente de la dimension | fait_paiements | 0 | 40 160 | 0.00 | OK |
+| Clé PaymentMode_Id de fait_paiements absente de la dimension | fait_paiements | 0 | 40 160 | 0.00 | OK |
+| Clé DateKey de fait_paiements absente de la dimension | fait_paiements | 0 | 40 160 | 0.00 | OK |
 | Ligne de vente sous le coût | fait_ventes | 3 010 | 91 952 | 3.27 | ATTENTION |

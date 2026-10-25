@@ -1,4 +1,4 @@
-# Data Warehouse – version B (4 dimensions, 3 faits)
+# Data Warehouse – version B (5 dimensions, 4 faits)
 
 Tables produites par `build_dataset.py` (branche `main`) à partir de [`data-cleaned`](../../tree/data-cleaned) et [`data-external`](../../tree/data-external). Le schéma (diagramme, descriptif, script SQL) est dans la branche [`dwh-schema`](../../tree/dwh-schema).
 
@@ -7,14 +7,16 @@ Tables produites par `build_dataset.py` (branche `main`) à partir de [`data-cle
 | Table | Type | Lignes | Colonnes |
 |---|---|---|---|
 | `dim_temps.csv` | Dimension | 730 | DateKey, Date, Annee, Trimestre, Mois, SemaineISO, EstFerie |
-| `dim_produit.csv` | Dimension | 6 842 | Product_Id, Libellé, Famille, Marque, QuantiteAlerte |
+| `dim_produit.csv` | Dimension | 6 842 | Product_Id, Libellé, Famille, Marque |
 | `dim_client.csv` | Dimension | 82 | Company_Id, Nom, TypeClient, EstClientIdentifie |
+| `dim_fournisseur.csv` | Dimension | 116 | Fournisseur_Id, Nom |
 | `dim_paiement.csv` | Dimension | 6 | PaymentMode_Id, PaymentModeName |
 | `fait_ventes.csv` | Fait | 91 995 | Id, Document_Id, DateKey, Product_Id, Company_Id, QuantiteVendue, Remise_HT, CA_HT, Cout_HT |
-| `fait_stock_actuel.csv` | Fait | 6 842 | Product_Id, DateKey, Quantity |
-| `fait_paiements.csv` | Fait | 40 160 | Id, DateKey, PaymentMode_Id, Amount, EstPaiementFournisseur |
+| `fait_achats.csv` | Fait | 24 045 | Id, Document_Id, DateKey, Product_Id, Fournisseur_Id, QuantiteAchetee, MontantAchat_HT |
+| `fait_stock_actuel.csv` | Fait | 6 842 | Product_Id, DateKey, Quantity, QuantiteAlerte |
+| `fait_paiements.csv` | Fait | 40 160 | Id, DateKey, PaymentMode_Id, Company_Id, Fournisseur_Id, Amount |
 
-- Mesures Power BI : CA HT, quantité vendue, nombre de ventes, panier moyen, croissance, marge HT, clients actifs, stock disponible, ruptures, stock faible, montant encaissé, nombre de paiements.
+- Mesures Power BI : CA HT, quantité vendue, nombre de ventes, panier moyen, croissance, marge HT, clients actifs, stock disponible, ruptures, stock faible, montant encaissé, nombre de paiements, montant payé par client et par fournisseur, achats HT, quantité achetée, nombre de factures fournisseurs.
 - [`DICTIONNAIRE_DATASET.md`](DICTIONNAIRE_DATASET.md) : description de chaque table et de chaque jeu ML, règles appliquées. [`controles_qualite.csv`](controles_qualite.csv) : contrôles du §7.1.
 - Chargement PostgreSQL : `schema_dwh.sql` dans la branche `dwh-schema`.
 
