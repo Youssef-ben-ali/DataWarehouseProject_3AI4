@@ -77,7 +77,7 @@
 <path d="M521 644 V610 Q521 600 531 600 H901 Q911 600 911 610 V644 Z" fill="url(#hfait)"/>
 <g transform="translate(537,609)"><rect x="2" y="16" width="4.5" height="8" rx="1" fill="#fff"/><rect x="9" y="10" width="4.5" height="14" rx="1" fill="#fff"/><rect x="16" y="5" width="4.5" height="19" rx="1" fill="#fff"/><rect x="23" y="0" width="4.5" height="24" rx="1" fill="#fff"/></g>
 <text x="575" y="629" font-size="21" font-weight="700" fill="#fff">fait_ventes</text>
-<text x="895" y="628" text-anchor="end" font-size="15" fill="#e8f0fb">91 995 lignes</text>
+<text x="895" y="628" text-anchor="end" font-size="15" fill="#e8f0fb">91 015 lignes</text>
 <rect x="533" y="652" width="366" height="23" rx="5" fill="#f1f8f4"/>
 <text x="545" y="669" font-size="16" font-weight="700" fill="#1d2330">Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
 <text x="545" y="694" font-size="16" font-weight="400" fill="#1d2330">Document_Id</text>
@@ -96,7 +96,7 @@
 <path d="M959 644 V610 Q959 600 969 600 H1349 Q1359 600 1359 610 V644 Z" fill="url(#hfait)"/>
 <g transform="translate(975,609)"><path d="M0 2 H4 L7 16 H22 L25 6 H5.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="21" r="2.2" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="21" r="2.2" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
 <text x="1013" y="629" font-size="21" font-weight="700" fill="#fff">fait_achats</text>
-<text x="1343" y="628" text-anchor="end" font-size="15" fill="#e8f0fb">24 045 lignes</text>
+<text x="1343" y="628" text-anchor="end" font-size="15" fill="#e8f0fb">23 738 lignes</text>
 <rect x="971" y="652" width="376" height="23" rx="5" fill="#f1f8f4"/>
 <text x="983" y="669" font-size="16" font-weight="700" fill="#1d2330">Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
 <text x="983" y="694" font-size="16" font-weight="400" fill="#1d2330">Document_Id</text>
@@ -108,20 +108,23 @@
 <text x="983" y="794" font-size="16" font-weight="400" fill="#1d2330">QuantiteAchetee<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
 <rect x="971" y="802" width="376" height="23" rx="5" fill="#f1f8f4"/>
 <text x="983" y="819" font-size="16" font-weight="400" fill="#1d2330">MontantAchat_HT<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
-<rect x="1407" y="600" width="410" height="210" rx="10" fill="#fff" stroke="#d6c8ee" stroke-width="1.5" filter="url(#sh)"/>
+<rect x="1407" y="600" width="410" height="260" rx="10" fill="#fff" stroke="#d6c8ee" stroke-width="1.5" filter="url(#sh)"/>
 <path d="M1407 644 V610 Q1407 600 1417 600 H1807 Q1817 600 1817 610 V644 Z" fill="url(#hpay)"/>
 <g transform="translate(1423,609)"><ellipse cx="11" cy="6" rx="10" ry="4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="11" cy="12" rx="10" ry="4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="11" cy="18" rx="10" ry="4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="21" cy="14" rx="6" ry="6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
 <text x="1461" y="629" font-size="21" font-weight="700" fill="#fff">fait_paiements</text>
-<text x="1801" y="628" text-anchor="end" font-size="15" fill="#e8f0fb">40 160 lignes</text>
+<text x="1801" y="628" text-anchor="end" font-size="15" fill="#e8f0fb">40 367 lignes</text>
 <rect x="1419" y="652" width="386" height="23" rx="5" fill="#f6f2fc"/>
 <text x="1431" y="669" font-size="16" font-weight="700" fill="#1d2330">Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
-<text x="1431" y="694" font-size="16" font-weight="700" fill="#1d2330">DateKey<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_temps</tspan></text>
+<text x="1431" y="694" font-size="16" font-weight="400" fill="#1d2330">Payment_Id</text>
 <rect x="1419" y="702" width="386" height="23" rx="5" fill="#f6f2fc"/>
-<text x="1431" y="719" font-size="16" font-weight="700" fill="#1d2330">PaymentMode_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_paiement</tspan></text>
-<text x="1431" y="744" font-size="16" font-weight="700" fill="#1d2330">Company_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_client</tspan></text>
+<text x="1431" y="719" font-size="16" font-weight="400" fill="#1d2330">Document_Id</text>
+<text x="1431" y="744" font-size="16" font-weight="700" fill="#1d2330">DateKey<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_temps</tspan></text>
 <rect x="1419" y="752" width="386" height="23" rx="5" fill="#f6f2fc"/>
-<text x="1431" y="769" font-size="16" font-weight="700" fill="#1d2330">Fournisseur_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_fournisseur</tspan></text>
-<text x="1431" y="794" font-size="16" font-weight="400" fill="#1d2330">Amount<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
+<text x="1431" y="769" font-size="16" font-weight="700" fill="#1d2330">PaymentMode_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_paiement</tspan></text>
+<text x="1431" y="794" font-size="16" font-weight="700" fill="#1d2330">Company_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_client</tspan></text>
+<rect x="1419" y="802" width="386" height="23" rx="5" fill="#f6f2fc"/>
+<text x="1431" y="819" font-size="16" font-weight="700" fill="#1d2330">Fournisseur_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_fournisseur</tspan></text>
+<text x="1431" y="844" font-size="16" font-weight="400" fill="#1d2330">Amount<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
 <path d="M222.0 385 V425" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
 <path d="M222.0 385 V425" stroke="#1e63c4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
 <path d="M213.0 425 H1489.0" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>

@@ -90,9 +90,11 @@ CREATE TABLE fait_stock_actuel (
     CONSTRAINT fk_fait_stock_actuel_datekey FOREIGN KEY ("DateKey") REFERENCES dim_temps ("DateKey")
 );
 
--- Fait : 1 paiement
+-- Fait : 1 paiement imputé à 1 document réglé
 CREATE TABLE fait_paiements (
     "Id" BIGINT NOT NULL,
+    "Payment_Id" BIGINT,
+    "Document_Id" BIGINT,
     "DateKey" INTEGER,
     "PaymentMode_Id" INTEGER,
     "Company_Id" INTEGER,

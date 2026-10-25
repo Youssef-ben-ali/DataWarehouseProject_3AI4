@@ -34,12 +34,12 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td><code>dim_client</code></td><td>Dimension</td><td>1 ligne = 1 client, y compris le client comptoir anonyme</td><td>Company_Id</td><td>—</td><td>4</td><td>82</td></tr>
 <tr><td><code>dim_fournisseur</code></td><td>Dimension</td><td>1 ligne = 1 fournisseur</td><td>Fournisseur_Id</td><td>—</td><td>2</td><td>116</td></tr>
 <tr><td><code>dim_paiement</code></td><td>Dimension</td><td>1 ligne = 1 moyen de paiement</td><td>PaymentMode_Id</td><td>—</td><td>2</td><td>6</td></tr>
-<tr><td><code>fait_ventes</code></td><td>Fait</td><td>1 produit vendu dans 1 document à 1 date</td><td>Id</td><td>DateKey, Product_Id, Company_Id</td><td>9</td><td>91 995</td></tr>
-<tr><td><code>fait_achats</code></td><td>Fait</td><td>1 produit acheté dans 1 facture fournisseur à 1 date</td><td>Id</td><td>DateKey, Product_Id, Fournisseur_Id</td><td>7</td><td>24 045</td></tr>
+<tr><td><code>fait_ventes</code></td><td>Fait</td><td>1 produit vendu dans 1 document à 1 date</td><td>Id</td><td>DateKey, Product_Id, Company_Id</td><td>9</td><td>91 015</td></tr>
+<tr><td><code>fait_achats</code></td><td>Fait</td><td>1 produit acheté dans 1 facture fournisseur à 1 date</td><td>Id</td><td>DateKey, Product_Id, Fournisseur_Id</td><td>7</td><td>23 738</td></tr>
 <tr><td><code>fait_stock_actuel</code></td><td>Fait (snapshot)</td><td>1 produit à la date de snapshot</td><td>Product_Id</td><td>Product_Id, DateKey</td><td>4</td><td>6 842</td></tr>
-<tr><td><code>fait_paiements</code></td><td>Fait</td><td>1 paiement</td><td>Id</td><td>DateKey, PaymentMode_Id, Company_Id, Fournisseur_Id</td><td>6</td><td>40 160</td></tr>
+<tr><td><code>fait_paiements</code></td><td>Fait</td><td>1 paiement imputé à 1 document réglé</td><td>Id</td><td>DateKey, PaymentMode_Id, Company_Id, Fournisseur_Id</td><td>8</td><td>40 367</td></tr>
 </table>
-<p class='small'>fait_ventes : 25 743 lignes réelles et 66 252 synthétiques ; fait_achats : 6 980 lignes réelles et 17 065 synthétiques ; fait_paiements : 10 899 réels et 29 261 synthétiques ; fait_stock_actuel : photo au 29/09/2026.</p>
+<p class='small'>fait_ventes : 25 743 lignes réelles et 65 272 synthétiques ; fait_achats : 6 980 lignes réelles et 16 758 synthétiques ; fait_paiements : 39 770 paiements (10 899 réels et 28 871 synthétiques) sur 40 367 lignes d'imputation ; fait_stock_actuel : photo au 29/09/2026.</p>
 <h2>3. Relations</h2><p>Toutes les relations vont d'une dimension (côté 1) vers une table de faits (côté N).</p>
 <table><tr><th>Dimension (1)</th><th>Table de faits (N)</th><th>Clé de jointure</th><th>Utilisation</th></tr>
 <tr><td><code>dim_temps</code></td><td><code>fait_ventes</code></td><td>DateKey</td><td>Évolution du CA, des ventes, du panier ; croissance</td></tr>
@@ -53,8 +53,9 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td><code>dim_client</code></td><td><code>fait_paiements</code></td><td>Company_Id</td><td>Montant payé par chaque client</td></tr>
 <tr><td><code>dim_fournisseur</code></td><td><code>fait_achats</code></td><td>Fournisseur_Id</td><td>Achats par fournisseur</td></tr>
 <tr><td><code>dim_fournisseur</code></td><td><code>fait_paiements</code></td><td>Fournisseur_Id</td><td>Montant payé à chaque fournisseur</td></tr>
+<tr><td><code>fait_ventes / fait_achats</code></td><td><code>fait_paiements</code></td><td>Document_Id (dimension dégénérée)</td><td>Quelle vente ou quelle facture fournisseur chaque paiement règle ; montant réglé par document</td></tr>
 <tr><td><code>dim_paiement</code></td><td><code>fait_paiements</code></td><td>PaymentMode_Id</td><td>Répartition des encaissements par moyen de paiement</td></tr>
-</table><div class='box'>Les tables de faits ne sont <b>pas reliées entre elles</b> : une analyse croisée (par exemple ventes et stock d'un même produit) passe par la dimension commune, ici <code>dim_produit</code>.</div>
+</table><div class='box'>Les tables de faits ne sont <b>pas reliées entre elles</b> : une analyse croisée (par exemple ventes et stock d'un même produit) passe par la dimension commune, ici <code>dim_produit</code>. Seule exception : <code>Document_Id</code>, dimension dégénérée partagée par <code>fait_ventes</code>, <code>fait_achats</code> et <code>fait_paiements</code>, qui relie un paiement au document qu'il règle. Dans Power BI, on filtre les deux visuels sur le même <code>Document_Id</code>, ou l'on crée une relation plusieurs-à-plusieurs sur cette colonne (filtre dans un seul sens, de fait_paiements vers la table de faits du document).</div>
 <h2>4. Dictionnaire des données</h2><p class='small'>Légende : <span class='pk'>PK</span> clé primaire · <span class='fk'>FK</span> clé étrangère · <span class='ms'>mesure</span> valeur additive.</p>
 <div class='keep'><h3>dim_temps <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
 <tr><td>DateKey</td><td><span class="pk">PK</span></td><td>Clé de la date au format AAAAMMJJ (ex. 20250430).</td></tr>
@@ -98,7 +99,7 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>CA_HT</td><td><span class="ms">mesure</span></td><td>Chiffre d&#x27;affaires HT de la ligne, remises déduites, signé (négatif pour un retour).</td></tr>
 <tr><td>Cout_HT</td><td><span class="ms">mesure</span></td><td>Coût d&#x27;achat HT = quantité × coût unitaire à la date de la vente (coût moyen pondéré du mouvement de stock, à défaut prix d&#x27;achat du produit), calculé dans l&#x27;ETL. Vide si aucun coût n&#x27;est connu.</td></tr>
 </table></div>
-<div class='box'><b>Exemple réel — Document_Id 15 (ticket VC0013/24) :</b> 3 lignes, CA HT = 86,05 + 34,96 + 34,96 = 155,97 € ; coût HT = 134,89 € ; marge HT = 21,08 €. Il compte pour <b>1 vente</b> (91 995 lignes = 42 540 ventes). Lignes chargées : ventes comptoir, bons de livraison, factures client et retours validés ; brouillons, lignes de commentaire et factures qui regroupent des bons de livraison déjà comptés sont exclus.</div>
+<div class='box'><b>Exemple réel — Document_Id 15 (ticket VC0013/24) :</b> 3 lignes, CA HT = 86,05 + 34,96 + 34,96 = 155,97 € ; coût HT = 134,89 € ; marge HT = 21,08 €. Il compte pour <b>1 vente</b> (91 015 lignes = 42 148 ventes). Lignes chargées : ventes comptoir, bons de livraison, factures client et retours validés ; brouillons, lignes de commentaire et factures qui regroupent des bons de livraison déjà comptés sont exclus.</div>
 <div class='keep'><h3>fait_achats <span class='tag fait'>FAIT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
 <tr><td>Id</td><td><span class="pk">PK</span></td><td>Identifiant de la ligne de document source.</td></tr>
 <tr><td>Document_Id</td><td>dimension dégénérée</td><td>Identifiant de la facture (ou de l&#x27;avoir) fournisseur : permet de compter les factures fournisseurs.</td></tr>
@@ -108,23 +109,25 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>QuantiteAchetee</td><td><span class="ms">mesure</span></td><td>Quantité achetée, négative pour un avoir fournisseur.</td></tr>
 <tr><td>MontantAchat_HT</td><td><span class="ms">mesure</span></td><td>Montant HT de la ligne après remise, signé (négatif pour un avoir). Le prix unitaire n&#x27;est pas stocké : il se recalcule (montant / quantité).</td></tr>
 </table></div>
-<div class='box'>3 157 factures et avoirs fournisseurs (dont 14 à montant négatif : avoirs et factures de correction), 3 167 787 € HT d'achats. 385 produits sont achetés chez plusieurs fournisseurs : le lien produit → fournisseur passe donc par cette table, pas par <code>dim_produit</code>. Seuls les documents validés sont chargés ; aucune facture fournisseur ne regroupe d'autres documents.</div>
+<div class='box'>3 145 factures et avoirs fournisseurs (dont 14 à montant négatif : avoirs et factures de correction), 3 155 130 € HT d'achats. 379 produits sont achetés chez plusieurs fournisseurs : le lien produit → fournisseur passe donc par cette table, pas par <code>dim_produit</code>. Seuls les documents validés sont chargés ; aucune facture fournisseur ne regroupe d'autres documents.</div>
 <div class='keep'><h3>fait_stock_actuel <span class='tag fait'>FAIT · SNAPSHOT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
 <tr><td>Product_Id</td><td><span class="pk">PK</span> / <span class="fk">FK</span> → dim_produit</td><td>Produit (une ligne par produit).</td></tr>
 <tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date de la photo du stock (fin de la période chargée).</td></tr>
 <tr><td>Quantity</td><td><span class="ms">mesure</span></td><td>Quantité en stock selon le logiciel ; peut être négative quand une vente est enregistrée avant ou sans la réception de la marchandise (le logiciel l&#x27;autorise pour les ventes comptoir et les bons de livraison).</td></tr>
 <tr><td>QuantiteAlerte</td><td>seuil</td><td>Seuil d&#x27;alerte de stock choisi par le magasin pour le produit (export Produits, sinon paramètre par défaut du logiciel = 5). Stocké à côté de la quantité : le stock faible se calcule dans la même table. Non additif, non calculable ; une seule valeur par produit (une ligne par produit).</td></tr>
 </table></div>
-<div class='box'>Au snapshot : 1 777 produits à 0, 2 470 en stock faible, 339 à stock négatif. Rupture et stock faible ne sont <b>pas stockés</b> : mesures Power BI à partir de <code>Quantity</code> et <code>QuantiteAlerte</code>, dans la même table (§9). Seuils d'alerte les plus fréquents : 5 (3 868 produits), 1 (2 970 produits).</div>
+<div class='box'>Au snapshot : 1 834 produits à 0, 2 472 en stock faible, 308 à stock négatif. Rupture et stock faible ne sont <b>pas stockés</b> : mesures Power BI à partir de <code>Quantity</code> et <code>QuantiteAlerte</code>, dans la même table (§9). Seuils d'alerte les plus fréquents : 5 (3 868 produits), 1 (2 970 produits).</div>
 <div class='keep'><h3>fait_paiements <span class='tag fait'>FAIT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
-<tr><td>Id</td><td><span class="pk">PK</span></td><td>Identifiant du paiement.</td></tr>
+<tr><td>Id</td><td><span class="pk">PK</span></td><td>Clé technique de la ligne d&#x27;imputation (un paiement qui règle plusieurs documents a plusieurs lignes).</td></tr>
+<tr><td>Payment_Id</td><td>dimension dégénérée</td><td>Numéro du paiement dans le logiciel : Nombre de paiements = DISTINCTCOUNT(Payment_Id).</td></tr>
+<tr><td>Document_Id</td><td>dimension dégénérée</td><td>Document réglé : même clé que fait_ventes (encaissement client) ou fait_achats (paiement fournisseur). Répond à « quelle vente / quelle facture ce paiement règle-t-il ? » ; -1 si aucune imputation.</td></tr>
 <tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date du paiement.</td></tr>
 <tr><td>PaymentMode_Id</td><td><span class="fk">FK</span> → dim_paiement</td><td>Moyen de paiement ; -1 si non renseigné.</td></tr>
 <tr><td>Company_Id</td><td><span class="fk">FK</span> → dim_client</td><td>Client qui paie (2 = client comptoir anonyme) ; -1 pour un paiement à un fournisseur.</td></tr>
 <tr><td>Fournisseur_Id</td><td><span class="fk">FK</span> → dim_fournisseur</td><td>Fournisseur payé ; -1 pour un encaissement client. Remplace l&#x27;indicateur EstPaiementFournisseur, qui se recalcule (paiement fournisseur ⇔ Fournisseur_Id ≠ -1).</td></tr>
-<tr><td>Amount</td><td><span class="ms">mesure</span></td><td>Montant TTC réellement versé. Valeur de base non recalculable : elle diffère du CA (impayés, paiements fractionnés ou différés, TVA).</td></tr>
+<tr><td>Amount</td><td><span class="ms">mesure</span></td><td>Montant TTC réellement versé et imputé à ce document ; la somme des lignes d&#x27;un paiement est exactement le montant payé. Valeur de base non recalculable : elle diffère du CA (impayés, paiements fractionnés ou différés, TVA).</td></tr>
 </table></div>
-<div class='box'>Encaissé clients : 3 026 072 € sur 38 541 paiements (dont 36 466 au comptoir, Company_Id = 2) ; paiements fournisseurs : 1 619 (1 930 937 €), exclus du montant encaissé. Chaque paiement porte soit un client, soit un fournisseur (jamais les deux). 37 659 paiements clients (98 %) n'ont pas de moyen renseigné dans la source.</div>
+<div class='box'>Encaissé clients : 3 007 313 € sur 38 142 paiements (dont 36 041 au comptoir, Company_Id = 2) ; paiements fournisseurs : 1 628 (1 976 938 €), exclus du montant encaissé. Chaque paiement porte soit un client, soit un fournisseur (jamais les deux). <b>Imputation :</b> 39 706 paiements règlent un seul document, 58 en règlent plusieurs (montant réparti selon TransactionPayments, puis au prorata du total TTC quand une facture regroupe des bons de livraison), 6 n'ont pas de document chargé (Document_Id = -1). Le client ou le fournisseur du paiement est toujours celui du document réglé. 37 264 paiements clients (98 %) n'ont pas de moyen renseigné : le logiciel ne le saisit que pendant les premières semaines (sept.-oct. 2024). Aucun montant négatif : l'argent rendu lors d'un retour n'est pas un paiement dans la source.</div>
 <h2>5. Mesures et KPI (Power BI)</h2><table><tr><th style='width:20%'>Mesure / KPI</th><th style='width:32%'>Formule</th><th style='width:18%'>Tables</th><th>Dashboards</th></tr>
 <tr><td>CA HT</td><td><code>SUM(CA_HT)</code></td><td>fait_ventes</td><td>Synthèse, Commercial, Clients</td></tr>
 <tr><td>Quantité vendue</td><td><code>SUM(QuantiteVendue)</code></td><td>fait_ventes</td><td>Commercial</td></tr>
@@ -139,7 +142,8 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>Montant encaissé</td><td><code>SUM(Amount) où Fournisseur_Id = -1</code></td><td>fait_paiements</td><td>Paiements</td></tr>
 <tr><td>Montant payé par client</td><td><code>Montant encaissé par Company_Id, filtre EstClientIdentifie = true</code></td><td>fait_paiements + dim_client</td><td>Paiements, Clients</td></tr>
 <tr><td>Montant payé aux fournisseurs</td><td><code>SUM(Amount) où Fournisseur_Id ≠ -1</code></td><td>fait_paiements + dim_fournisseur</td><td>Paiements, Achats</td></tr>
-<tr><td>Nombre de paiements</td><td><code>COUNT(Id)</code></td><td>fait_paiements</td><td>Paiements</td></tr>
+<tr><td>Nombre de paiements</td><td><code>DISTINCTCOUNT(Payment_Id)</code></td><td>fait_paiements</td><td>Paiements</td></tr>
+<tr><td>Montant réglé d'une vente / d'une facture</td><td><code>SUM(Amount) par Document_Id</code></td><td>fait_paiements</td><td>Paiements, Clients, Achats</td></tr>
 <tr><td>Achats HT</td><td><code>SUM(MontantAchat_HT)</code></td><td>fait_achats</td><td>Achats</td></tr>
 <tr><td>Quantité achetée</td><td><code>SUM(QuantiteAchetee)</code></td><td>fait_achats</td><td>Achats</td></tr>
 <tr><td>Nombre de factures fournisseurs</td><td><code>COUNT(DISTINCT Document_Id)</code></td><td>fait_achats</td><td>Achats</td></tr>
@@ -155,12 +159,13 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>dim_paiement : EstEspeces, EstDiffere, ligne « Inconnu (4) »</td><td>Déductibles du moyen de paiement ; la ligne 4 n&#x27;est utilisée par aucun paiement.</td></tr>
 <tr><td>fait_ventes : CA_TTC, Marge_HT, CoutUnitaire, Signe, taux de remise, colonnes brutes</td><td>Recalculables ou non utilisées par les KPI ; la marge devient une mesure.</td></tr>
 <tr><td>fait_stock_actuel : EnRupture, StockFaible, ValeurStock_HT, rotation, couverture…</td><td>Rupture et stock faible deviennent des mesures ; les autres ne sont pas des KPI du cahier.</td></tr>
-<tr><td>fait_paiements : UsedAmount, document, heure, caisse</td><td>UsedAmount = Amount à 99,9 % ; aucun KPI n&#x27;utilise les autres colonnes.</td></tr>
+<tr><td>fait_paiements : UsedAmount, heure, caisse</td><td>UsedAmount = Amount à 99,9 % ; aucun KPI n&#x27;utilise les autres colonnes.</td></tr>
 </table><h2>7. Ajouts au modèle B (achats, fournisseurs, client et fournisseur des paiements)</h2><table><tr><th style='width:36%'>Élément</th><th>Raison</th></tr>
 <tr><td>dim_fournisseur</td><td>Nouvelle dimension : savoir quel fournisseur est payé et chez qui un produit est acheté.</td></tr>
 <tr><td>fait_achats</td><td>Nouveau fait : achats par fournisseur, produit et période ; quel produit vient de quel fournisseur.</td></tr>
 <tr><td>fait_paiements : Company_Id</td><td>Montant payé par chaque client (2 = paiements au comptoir).</td></tr>
 <tr><td>fait_paiements : Fournisseur_Id</td><td>Montant payé à chaque fournisseur.</td></tr>
+<tr><td>fait_paiements : grain « 1 paiement imputé à 1 document », Payment_Id, Document_Id</td><td>Le cahier demande quelle vente ou facture chaque paiement règle ; un paiement qui règle plusieurs documents est réparti sur plusieurs lignes, sans table pont.</td></tr>
 <tr><td>fait_paiements : EstPaiementFournisseur retiré</td><td>Recalculable : paiement fournisseur ⇔ Fournisseur_Id ≠ -1.</td></tr>
 <tr><td>QuantiteAlerte : de dim_produit vers fait_stock_actuel</td><td>Le seuil est stocké à côté de la quantité ; le stock faible se calcule dans une seule table.</td></tr>
 </table><h2>8. Règles de chargement et limites</h2><ul>
@@ -169,6 +174,10 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <li><b>Ventes anonymes :</b> conservées (client comptoir) mais exclues des KPI clients par <code>EstClientIdentifie</code>.</li>
 <li><b>Paiements :</b> un encaissement porte le client qui paie (<code>Fournisseur_Id</code> = -1), un paiement fournisseur porte le fournisseur payé (<code>Company_Id</code> = -1) ; le montant encaissé exclut les paiements fournisseurs par le filtre <code>Fournisseur_Id = -1</code>.</li>
 <li><b>Achats :</b> factures fournisseurs validées ; avoirs fournisseurs signés négativement. Les achats sont HT, les paiements TTC : ne pas comparer les deux montants directement.</li>
+<li><b>Retours et remboursements :</b> les marchandises retournées sont des lignes négatives de <code>fait_ventes</code> et <code>fait_achats</code> ; l'argent rendu n'est pas enregistré comme paiement dans la source, il n'apparaît donc pas dans <code>fait_paiements</code> (aucun montant négatif).</li>
+<li><b>Moyen de paiement :</b> saisi par le logiciel pendant les premières semaines seulement (sept.-oct. 2024) ; la répartition par moyen n'est représentative que sur cette période, réelle comme synthétique.</li>
+<li><b>Période synthétique :</b> pas d'avoir client ni fournisseur généré (types de documents rares) ; les retours clients y apparaissent seulement comme lignes négatives de tickets de caisse.</li>
+<li><b>Stock :</b> une seule photo du stock, donc Product_Id suffit comme clé ; avec plusieurs photos, la clé deviendrait (Product_Id, DateKey).</li>
 <li><b>Stock :</b> quantité du logiciel conservée, y compris les stocks négatifs (signalés par les contrôles qualité).</li>
 <li><b>Données synthétiques :</b> générées par simulation (hypothèses documentées dans la branche data-external) ; l'apport de la météo et des épidémies se mesure sur la période réelle uniquement.</li>
 <li><b>Sources brutes :</b> jamais modifiées ; le nettoyage produit des copies, puis le chargement du Data Warehouse.</li>
