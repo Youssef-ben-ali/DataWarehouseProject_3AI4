@@ -381,7 +381,16 @@ def learn(cal):
         c = SimpleNamespace()
         c.n_lines = Dist(Counter(len(prod_lines(d)) for d in val))
         c.n_blank = Dist(Counter(len(by_doc[d["Id"]]) - len(prod_lines(d)) for d in val))
-        c.qty = Dist(Counter(it["Quantity"] for d in val for it in prod_lines(d) if fl(it["Quantity"])), "1")
+        c.qty = Dist(Counter(it["Quantity"] for d in val for it in prod_lines(d) if (fl(it["Quantity"]) or 0) > 0), "1")
+        # ligne de retour (quantité négative) : tirée à la fréquence réelle du canal, pas parmi les quantités d'un produit,
+        # séparément pour les documents d'une ligne (retour seul, rare) et de plusieurs lignes (échange, plus fréquent)
+        ret = {True: [0, 0], False: [0, 0]}
+        for d in val:
+            q = [fl(it["Quantity"]) or 0 for it in prod_lines(d)]
+            k = ret[len(q) == 1]
+            k[0] += sum(x < 0 for x in q)
+            k[1] += sum(x != 0 for x in q)
+        c.p_return_line = {single: n / max(1, tot) for single, (n, tot) in ret.items()}
         c.disc = Dist(Counter(it["DiscountPourcentage"] for d in val for it in prod_lines(d)))
         c.doc_disc = Dist(Counter(d["DiscountPercentage"] for d in val))
         c.p_timbre = sum(d["Timbre"] == "1" for d in val) / len(val)
@@ -678,10 +687,14 @@ def pick_discount(M, pid, ty):
     return RNG.choice(pool) if len(pool) >= 3 else M.ch[ty].disc.sample()
 
 
-def pick_quantity(M, pid, ty):
-    """Quantité tirée parmi celles observées pour CE produit sur ce canal (un produit cher ne part pas par 100)."""
-    obs = M.prod[pid]["qty"].get(ty, [])
-    return fl(RNG.choice(obs) if len(obs) >= 2 else M.ch[ty].qty.sample()) or 1.0
+def pick_quantity(M, pid, ty, single):
+    """Quantité tirée parmi celles vendues pour CE produit sur ce canal (un produit cher ne part pas par 100).
+    Les retours sont tirés à part, à la fréquence réelle des lignes négatives du canal (document d'une seule ligne
+    ou de plusieurs) : tirer parmi les quantités observées d'un produit peu vendu donnerait un retour une fois sur
+    deux s'il a été retourné une fois."""
+    obs = [q for q in M.prod[pid]["qty"].get(ty, []) if (fl(q) or 0) > 0]
+    q = fl(RNG.choice(obs) if len(obs) >= 2 else M.ch[ty].qty.sample()) or 1.0
+    return -q if RNG.random() < M.ch[ty].p_return_line[single] else q
 
 
 # --------------------------------------------------------------------------- #
@@ -830,7 +843,7 @@ class Sim:
             price = unit_price(M, pid, ty, day)
             if price is None:
                 continue
-            qty = q if q is not None else pick_quantity(M, pid, ty)
+            qty = q if q is not None else pick_quantity(M, pid, ty, len(wanted) == 1)
             disc = M.supp[company].line_disc.sample() if ty == "20" else pick_discount(M, pid, ty)
             tva = M.prod[pid]["tva"]
             lines.append((pid, qty, price, disc, tva, compute_line(price, qty, disc, tva, g, .01 if taxed and RNG.random() < .6 else 0)))
@@ -882,7 +895,9 @@ class Sim:
 
         # paiements
         paid_total, pays = 0.0, []
-        if state == "1" and ty != "5":
+        # un ticket ou une facture de total nul ou négatif (retour) ne crée aucun paiement : dans l'export, tous les
+        # paiements sont positifs, l'argent rendu n'est pas enregistré comme paiement
+        if state == "1" and ty != "5" and final > 0:
             p_paid = 1 - M.vc_unpaid if ty == "6" else c.p_paid
             if RNG.random() < p_paid:
                 n = 1 if ty in ("6", "20") else max(1, int(c.n_pay.sample()))
@@ -1291,7 +1306,13 @@ de ces hypothèses. Pour évaluer honnêtement un modèle, entraînez-le et test
 ## Limites
 
 - Pas de nouveaux produits, clients ou fournisseurs créés (le catalogue reste celui de l'export).
-- Les types de documents rares (avoirs, retours, proformas, commandes) ne sont pas générés.
+- Les types de documents rares (avoirs, retours, proformas, commandes) ne sont pas générés : les retours clients
+  n'apparaissent que comme lignes négatives des ventes (à la fréquence réelle, surtout des échanges sur un ticket
+  de plusieurs lignes), et il n'y a pas d'avoir fournisseur après le 30/04/2025.
+- Un ticket ou une facture de total nul ou négatif ne crée pas de paiement, comme dans l'export (aucun paiement
+  négatif) : l'argent rendu à un client n'est pas enregistré comme paiement.
+- Moyen de paiement : reproduit tel qu'il est saisi dans l'export depuis novembre 2024, c'est-à-dire presque jamais
+  (< 1 % des paiements clients) ; seules les premières semaines de l'export (septembre-octobre 2024) le renseignent.
 - Pas de dépôts / retraits bancaires ni d'ajustements de solde bancaire (rares dans l'export).
 - Les paiements saisis puis supprimés (≈ {M.p_removed:.1%}, statut 2 en caisse) sont reproduits ; les mises à jour
   de paiement (`PaymentUpdated`, 11 cas réels) ne le sont pas.

@@ -101,8 +101,14 @@ META = {
          "Seuil d'alerte de stock choisi par le magasin pour le produit (export Produits, sinon paramètre par défaut du "
          "logiciel = 5). Stocké à côté de la quantité : le stock faible se calcule dans la même table. Non additif, non "
          "calculable ; une seule valeur par produit (une ligne par produit).")]),
-    "fait_paiements": ("Fait", "1 paiement", [
-        ("Id", "BIGINT", "PK", "PK", "Identifiant du paiement."),
+    "fait_paiements": ("Fait", "1 paiement imputé à 1 document réglé", [
+        ("Id", "BIGINT", "PK", "PK", "Clé technique de la ligne d'imputation (un paiement qui règle plusieurs documents a "
+                                     "plusieurs lignes)."),
+        ("Payment_Id", "BIGINT", "", "dimension dégénérée",
+         "Numéro du paiement dans le logiciel : Nombre de paiements = DISTINCTCOUNT(Payment_Id)."),
+        ("Document_Id", "BIGINT", "", "dimension dégénérée",
+         "Document réglé : même clé que fait_ventes (encaissement client) ou fait_achats (paiement fournisseur). "
+         "Répond à « quelle vente / quelle facture ce paiement règle-t-il ? » ; -1 si aucune imputation."),
         ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "FK → dim_temps", "Date du paiement."),
         ("PaymentMode_Id", "INTEGER", "FK:dim_paiement.PaymentMode_Id", "FK → dim_paiement", "Moyen de paiement ; -1 si non renseigné."),
         ("Company_Id", "INTEGER", "FK:dim_client.Company_Id", "FK → dim_client",
@@ -111,8 +117,9 @@ META = {
          "Fournisseur payé ; -1 pour un encaissement client. Remplace l'indicateur EstPaiementFournisseur, qui se "
          "recalcule (paiement fournisseur ⇔ Fournisseur_Id ≠ -1)."),
         ("Amount", "NUMERIC(14,4)", "M", "mesure",
-         "Montant TTC réellement versé. Valeur de base non recalculable : elle diffère du CA (impayés, paiements "
-         "fractionnés ou différés, TVA).")]),
+         "Montant TTC réellement versé et imputé à ce document ; la somme des lignes d'un paiement est exactement le "
+         "montant payé. Valeur de base non recalculable : elle diffère du CA (impayés, paiements fractionnés ou différés, "
+         "TVA).")]),
 }
 DIMS = ["dim_temps", "dim_produit", "dim_client", "dim_fournisseur", "dim_paiement"]
 FACTS = ["fait_ventes", "fait_achats", "fait_stock_actuel", "fait_paiements"]
@@ -156,13 +163,17 @@ def stats(data):
     S["ventes_reel"] = sum(1 for r in v if r["DateKey"] <= REAL_END)
     S["docs"] = len({r["Document_Id"] for r in v})
     S["docs_reel"] = len({r["Document_Id"] for r in v if r["DateKey"] <= REAL_END})
-    S["paiements_reel"] = sum(1 for r in p if r["DateKey"] <= REAL_END)
     cli = [r for r in p if r["Fournisseur_Id"] == "-1"]
     sup = [r for r in p if r["Fournisseur_Id"] != "-1"]
-    S["encaisse"], S["n_cli"] = sum(num(r["Amount"]) for r in cli), len(cli)
-    S["decaisse"], S["n_sup"] = sum(num(r["Amount"]) for r in sup), len(sup)
-    S["comptoir"] = sum(1 for r in cli if r["Company_Id"] == "2")
-    S["sans_mode"] = sum(1 for r in cli if r["PaymentMode_Id"] == "-1")
+    S["encaisse"], S["n_cli"] = sum(num(r["Amount"]) for r in cli), len({r["Payment_Id"] for r in cli})
+    S["decaisse"], S["n_sup"] = sum(num(r["Amount"]) for r in sup), len({r["Payment_Id"] for r in sup})
+    S["comptoir"] = len({r["Payment_Id"] for r in cli if r["Company_Id"] == "2"})
+    S["sans_mode"] = len({r["Payment_Id"] for r in cli if r["PaymentMode_Id"] == "-1"})
+    per_pay = Counter(r["Payment_Id"] for r in p)
+    S["n_pay"] = len(per_pay)
+    S["pay_multi"] = sum(1 for n in per_pay.values() if n > 1)
+    S["pay_sans_doc"] = len({r["Payment_Id"] for r in p if r["Document_Id"] == "-1"})
+    S["paiements_reel"] = len({r["Payment_Id"] for r in p if r["DateKey"] <= REAL_END})
     a = data["fait_achats"]
     S["achats_reel"] = sum(1 for r in a if r["DateKey"] <= REAL_END)
     S["achats_ht"] = sum(num(r["MontantAchat_HT"]) for r in a)
@@ -427,8 +438,8 @@ def build_html(S):
     H.append("</table>")
     H.append(f"<p class='small'>fait_ventes : {fr(S['ventes_reel'])} lignes réelles et {fr(S['fait_ventes'] - S['ventes_reel'])} "
              f"synthétiques ; fait_achats : {fr(S['achats_reel'])} lignes réelles et {fr(S['fait_achats'] - S['achats_reel'])} "
-             f"synthétiques ; fait_paiements : {fr(S['paiements_reel'])} réels et {fr(S['fait_paiements'] - S['paiements_reel'])} "
-             f"synthétiques ; fait_stock_actuel : photo au {S['stock_date'][6:]}/{S['stock_date'][4:6]}/{S['stock_date'][:4]}.</p>")
+             f"synthétiques ; fait_paiements : {fr(S['n_pay'])} paiements ({fr(S['paiements_reel'])} réels et "
+             f"{fr(S['n_pay'] - S['paiements_reel'])} synthétiques) sur {fr(S['fait_paiements'])} lignes d'imputation ; fait_stock_actuel : photo au {S['stock_date'][6:]}/{S['stock_date'][4:6]}/{S['stock_date'][:4]}.</p>")
     rel = [("dim_temps", "fait_ventes", "DateKey", "Évolution du CA, des ventes, du panier ; croissance"),
            ("dim_temps", "fait_stock_actuel", "DateKey", "Date du snapshot de stock"),
            ("dim_temps", "fait_achats", "DateKey", "Évolution des achats"),
@@ -440,12 +451,18 @@ def build_html(S):
            ("dim_client", "fait_paiements", "Company_Id", "Montant payé par chaque client"),
            ("dim_fournisseur", "fait_achats", "Fournisseur_Id", "Achats par fournisseur"),
            ("dim_fournisseur", "fait_paiements", "Fournisseur_Id", "Montant payé à chaque fournisseur"),
+           ("fait_ventes / fait_achats", "fait_paiements", "Document_Id (dimension dégénérée)",
+            "Quelle vente ou quelle facture fournisseur chaque paiement règle ; montant réglé par document"),
            ("dim_paiement", "fait_paiements", "PaymentMode_Id", "Répartition des encaissements par moyen de paiement")]
     H += ["<h2>3. Relations</h2><p>Toutes les relations vont d'une dimension (côté 1) vers une table de faits (côté N).</p>",
           "<table><tr><th>Dimension (1)</th><th>Table de faits (N)</th><th>Clé de jointure</th><th>Utilisation</th></tr>"]
     H += [f"<tr><td><code>{a}</code></td><td><code>{b}</code></td><td>{c}</td><td>{d}</td></tr>" for a, b, c, d in rel]
     H += ["</table><div class='box'>Les tables de faits ne sont <b>pas reliées entre elles</b> : une analyse croisée (par exemple "
-          "ventes et stock d'un même produit) passe par la dimension commune, ici <code>dim_produit</code>.</div>",
+          "ventes et stock d'un même produit) passe par la dimension commune, ici <code>dim_produit</code>. Seule exception : "
+          "<code>Document_Id</code>, dimension dégénérée partagée par <code>fait_ventes</code>, <code>fait_achats</code> et "
+          "<code>fait_paiements</code>, qui relie un paiement au document qu'il règle. Dans Power BI, on filtre les deux "
+          "visuels sur le même <code>Document_Id</code>, ou l'on crée une relation plusieurs-à-plusieurs sur cette colonne "
+          "(filtre dans un seul sens, de fait_paiements vers la table de faits du document).</div>",
           "<h2>4. Dictionnaire des données</h2><p class='small'>Légende : <span class='pk'>PK</span> clé primaire · "
           "<span class='fk'>FK</span> clé étrangère · <span class='ms'>mesure</span> valeur additive.</p>"]
     notes = {
@@ -469,8 +486,14 @@ def build_html(S):
         "fait_paiements": (f"Encaissé clients : {fr(S['encaisse'])} € sur {fr(S['n_cli'])} paiements (dont {fr(S['comptoir'])} au "
                            f"comptoir, Company_Id = 2) ; paiements fournisseurs : {fr(S['n_sup'])} ({fr(S['decaisse'])} €), exclus "
                            "du montant encaissé. Chaque paiement porte soit un client, soit un fournisseur (jamais les deux). "
+                           f"<b>Imputation :</b> {fr(S['n_pay'] - S['pay_multi'] - S['pay_sans_doc'])} paiements règlent un seul "
+                           f"document, {fr(S['pay_multi'])} en règlent plusieurs (montant réparti selon TransactionPayments, puis "
+                           "au prorata du total TTC quand une facture regroupe des bons de livraison), "
+                           f"{fr(S['pay_sans_doc'])} n'ont pas de document chargé (Document_Id = -1). Le client ou le fournisseur "
+                           "du paiement est toujours celui du document réglé. "
                            f"{fr(S['sans_mode'])} paiements clients ({100 * S['sans_mode'] / max(S['n_cli'], 1):.0f} %) n'ont pas "
-                           "de moyen renseigné dans la source."),
+                           "de moyen renseigné : le logiciel ne le saisit que pendant les premières semaines (sept.-oct. 2024). "
+                           "Aucun montant négatif : l'argent rendu lors d'un retour n'est pas un paiement dans la source."),
     }
     for t, (kind, grain, cols) in META.items():
         cls, lab = tag[kind]
@@ -496,7 +519,9 @@ def build_html(S):
              "fait_paiements + dim_client", "Paiements, Clients"),
             ("Montant payé aux fournisseurs", "SUM(Amount) où Fournisseur_Id ≠ -1", "fait_paiements + dim_fournisseur",
              "Paiements, Achats"),
-            ("Nombre de paiements", "COUNT(Id)", "fait_paiements", "Paiements"),
+            ("Nombre de paiements", "DISTINCTCOUNT(Payment_Id)", "fait_paiements", "Paiements"),
+            ("Montant réglé d'une vente / d'une facture", "SUM(Amount) par Document_Id", "fait_paiements",
+             "Paiements, Clients, Achats"),
             ("Achats HT", "SUM(MontantAchat_HT)", "fait_achats", "Achats"),
             ("Quantité achetée", "SUM(QuantiteAchetee)", "fait_achats", "Achats"),
             ("Nombre de factures fournisseurs", "COUNT(DISTINCT Document_Id)", "fait_achats", "Achats"),
@@ -514,11 +539,14 @@ def build_html(S):
                ("dim_paiement : EstEspeces, EstDiffere, ligne « Inconnu (4) »", "Déductibles du moyen de paiement ; la ligne 4 n'est utilisée par aucun paiement."),
                ("fait_ventes : CA_TTC, Marge_HT, CoutUnitaire, Signe, taux de remise, colonnes brutes", "Recalculables ou non utilisées par les KPI ; la marge devient une mesure."),
                ("fait_stock_actuel : EnRupture, StockFaible, ValeurStock_HT, rotation, couverture…", "Rupture et stock faible deviennent des mesures ; les autres ne sont pas des KPI du cahier."),
-               ("fait_paiements : UsedAmount, document, heure, caisse", "UsedAmount = Amount à 99,9 % ; aucun KPI n'utilise les autres colonnes.")]
+               ("fait_paiements : UsedAmount, heure, caisse", "UsedAmount = Amount à 99,9 % ; aucun KPI n'utilise les autres colonnes.")]
     added = [("dim_fournisseur", "Nouvelle dimension : savoir quel fournisseur est payé et chez qui un produit est acheté."),
              ("fait_achats", "Nouveau fait : achats par fournisseur, produit et période ; quel produit vient de quel fournisseur."),
              ("fait_paiements : Company_Id", "Montant payé par chaque client (2 = paiements au comptoir)."),
              ("fait_paiements : Fournisseur_Id", "Montant payé à chaque fournisseur."),
+             ("fait_paiements : grain « 1 paiement imputé à 1 document », Payment_Id, Document_Id",
+              "Le cahier demande quelle vente ou facture chaque paiement règle ; un paiement qui règle plusieurs documents "
+              "est réparti sur plusieurs lignes, sans table pont."),
              ("fait_paiements : EstPaiementFournisseur retiré", "Recalculable : paiement fournisseur ⇔ Fournisseur_Id ≠ -1."),
              ("QuantiteAlerte : de dim_produit vers fait_stock_actuel",
               "Le seuil est stocké à côté de la quantité ; le stock faible se calcule dans une seule table.")]
@@ -540,6 +568,15 @@ def build_html(S):
           "fournisseurs par le filtre <code>Fournisseur_Id = -1</code>.</li>",
           "<li><b>Achats :</b> factures fournisseurs validées ; avoirs fournisseurs signés négativement. Les achats sont HT, "
           "les paiements TTC : ne pas comparer les deux montants directement.</li>",
+          "<li><b>Retours et remboursements :</b> les marchandises retournées sont des lignes négatives de "
+          "<code>fait_ventes</code> et <code>fait_achats</code> ; l'argent rendu n'est pas enregistré comme paiement dans "
+          "la source, il n'apparaît donc pas dans <code>fait_paiements</code> (aucun montant négatif).</li>",
+          "<li><b>Moyen de paiement :</b> saisi par le logiciel pendant les premières semaines seulement (sept.-oct. 2024) ; "
+          "la répartition par moyen n'est représentative que sur cette période, réelle comme synthétique.</li>",
+          "<li><b>Période synthétique :</b> pas d'avoir client ni fournisseur généré (types de documents rares) ; les retours "
+          "clients y apparaissent seulement comme lignes négatives de tickets de caisse.</li>",
+          "<li><b>Stock :</b> une seule photo du stock, donc Product_Id suffit comme clé ; avec plusieurs photos, la clé "
+          "deviendrait (Product_Id, DateKey).</li>",
           "<li><b>Stock :</b> quantité du logiciel conservée, y compris les stocks négatifs (signalés par les contrôles qualité).</li>",
           "<li><b>Données synthétiques :</b> générées par simulation (hypothèses documentées dans la branche data-external) ; "
           "l'apport de la météo et des épidémies se mesure sur la période réelle uniquement.</li>",

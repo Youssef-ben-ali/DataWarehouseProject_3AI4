@@ -60,7 +60,7 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <tr><td>Responsable commercial</td><td>Analyser les ventes</td><td>Quels produits, familles et marques se vendent le plus ? Quelle est la quantité vendue et le panier moyen ? Quels produits, familles et marques sont les plus rentables ?</td></tr>
 <tr><td>Responsable relation client</td><td>Analyser les clients</td><td>Quels clients identifiés sont actifs ? Quelle est leur fréquence d’achat et leur valeur ?</td></tr>
 <tr><td>Responsable approvisionnement / stock</td><td>Piloter le stock</td><td>Quels produits sont disponibles, en stock faible ou en rupture ? Quelle demande faut-il anticiper ?</td></tr>
-<tr><td>Responsable financier / caisse</td><td>Suivre les flux de paiement</td><td>Quel montant est encaissé ? Quels moyens de paiement sont utilisés ? Comment évoluent les encaissements ? Combien chaque client a-t-il payé ? Combien a-t-on payé à chaque fournisseur ?</td></tr>
+<tr><td>Responsable financier / caisse</td><td>Suivre les flux de paiement</td><td>Quel montant est encaissé ? Quels moyens de paiement sont utilisés ? Comment évoluent les encaissements ? Combien chaque client a-t-il payé ? Combien a-t-on payé à chaque fournisseur ? Quelle vente ou quelle facture chaque paiement règle-t-il ?</td></tr>
 <tr><td>Responsable achats</td><td>Piloter les achats et les fournisseurs</td><td>Combien achète-t-on à chaque fournisseur ? Quels produits, familles et marques sont achetés ? Quel produit vient de quel fournisseur ?</td></tr>
 </table>
 
@@ -115,7 +115,8 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <tr><td>Produits en stock faible</td><td>COUNT(Product_Id) où 0 &lt; Quantity &lt;= QuantiteAlerte (fait_stock_actuel)</td><td>Product_Id, Quantity, QuantiteAlerte</td><td>Produit, famille, marque</td></tr>
 <tr><td>Montant encaissé</td><td>SUM(Amount) où Fournisseur_Id = -1 (encaissements clients)</td><td>Amount, Fournisseur_Id</td><td>Temps, moyen de paiement, client</td></tr>
 <tr><td>Montant payé aux fournisseurs</td><td>SUM(Amount) où Fournisseur_Id ≠ -1</td><td>Amount, Fournisseur_Id</td><td>Temps, fournisseur</td></tr>
-<tr><td>Nombre de paiements</td><td>COUNT(Id)</td><td>Id</td><td>Temps, moyen de paiement, client, fournisseur</td></tr>
+<tr><td>Nombre de paiements</td><td>DISTINCTCOUNT(Payment_Id)</td><td>Payment_Id</td><td>Temps, moyen de paiement, client, fournisseur</td></tr>
+<tr><td>Montant réglé d’un document</td><td>SUM(Amount) par Document_Id</td><td>Amount, Document_Id</td><td>Vente (fait_ventes) ou facture fournisseur (fait_achats)</td></tr>
 <tr><td>Achats HT</td><td>SUM(MontantAchat_HT)</td><td>MontantAchat_HT</td><td>Temps, fournisseur, produit, famille, marque</td></tr>
 <tr><td>Quantité achetée</td><td>SUM(QuantiteAchetee)</td><td>QuantiteAchetee</td><td>Temps, fournisseur, produit</td></tr>
 <tr><td>Nombre de factures fournisseurs</td><td>COUNT(DISTINCT Document_Id) sur fait_achats</td><td>Document_Id</td><td>Temps, fournisseur</td></tr>
@@ -171,12 +172,13 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <table class="d">
 <tr><th>Élément</th><th>Détail</th></tr>
 <tr><td>Objectif BI</td><td>Suivre les encaissements, les paiements fournisseurs et leur répartition sans créer une mesure différente pour chaque moyen, client, fournisseur ou période.</td></tr>
-<tr><td>Questions analytiques</td><td>Quel montant est encaissé ? Combien de paiements sont enregistrés ? Comment se répartissent-ils par moyen ? Comment évoluent-ils dans le temps ? Combien chaque client a-t-il payé ? Combien a-t-on payé à chaque fournisseur ?</td></tr>
-<tr><td>Mesures de base</td><td>Montant encaissé ; Montant payé aux fournisseurs ; Nombre de paiements.</td></tr>
-<tr><td>Variables minimales</td><td>Id ; Amount ; PaymentMode_Id ; Company_Id ; Fournisseur_Id ; DateKey.</td></tr>
+<tr><td>Questions analytiques</td><td>Quel montant est encaissé ? Combien de paiements sont enregistrés ? Comment se répartissent-ils par moyen ? Comment évoluent-ils dans le temps ? Combien chaque client a-t-il payé ? Combien a-t-on payé à chaque fournisseur ? Quelle vente ou quelle facture fournisseur ce paiement règle-t-il ? Combien a été réglé sur chaque document ?</td></tr>
+<tr><td>Mesures de base</td><td>Montant encaissé ; Montant payé aux fournisseurs ; Nombre de paiements ; Montant réglé d’un document.</td></tr>
+<tr><td>Variables minimales</td><td>Payment_Id ; Document_Id ; Amount ; PaymentMode_Id ; Company_Id ; Fournisseur_Id ; DateKey.</td></tr>
 <tr><td>Dimensions / filtres</td><td>dim_paiement, dim_client, dim_fournisseur et dim_temps. Les analyses par carte, espèces, client, fournisseur ou période utilisent les mêmes mesures avec filtres.</td></tr>
 <tr><td>Résultat attendu</td><td>Suivi des encaissements par période, moyen de paiement et client ; suivi des paiements par fournisseur.</td></tr>
-<tr><td>Précaution</td><td>La source mélange encaissements clients et paiements fournisseurs : chaque paiement porte soit un client (Company_Id), soit un fournisseur (Fournisseur_Id), l’autre valant -1. Le montant encaissé filtre Fournisseur_Id = -1. Les paiements au comptoir sont rattachés au client comptoir anonyme. Les paiements (TTC) ne se comparent pas directement au CA ou aux achats (HT).</td></tr>
+<tr><td>Précaution</td><td>La source mélange encaissements clients et paiements fournisseurs : chaque paiement porte soit un client (Company_Id), soit un fournisseur (Fournisseur_Id), l’autre valant -1. Le montant encaissé filtre Fournisseur_Id = -1. Les paiements au comptoir sont rattachés au client comptoir anonyme. Les paiements (TTC) ne se comparent pas directement au CA ou aux achats (HT). Un paiement qui règle plusieurs documents est réparti sur plusieurs lignes (imputation de la source, au prorata du total TTC quand une facture regroupe des bons de livraison).</td></tr>
+<tr><td>Limites</td><td>L’argent rendu lors d’un retour n’est pas enregistré comme paiement dans la source : les retours apparaissent en négatif dans les ventes et les achats, pas dans les paiements. Le moyen de paiement n’est saisi par le logiciel que pendant les premières semaines (septembre-octobre 2024) : la répartition par moyen n’est représentative que sur cette période.</td></tr>
 </table></div>
 
 <div class="keep"><h3 class="a">6.6 Responsable achats — Achats et fournisseurs</h3>
@@ -210,7 +212,7 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <tr><td>Produits</td><td>Product_Id, Libellé, Famille, Marque</td><td>Filtres produit.</td></tr>
 <tr><td>Clients</td><td>Company_Id, TypeClient et attributs fiables</td><td>Analyse des clients identifiés.</td></tr>
 <tr><td>Stock</td><td>Product_Id, Quantity, QuantiteAlerte, DateKey</td><td>Stock actuel, rupture et stock faible.</td></tr>
-<tr><td>Paiements</td><td>Id, DateKey, PaymentMode_Id, Company_Id, Fournisseur_Id, Amount</td><td>Montant et nombre de paiements, par client ou par fournisseur.</td></tr>
+<tr><td>Paiements</td><td>Payment_Id, Document_Id, DateKey, PaymentMode_Id, Company_Id, Fournisseur_Id, Amount</td><td>Montant et nombre de paiements, par client ou par fournisseur ; document réglé.</td></tr>
 <tr><td>Achats</td><td>Document_Id, DateKey, Product_Id, Fournisseur_Id, QuantiteAchetee, MontantAchat_HT</td><td>Achats par fournisseur et par produit.</td></tr>
 <tr><td>Fournisseurs</td><td>Fournisseur_Id, Nom</td><td>Filtre et affichage des fournisseurs.</td></tr>
 <tr><td>Temps</td><td>DateKey, Date, semaine, mois, trimestre, année, EstFerie</td><td>Analyse temporelle et filtres.</td></tr>
@@ -232,7 +234,7 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <tr><th>Donnée externe</th><th>Utilisation</th><th>Justification</th><th>Intégration</th></tr>
 <tr><td>Météo (Open-Meteo)</td><td>ML</td><td>Tester si température / précipitations améliorent la prévision de certaines familles saisonnières.</td><td>Dataset de prévision uniquement</td></tr>
 <tr><td>Indicateurs épidémiques (Réseau Sentinelles)</td><td>ML</td><td>Tester si le contexte épidémique améliore la prévision de certaines familles de produits de santé.</td><td>Dataset de prévision uniquement</td></tr>
-<tr><td>Données synthétiques (prolongation du 01/05/2025 au 29/09/2026)</td><td>BI + ML</td><td>Disposer de deux ans d’historique pour l’évolution temporelle, la saisonnalité et la prévision.</td><td>Fichiers séparés, même format que les sources ; délimitation par la date (données réelles jusqu’au 30/04/2025 inclus)</td></tr>
+<tr><td>Données synthétiques (prolongation du 01/05/2025 au 29/09/2026)</td><td>BI + ML</td><td>Disposer de deux ans d’historique pour l’évolution temporelle, la saisonnalité et la prévision.</td><td>Fichiers séparés, même format que les sources ; délimitation par la date (données réelles jusqu’au 30/04/2025 inclus). Les types de documents rares (avoirs client et fournisseur) ne sont pas générés ; les retours clients y apparaissent comme lignes négatives de tickets de caisse.</td></tr>
 </table>
 <p class="bold">Règle de validation : météo et épidémies seront conservées uniquement si leur ajout améliore réellement la performance du modèle par rapport à une version sans ces variables. Elles ne sont pas considérées comme des causes établies a priori.</p>
 <p>Cette évaluation est réalisée sur la période réelle uniquement (données datées jusqu’au 30 avril 2025), car des effets météo et épidémiques ont servi d’hypothèses à la génération des données synthétiques.</p>
@@ -249,9 +251,9 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <tr><td>Fait</td><td>fait_ventes</td><td>1 produit vendu dans 1 document à 1 date</td><td>PK Id ; FK DateKey, Product_Id, Company_Id</td><td>Document_Id, QuantiteVendue, CA_HT, Remise_HT, Cout_HT</td></tr>
 <tr><td>Fait</td><td>fait_achats</td><td>1 produit acheté dans 1 facture fournisseur à 1 date</td><td>PK Id ; FK DateKey, Product_Id, Fournisseur_Id</td><td>Document_Id, QuantiteAchetee, MontantAchat_HT (avoirs en négatif)</td></tr>
 <tr><td>Fait</td><td>fait_stock_actuel</td><td>1 produit à la date de snapshot</td><td>PK/FK Product_Id ; FK DateKey</td><td>Quantity, QuantiteAlerte (seuil d’alerte du produit). Rupture et stock faible sont calculés.</td></tr>
-<tr><td>Fait</td><td>fait_paiements</td><td>1 paiement</td><td>PK Id ; FK DateKey, PaymentMode_Id, Company_Id, Fournisseur_Id</td><td>Amount. Un encaissement porte le client qui paie (2 = comptoir), un paiement fournisseur le fournisseur payé ; l’autre clé vaut -1.</td></tr>
+<tr><td>Fait</td><td>fait_paiements</td><td>1 paiement imputé à 1 document réglé</td><td>PK Id ; FK DateKey, PaymentMode_Id, Company_Id, Fournisseur_Id</td><td>Payment_Id, Document_Id (vente ou facture fournisseur réglée), Amount. Un encaissement porte le client qui paie (2 = comptoir), un paiement fournisseur le fournisseur payé ; l’autre clé vaut -1.</td></tr>
 </table>
-<p class="note">Document_Id est conservé directement dans fait_ventes pour compter les ventes distinctes et calculer le panier moyen. Une dimension Document séparée n’est pas nécessaire tant qu’aucun objectif BI n’analyse le type, le statut ou le canal du document.<br>
+<p class="note">Document_Id est conservé directement dans fait_ventes pour compter les ventes distinctes et calculer le panier moyen ; la même clé, dans fait_achats et fait_paiements, relie un paiement au document qu’il règle. Une dimension Document séparée n’est pas nécessaire tant qu’aucun objectif BI n’analyse le type, le statut ou le canal du document.<br>
 Les sources StockMovements, utilisateurs et géographie peuvent rester disponibles dans les zones source/ETL ou les datasets ML sans devenir des tables du Data Warehouse BI final.</p>
 
 <h2>10. Besoins BI / Reporting</h2>
@@ -330,6 +332,7 @@ Les sources StockMovements, utilisateurs et géographie peuvent rester disponibl
 <tr><td>Produits en rupture</td><td>COUNT(Product_Id où Quantity = 0)</td><td>Basé sur le snapshot de stock retenu.</td></tr>
 <tr><td>Stock faible</td><td>0 &lt; Quantity &lt;= QuantiteAlerte</td><td>Le seuil provient du référentiel produit (ou d’une règle validée) et est stocké dans fait_stock_actuel.</td></tr>
 <tr><td>Montant encaissé</td><td>SUM(Amount) où Fournisseur_Id = -1</td><td>Exclut les paiements fournisseurs ; un paiement porte soit un client, soit un fournisseur.</td></tr>
+<tr><td>Nombre de paiements</td><td>DISTINCTCOUNT(Payment_Id)</td><td>Une ligne de fait_paiements est une imputation : ne pas compter les lignes comme des paiements.</td></tr>
 <tr><td>Achats HT</td><td>SUM(MontantAchat_HT)</td><td>Factures fournisseurs validées uniquement ; avoirs en négatif.</td></tr>
 <tr><td>Erreur de prévision</td><td>MAE / RMSE</td><td>Évaluer sur une période future non utilisée pour l’entraînement et comparer à une baseline.</td></tr>
 </table>
@@ -365,7 +368,7 @@ Les sources StockMovements, utilisateurs et géographie peuvent rester disponibl
 <li>Séparer clairement les variables X, la cible Y, la granularité et la métrique d’évaluation de chaque cas ML.</li>
 <li>Ne pas présenter une corrélation supposée comme une causalité : météo et épidémies doivent démontrer leur apport.</li>
 <li>Conserver les sources brutes et les données ETL même lorsqu’elles ne sont pas présentes dans le modèle BI final.</li>
-<li>Documenter les limites : historique réel de 7 mois (jusqu’au 30 avril 2025) prolongé à 2 ans par des données synthétiques, clients anonymes, qualité des sources et disponibilité des stocks historiques.</li>
+<li>Documenter les limites : remboursements non enregistrés comme paiements, moyen de paiement saisi seulement en septembre-octobre 2024, historique réel de 7 mois (jusqu’au 30 avril 2025) prolongé à 2 ans par des données synthétiques, clients anonymes, qualité des sources et disponibilité des stocks historiques.</li>
 </ul>
 
 <h2>16. Conclusion</h2>

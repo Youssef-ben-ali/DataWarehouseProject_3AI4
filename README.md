@@ -99,7 +99,7 @@ Chaque dossier étant une branche, `git status` dans le dossier montre ce qui a 
 | Période | 30/09/2024 → 29/09/2026 : réel jusqu'au 30/04/2025 (7 mois), synthétique ensuite (délimitation par la date) |
 | Sources | 29 CSV · 370 256 enregistrements réels |
 | CA HT réel (ventes validées, sans double comptage) | 1 021 293 · 11 571 ventes · panier moyen 88,26 HT |
-| CA HT sur 2 ans (réel + synthétique) | 3 833 428 · 42 540 ventes · panier moyen 90,11 HT |
+| CA HT sur 2 ans (réel + synthétique) | 3 805 148 · 42 148 ventes · panier moyen 90,28 HT |
 | Data Warehouse | 5 dimensions · 4 tables de faits · 100 % des clés étrangères vérifiées |
 
 ## Données externes

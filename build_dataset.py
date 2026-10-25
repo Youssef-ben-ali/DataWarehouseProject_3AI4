@@ -478,46 +478,117 @@ def payment_side(p, ctype):
     return t == "SUPPLIER" if t in ("SUPPLIER", "CUSTOMER") else p["IsPurchase"] == "true"
 
 
-PAYMENT_COLS = ["Id", "DateKey", "PaymentMode_Id", "Company_Id", "Fournisseur_Id", "Amount"]
+PAYMENT_COLS = ["Id", "Payment_Id", "Document_Id", "DateKey", "PaymentMode_Id", "Company_Id", "Fournisseur_Id", "Amount"]
 
 
-def build_payments(pays, ctype, clients, suppliers):
-    rows = []
-    for p in pays:
+def settled_documents(tx, by_tx, grouped, loaded, docs_by_id):
+    """Documents chargés dans fait_ventes / fait_achats réglés par une transaction, avec leur poids (total TTC > 0).
+    Une facture client qui regroupe des bons de livraison est remplacée par ces bons (seuls comptés dans fait_ventes)."""
+    out = []
+    for d in by_tx.get(tx, []):
+        for did in grouped.get(d["Id"], [d["Id"]]):
+            w = f(docs_by_id.get(did, {}).get("FinalPrice"))
+            if did in loaded and w > 0 and did not in [o for o, _ in out]:
+                out.append((did, w))
+    return out
+
+
+def build_payments(pays, ctype, clients, suppliers, tps, docs, grouped, loaded):
+    docs_by_id = {d["Id"]: d for d in docs}
+    by_tx = defaultdict(list)
+    for d in docs:
+        by_tx[d["Transaction_Id"]].append(d)
+    alloc = defaultdict(list)                      # paiement -> [(transaction, montant imputé)]
+    for t in tps:
+        alloc[t["Payment_Id"]].append((t["Transaction_Id"], f(t["Amount"])))
+    rows, stats = [], Counter()
+    for p in sorted(pays, key=lambda p: int(p["Id"])):
         dd = d_of(p["PaymentDate"])
         mode = p["PaymentMode_Id"] or "-1"
         cid = p["Company_Id"] or "-1"
         to_supplier = payment_side(p, ctype)
-        rows.append({"Id": p["Id"], "DateKey": datekey(dd), "PaymentMode_Id": mode if mode in PAY_FR else "-1",
-                     "Company_Id": "-1" if to_supplier else (cid if cid in clients else "-1"),
-                     "Fournisseur_Id": (cid if cid in suppliers else "-1") if to_supplier else "-1",
-                     "Amount": p["Amount"], "_date": dd, "_sup": to_supplier})
-    sup = [r for r in rows if r["_sup"]]
-    cli = [r for r in rows if not r["_sup"]]
-    nomode = sum(1 for r in cli if r["PaymentMode_Id"] == "-1")
+        base = {"Payment_Id": p["Id"], "DateKey": datekey(dd), "PaymentMode_Id": mode if mode in PAY_FR else "-1",
+                "Company_Id": "-1" if to_supplier else (cid if cid in clients else "-1"),
+                "Fournisseur_Id": (cid if cid in suppliers else "-1") if to_supplier else "-1",
+                "_date": dd, "_sup": to_supplier}
+        amount = f(p["Amount"])
+        # parts (document, montant brut) : imputation de la source, répartie au prorata quand une transaction règle
+        # plusieurs documents chargés (facture regroupant des bons de livraison, document + avoir)
+        parts = []
+        for tx, a in alloc.get(p["Id"], []):
+            targets = settled_documents(tx, by_tx, grouped, loaded, docs_by_id)
+            if not targets:
+                parts.append(("-1", a))
+                continue
+            tot = sum(w for _, w in targets)
+            parts += [(did, a * w / tot) for did, w in targets]
+        if not parts:
+            parts = [("-1", amount)]
+            stats["sans imputation dans la source"] += 1
+        stats["réparti sur plusieurs documents" if len(parts) > 1 else "un seul document"] += 1
+        # la somme des lignes d'un paiement est exactement le montant payé
+        raw = sum(a for _, a in parts)
+        scaled = [a * amount / raw for _, a in parts] if raw else [amount / len(parts)] * len(parts)
+        scaled = [round(a, 4) for a in scaled]
+        scaled[-1] = round(amount - sum(scaled[:-1]), 4)
+        for (did, _), a in zip(parts, scaled):
+            rows.append({**base, "Document_Id": did, "Amount": r2(a, 4)})
+    for i, r in enumerate(rows, 1):
+        r["Id"] = i
+    pid_side = {r["Payment_Id"]: r["_sup"] for r in rows}
+    sup = {k for k, v in pid_side.items() if v}
+    cli = {k for k, v in pid_side.items() if not v}
+    nomode = len({r["Payment_Id"] for r in rows if not r["_sup"] and r["PaymentMode_Id"] == "-1"})
     check("Paiement client sans moyen de paiement renseigné", "fait_paiements", nomode, len(cli),
-          detail="limite de la source (encaissements de caisse) : la répartition par moyen est dominée par « Non renseigné »")
+          detail="limite de la source : le moyen n'est saisi que pendant les premières semaines (sept.-oct. 2024)")
     check("Paiement fournisseur sans fournisseur identifié", "fait_paiements",
-          sum(1 for r in sup if r["Fournisseur_Id"] == "-1"), len(sup),
+          len({r["Payment_Id"] for r in rows if r["_sup"] and r["Fournisseur_Id"] == "-1"}), len(sup),
           detail="doit être 0 : sinon le paiement serait compté dans le montant encaissé")
-    check("Paiement client sans client identifié", "fait_paiements", sum(1 for r in cli if r["Company_Id"] == "-1"), len(cli))
-    walk = sum(1 for r in cli if r["Company_Id"] == "2")
-    real = sum(1 for r in rows if r["_date"] <= END_REAL)
+    check("Paiement client sans client identifié", "fait_paiements",
+          len({r["Payment_Id"] for r in rows if not r["_sup"] and r["Company_Id"] == "-1"}), len(cli))
+    no_doc = [r for r in rows if r["Document_Id"] == "-1"]
+    check("Paiement non rattaché à un document chargé", "fait_paiements", len({r["Payment_Id"] for r in no_doc}),
+          len(pid_side), detail="Document_Id = -1 : paiement sans imputation dans la source ou document réglé non chargé")
+    sale_docs = {d for d, kind in loaded.items() if kind == "vente"}
+    wrong = sum(1 for r in rows if r["Document_Id"] != "-1" and (r["Document_Id"] in sale_docs) == r["_sup"])
+    check("Paiement rattaché à un document de l'autre sens (client ↔ fournisseur)", "fait_paiements", wrong, len(rows))
+    total_src = sum(f(p["Amount"]) for p in pays)
+    total_dwh = sum(f(r["Amount"]) for r in rows)
+    check("Écart entre la somme des paiements source et fait_paiements (centimes)", "fait_paiements",
+          round(abs(total_src - total_dwh) * 100), round(total_src * 100))
+    cli_rows = [r for r in rows if not r["_sup"]]
+    sup_rows = [r for r in rows if r["_sup"]]
+    walk = len({r["Payment_Id"] for r in cli_rows if r["Company_Id"] == "2"})
+    real = len({r["Payment_Id"] for r in rows if r["_date"] <= END_REAL})
     W("dwh/fait_paiements.csv", PAYMENT_COLS, rows,
-      "Fait Paiements : montant réellement versé, moyen de paiement, date ; client qui paie ou fournisseur payé.",
-      "1 ligne = 1 paiement", "PaymentsList + Payment (fusionnés), CompaniesList — réel + synthétique",
-      "§6.5 Paiements ; §6.6 Achats ; §9 fait_paiements (Amount ; client ; fournisseur)",
-      [f"{fr(real)} paiements de la période réelle et {fr(len(rows) - real)} de la période synthétique.",
+      "Fait Paiements : montant réellement versé, imputé au document qu'il règle ; client qui paie ou fournisseur payé.",
+      "1 ligne = 1 paiement imputé à 1 document réglé (vente ou facture fournisseur)",
+      "PaymentsList + Payment (fusionnés), TransactionPayments (imputation), Documents, RelatedDocuments, "
+      "CompaniesList — réel + synthétique",
+      "§6.5 Paiements ; §6.6 Achats ; §9 fait_paiements (Amount ; client ; fournisseur ; document réglé)",
+      [f"{fr(len(pid_side))} paiements ({fr(real)} de la période réelle) sur {fr(len(rows))} lignes d'imputation : "
+       + ", ".join(f"{k} : {fr(v)}" for k, v in stats.items()) + ".",
+       "`Payment_Id` = numéro du paiement (dimension dégénérée) : Nombre de paiements = DISTINCTCOUNT(Payment_Id). "
+       "`Id` = clé technique de la ligne d'imputation.",
+       "`Document_Id` = document réglé, même clé que dans `fait_ventes` (encaissement client) ou `fait_achats` "
+       "(paiement fournisseur) : répond à « quelle vente / quelle facture ce paiement règle-t-il ? ». -1 si le paiement "
+       "n'a pas d'imputation dans la source.",
+       "Imputation : celle de TransactionPayments (paiement → transaction → montant). Quand une transaction règle plusieurs "
+       "documents chargés — facture client regroupant des bons de livraison (seuls les bons sont dans fait_ventes), "
+       "document et avoir — le montant est réparti au prorata du total TTC des documents de total positif.",
+       "La somme des lignes d'un paiement est exactement son montant : SUM(Amount) = total des paiements de la source.",
        "Encaissement client : `Company_Id` = client qui paie (2 = client comptoir anonyme), `Fournisseur_Id` = -1. "
        "Paiement fournisseur : `Fournisseur_Id` = fournisseur payé, `Company_Id` = -1.",
-       f"Montant encaissé = SUM(Amount) où Fournisseur_Id = -1 : {fr(round(sum(f(r['Amount']) for r in cli)))} "
+       f"Montant encaissé = SUM(Amount) où Fournisseur_Id = -1 : {fr(round(sum(f(r['Amount']) for r in cli_rows)))} "
        f"sur {fr(len(cli))} paiements clients (dont {fr(walk)} au comptoir) ; {fr(len(sup))} paiements fournisseurs "
-       f"({fr(round(sum(f(r['Amount']) for r in sup)))}).",
-       "Le client et le fournisseur viennent directement du paiement source (`Company_Id` de PaymentsList, identique "
-       "à celui de la transaction réglée sur 100 % des liens TransactionPayments).",
-       "`Amount` est TTC et n'est pas le CA : impayés, paiements fractionnés ou différés.",
+       f"({fr(round(sum(f(r['Amount']) for r in sup_rows)))}).",
+       "`Amount` est TTC et n'est pas le CA : impayés, paiements fractionnés ou différés. Aucun paiement n'est négatif : "
+       "l'argent rendu lors d'un retour n'est pas enregistré comme paiement dans la source (les retours apparaissent en "
+       "négatif dans fait_ventes et fait_achats).",
+       "Moyen de paiement : saisi par le logiciel seulement pendant les premières semaines (sept.-oct. 2024), presque "
+       "jamais ensuite ; la répartition par moyen n'est représentative que sur cette période.",
        "`EstPaiementFournisseur` est retiré : il se recalcule (paiement fournisseur ⇔ Fournisseur_Id ≠ -1).",
-       "Retirés de la version précédente : UsedAmount (égal à Amount à 99,9 %), document, heure, caisse, compte bancaire."])
+       "Retirés de la version précédente : UsedAmount (égal à Amount à 99,9 %), heure, caisse, compte bancaire."])
 
 
 # --------------------------------------------------------------------------- #
@@ -817,8 +888,9 @@ SPEC_MAP = [
      "SUM(Quantity) ; COUNT où Quantity = 0 ; COUNT où 0 < Quantity ≤ QuantiteAlerte", "fait_stock_actuel × dim_produit ; ml_11_1"),
     ("Responsable financier / caisse",
      "Montant encaissé, montant payé par chaque client, montant payé à chaque fournisseur, nombre de paiements, "
-     "répartition par moyen",
-     "SUM(Amount) où Fournisseur_Id = -1 ; SUM(Amount) par client ou par fournisseur ; COUNT(Id)",
+     "répartition par moyen, quelle vente ou facture chaque paiement règle",
+     "SUM(Amount) où Fournisseur_Id = -1 ; SUM(Amount) par client, fournisseur ou Document_Id ; "
+     "DISTINCTCOUNT(Payment_Id)",
      "fait_paiements × dim_paiement × dim_client × dim_fournisseur × dim_temps ; ml_11_3"),
     ("Responsable achats", "Achats par fournisseur et par produit, quel produit vient de quel fournisseur",
      "SUM(MontantAchat_HT) ; SUM(QuantiteAchetee) ; COUNT(DISTINCT Document_Id)",
@@ -869,7 +941,8 @@ def write_docs():
                f"{', '.join(t['cols'])} |" for k, t in dwh]
     readme += ["", "- Mesures Power BI : CA HT, quantité vendue, nombre de ventes, panier moyen, croissance, marge HT, "
                "clients actifs, stock disponible, ruptures, stock faible, montant encaissé, nombre de paiements, "
-               "montant payé par client et par fournisseur, achats HT, quantité achetée, nombre de factures fournisseurs.",
+               "montant payé par client et par fournisseur, montant réglé par document, achats HT, quantité achetée, "
+               "nombre de factures fournisseurs.",
                "- [`DICTIONNAIRE_DATASET.md`](DICTIONNAIRE_DATASET.md) : description de chaque table et de chaque jeu ML, "
                "règles appliquées. [`controles_qualite.csv`](controles_qualite.csv) : contrôles du §7.1.",
                "- Chargement PostgreSQL : `schema_dwh.sql` dans la branche `dwh-schema`.", "",
@@ -941,7 +1014,12 @@ def main():
           sum(s["SourceCout"] == "ABSENT" for s in sales), len(sales))
     purchases = build_purchases(docs_by_id, items, txn, suppliers)
     build_stock(products)
-    build_payments(pays, ctype, clients, suppliers)
+    grouped = defaultdict(list)                  # facture client regroupant des BL -> ses BL
+    for r in R("related_documents.csv"):
+        if r["Document1_Id"] in linked_invoices:
+            grouped[r["Document1_Id"]].append(r["Document2_Id"])
+    loaded = {**{s["Document_Id"]: "vente" for s in sales}, **{a["Document_Id"]: "achat" for a in purchases}}
+    build_payments(pays, ctype, clients, suppliers, RA("transaction_payments.csv"), docs, grouped, loaded)
 
     # intégrité référentielle des faits (§7.1)
     dates = {datekey(d) for d in cal}
