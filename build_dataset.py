@@ -6,11 +6,12 @@ selon le cahier de spécification (docs/cahier-de-spec.pdf).
 Entrée  : ./cleaned/               données réelles nettoyées      (30/09/2024 → 30/04/2025)
           ./cleaned/synthetique/   données synthétiques nettoyées (01/05/2025 → 29/09/2026)
           ./externe/               météo Open-Meteo, épidémies Réseau Sentinelles (téléchargées si absentes)
-Sortie  : ./dataset/dwh/   4 dimensions + 3 tables de faits, DICTIONNAIRE_DATASET.md, controles_qualite.csv, README.md
+Sortie  : ./dataset/dwh/   5 dimensions + 4 tables de faits, DICTIONNAIRE_DATASET.md, controles_qualite.csv, README.md
           ./dataset/ml/    6 jeux de données Machine Learning (§11 du cahier), README.md
 
 Modèle (§9 du cahier) :
-  dim_temps, dim_produit, dim_client, dim_paiement  ×  fait_ventes, fait_stock_actuel, fait_paiements
+  dim_temps, dim_produit, dim_client, dim_fournisseur, dim_paiement
+  ×  fait_ventes, fait_achats, fait_stock_actuel, fait_paiements
 Règle : une colonne n'est stockée que si le cahier l'exige et qu'elle ne peut pas être recalculée ;
 le reste est calculé dans Power BI (mesures) ou reste en zone ETL.
 Délimitation réel / synthétique : par la date (réel ≤ 30/04/2025), sans colonne dédiée.
@@ -241,24 +242,28 @@ def build_products(lines_by_ps, moves):
         alert = p.get("Quantité d'Alerte") or "5"
         src_alert["export Produits" if p.get("Quantité d'Alerte") else "paramètre par défaut (5)"] += 1
         r = {"Product_Id": pid, "Libellé": name or f"PRODUIT {pid}", "Famille": p.get("Famille") or "NON RENSEIGNE",
-             "Marque": brand or "NON RENSEIGNE", "QuantiteAlerte": r2(f(alert), 3)}
+             "Marque": brand or "NON RENSEIGNE"}
         rows.append(r)
-        full[pid] = {**r, "FamilyGroup": p.get("FamilyGroup") or "NON RENSEIGNE",
+        full[pid] = {**r, "QuantiteAlerte": r2(f(alert), 3), "FamilyGroup": p.get("FamilyGroup") or "NON RENSEIGNE",
                      "PrixAchatHT": p.get("Prix d'achat HT", ""), "ProductIdSource": p.get("ProductIdSource", "non rapproche")}
     unmatched = sum(1 for v in full.values() if v["ProductIdSource"] == "non rapproche")
     check("Produit du référentiel interne absent de l'export Produits", "dim_produit", unmatched, len(rows),
           detail="famille indisponible ; libellé repris des événements ou des lignes de vente ; seuil d'alerte = 5")
     W("dwh/dim_produit.csv", list(rows[0].keys()), rows,
-      "Dimension Produit : libellé, famille, marque, seuil d'alerte de stock.",
+      "Dimension Produit : libellé, famille, marque.",
       "1 ligne = 1 produit du référentiel interne (ProductStocks), clé Product_Id",
       "ProductStocks, Produits, Events (libellés), ProductBrands, users_settings (seuil par défaut)",
-      "§7 et §9 du cahier : « Libellé, Famille, Marque, QuantiteAlerte » ; §6.2, §6.4",
+      "§7 et §9 du cahier : « Libellé, Famille, Marque » ; §6.2, §6.4, §6.6",
       [f"Libellé : {dict(src_name)}.",
        "Marque manquante : déduite si le libellé commence par un nom de ProductBrands, sinon `NON RENSEIGNE`.",
-       f"QuantiteAlerte : {dict(src_alert)}. C'est un paramètre choisi par le magasin, pas une valeur calculable.",
+       "Le seuil d'alerte de stock (QuantiteAlerte) est stocké dans `fait_stock_actuel`, à côté de la quantité.",
        "Les prix d'achat / de vente et le coût moyen pondéré restent en zone ETL : ils servent à calculer `CA_HT` et "
        "`Cout_HT`, aucun KPI n'utilise le prix catalogue."])
+    ALERT_SOURCES.update(src_alert)
     return full
+
+
+ALERT_SOURCES = Counter()   # origine du seuil d'alerte, documentée dans fait_stock_actuel
 
 
 def build_clients(sale_company_ids):
@@ -279,7 +284,7 @@ def build_clients(sale_company_ids):
         rows.append({"Company_Id": i, "Nom": f"CLIENT INCONNU {i}", "TypeClient": "NON RENSEIGNE",
                      "EstClientIdentifie": "true"})
     rows.append({"Company_Id": "-1", "Nom": "NON RENSEIGNE", "TypeClient": "NON RENSEIGNE", "EstClientIdentifie": "false"})
-    check("Company_Id client absent de CompaniesList", "fait_ventes", len(unknown), len(sale_company_ids),
+    check("Company_Id client absent de CompaniesList", "fait_ventes / fait_paiements", len(unknown), len(sale_company_ids),
           detail="ajoutés dans dim_client comme 'CLIENT INCONNU <id>' ; -1 = client non renseigné")
     types = Counter(r["TypeClient"] for r in rows)
     W("dwh/dim_client.csv", list(rows[0].keys()), rows,
@@ -292,6 +297,31 @@ def build_clients(sale_company_ids):
        "Le nom vient du fichier Clients quand le code y existe (les noms de CompaniesList ont été anonymisés différemment) ; "
        "le code client sert seulement à cette jointure dans l'ETL."])
     return {r["Company_Id"]: r for r in rows}
+
+
+def build_suppliers(used_ids):
+    companies = {c["Id"]: c for c in R("companies.csv")}
+    names = {s["Code"]: s["Nom"] for s in R("suppliers.csv")}
+    ids = {i for i, c in companies.items() if c["CompanyType"] == "SUPPLIER"}
+    rows = [{"Fournisseur_Id": i, "Nom": names.get(companies[i]["Code"]) or companies[i]["Name"]}
+            for i in sorted(ids, key=int)]
+    unknown = used_ids - set(companies) - {"-1", ""}
+    rows += [{"Fournisseur_Id": i, "Nom": f"FOURNISSEUR INCONNU {i}"} for i in sorted(unknown, key=int)]
+    rows.append({"Fournisseur_Id": "-1", "Nom": "NON RENSEIGNE"})
+    check("Fournisseur d'un achat ou d'un paiement absent de CompaniesList", "fait_achats / fait_paiements",
+          len(unknown), len(used_ids - {"-1", ""}),
+          detail="ajoutés dans dim_fournisseur comme 'FOURNISSEUR INCONNU <id>' ; -1 = fournisseur non renseigné")
+    W("dwh/dim_fournisseur.csv", list(rows[0].keys()), rows,
+      "Dimension Fournisseur : nom du fournisseur.",
+      "1 ligne = 1 fournisseur (clé Fournisseur_Id = identifiant de la société dans le logiciel)",
+      "CompaniesList (sociétés de type fournisseur), Fournisseurs (noms), Transactions",
+      "§6.6 Achats ; §6.5 Paiements ; §9 Dimension Fournisseur",
+      ["Le nom vient du fichier Fournisseurs quand le code y existe (les noms de CompaniesList ont été anonymisés "
+       "différemment) ; le code fournisseur sert seulement à cette jointure dans l'ETL.",
+       f"{fr(len(unknown))} fournisseurs cités par des factures ou des paiements sont absents de CompaniesList : "
+       "conservés comme 'FOURNISSEUR INCONNU <id>'. -1 = fournisseur non renseigné (et valeur des lignes qui ne "
+       "concernent pas un fournisseur dans fait_paiements)."])
+    return {r["Fournisseur_Id"] for r in rows}
 
 
 PAY_FR = {"11": "Espèces", "5": "Carte bancaire", "1": "Chèque", "7": "Crédit (paiement différé)", "21": "Jetons",
@@ -376,25 +406,69 @@ def build_sales(docs_by_id, items, linked_invoices, txn, products, cost_by_line)
     return rows
 
 
+PURCHASE_COLS = ["Id", "Document_Id", "DateKey", "Product_Id", "Fournisseur_Id", "QuantiteAchetee", "MontantAchat_HT"]
+
+
+def build_purchases(docs_by_id, items, txn, suppliers):
+    rows, excluded = [], Counter()
+    for it in items:
+        d = docs_by_id.get(it["Document_Id"])
+        if not d or d["Flow"] not in ("PURCHASE", "PURCHASE_RETURN"):
+            continue
+        if not it["Product_Id"] and f(it["PrixTotalHt"]) == 0:
+            excluded["ligne de commentaire sans produit ni montant"] += 1
+            continue
+        if d["IsValidated"] != "true":
+            excluded["document brouillon (State = 0)"] += 1
+            continue
+        sign = -1 if d["Flow"] == "PURCHASE_RETURN" else 1
+        dd = d_of(d["DocumentDate"])
+        sup = txn.get(d["Transaction_Id"]) or "-1"
+        rows.append({"Id": it["Id"], "Document_Id": d["Id"], "DateKey": datekey(dd), "Product_Id": it["Product_Id"],
+                     "Fournisseur_Id": sup if sup in suppliers else "-1",
+                     "QuantiteAchetee": r2(sign * f(it["Quantity"]), 4),
+                     "MontantAchat_HT": r2(sign * f(it["PrixTotalHt"]), 4), "_date": dd})
+    real = sum(1 for r in rows if r["_date"] <= END_REAL)
+    no_sup = sum(1 for r in rows if r["Fournisseur_Id"] == "-1")
+    check("Ligne d'achat sans fournisseur identifié", "fait_achats", no_sup, len(rows),
+          detail="facture fournisseur dont la transaction ne cite aucune société : Fournisseur_Id = -1")
+    W("dwh/fait_achats.csv", PURCHASE_COLS, rows,
+      "Fait Achats : ligne de produit achetée (ou retournée) à un fournisseur dans une facture validée.",
+      "1 ligne = 1 produit acheté dans 1 facture fournisseur à 1 date",
+      "documentItemm, Documents (factures et avoirs fournisseurs), Transactions — réel + synthétique",
+      "§6.6 Achats ; §9 fait_achats (Document_Id, QuantiteAchetee, MontantAchat_HT)",
+      [f"{fr(real)} lignes de la période réelle et {fr(len(rows) - real)} lignes de la période synthétique.",
+       "Achats = facture fournisseur (20) ; retours = avoir fournisseur (23) en négatif : `QuantiteAchetee` et "
+       "`MontantAchat_HT` sont signés. Aucune facture fournisseur ne regroupe d'autres documents : pas de double comptage.",
+       "`Document_Id` est une dimension dégénérée : Nombre de factures fournisseurs = COUNT(DISTINCT Document_Id).",
+       "`MontantAchat_HT` = montant HT de la ligne après remise. Le prix d'achat unitaire n'est pas stocké : "
+       "SUM(MontantAchat_HT) / SUM(QuantiteAchetee).",
+       "Exclusions : " + ("; ".join(f"{k} : {fr(v)} lignes" for k, v in excluded.items()) or "aucune") + "."])
+    return rows
+
+
 def build_stock(products):
     src = SYNTH if (SYNTH / "product_stocks.csv").exists() else CLEAN
     stocks = {s["Product_Id"]: s for s in _read(src / "product_stocks.csv")}
-    rows = [{"Product_Id": pid, "DateKey": datekey(END), "Quantity": r2(f(stocks.get(pid, {}).get("Quantity")), 3)}
-            for pid in products]
+    rows = [{"Product_Id": pid, "DateKey": datekey(END), "Quantity": r2(f(stocks.get(pid, {}).get("Quantity")), 3),
+             "QuantiteAlerte": p["QuantiteAlerte"]} for pid, p in products.items()]
     neg = sum(1 for r in rows if f(r["Quantity"]) < 0)
     zero = sum(1 for r in rows if f(r["Quantity"]) == 0)
-    low = sum(1 for r in rows if 0 < f(r["Quantity"]) <= f(products[r["Product_Id"]]["QuantiteAlerte"]))
+    low = sum(1 for r in rows if 0 < f(r["Quantity"]) <= f(r["QuantiteAlerte"]))
     check("Produit à stock négatif (vente enregistrée sans réception)", "fait_stock_actuel", neg, len(rows),
           detail="conservé tel quel (défaut de saisie du logiciel) ; compte comme rupture potentielle")
     W("dwh/fait_stock_actuel.csv", list(rows[0].keys()), rows,
-      "Fait Stock actuel : quantité en stock de chaque produit à la date du snapshot.",
+      "Fait Stock actuel : quantité en stock et seuil d'alerte de chaque produit à la date du snapshot.",
       f"1 ligne = 1 produit à la date de snapshot ({END:%d/%m/%Y}, fin de la période chargée)",
-      "ProductStocks (" + ("données synthétiques, état au 29/09/2026" if src == SYNTH else "export réel") + ")",
-      "§6.4 Gestion du stock ; §9 « Quantity. Rupture et stock faible sont calculés »",
+      "ProductStocks (" + ("données synthétiques, état au 29/09/2026" if src == SYNTH else "export réel")
+      + "), Produits (seuil d'alerte)",
+      "§6.4 Gestion du stock ; §9 « Quantity, QuantiteAlerte. Rupture et stock faible sont calculés »",
       [f"Au snapshot : {fr(zero)} produits à 0 (rupture), {fr(low)} en stock faible (0 < Quantity ≤ QuantiteAlerte), "
        f"{fr(neg)} à stock négatif.",
-       "Rupture et stock faible ne sont pas stockés : mesures Power BI à partir de `Quantity` et de "
-       "`dim_produit.QuantiteAlerte`.",
+       "Rupture et stock faible ne sont pas stockés : mesures Power BI à partir de `Quantity` et de `QuantiteAlerte`, "
+       "dans la même table.",
+       f"QuantiteAlerte : {dict(ALERT_SOURCES)}. Seuil choisi par le magasin pour chaque produit (pas une valeur "
+       "calculable). Une ligne par produit : le seuil n'est stocké qu'une fois.",
        "Pas d'historique de stock dans le BI (rotation non retenue, §6.4) : les mouvements restent en zone ETL."])
 
 
@@ -404,31 +478,46 @@ def payment_side(p, ctype):
     return t == "SUPPLIER" if t in ("SUPPLIER", "CUSTOMER") else p["IsPurchase"] == "true"
 
 
-def build_payments(pays, ctype):
+PAYMENT_COLS = ["Id", "DateKey", "PaymentMode_Id", "Company_Id", "Fournisseur_Id", "Amount"]
+
+
+def build_payments(pays, ctype, clients, suppliers):
     rows = []
     for p in pays:
         dd = d_of(p["PaymentDate"])
         mode = p["PaymentMode_Id"] or "-1"
+        cid = p["Company_Id"] or "-1"
+        to_supplier = payment_side(p, ctype)
         rows.append({"Id": p["Id"], "DateKey": datekey(dd), "PaymentMode_Id": mode if mode in PAY_FR else "-1",
-                     "Amount": p["Amount"], "EstPaiementFournisseur": str(payment_side(p, ctype)).lower(),
-                     "_date": dd})
-    sup = [r for r in rows if r["EstPaiementFournisseur"] == "true"]
-    cli = [r for r in rows if r["EstPaiementFournisseur"] == "false"]
+                     "Company_Id": "-1" if to_supplier else (cid if cid in clients else "-1"),
+                     "Fournisseur_Id": (cid if cid in suppliers else "-1") if to_supplier else "-1",
+                     "Amount": p["Amount"], "_date": dd, "_sup": to_supplier})
+    sup = [r for r in rows if r["_sup"]]
+    cli = [r for r in rows if not r["_sup"]]
     nomode = sum(1 for r in cli if r["PaymentMode_Id"] == "-1")
     check("Paiement client sans moyen de paiement renseigné", "fait_paiements", nomode, len(cli),
           detail="limite de la source (encaissements de caisse) : la répartition par moyen est dominée par « Non renseigné »")
+    check("Paiement fournisseur sans fournisseur identifié", "fait_paiements",
+          sum(1 for r in sup if r["Fournisseur_Id"] == "-1"), len(sup),
+          detail="doit être 0 : sinon le paiement serait compté dans le montant encaissé")
+    check("Paiement client sans client identifié", "fait_paiements", sum(1 for r in cli if r["Company_Id"] == "-1"), len(cli))
+    walk = sum(1 for r in cli if r["Company_Id"] == "2")
     real = sum(1 for r in rows if r["_date"] <= END_REAL)
-    W("dwh/fait_paiements.csv", ["Id", "DateKey", "PaymentMode_Id", "Amount", "EstPaiementFournisseur"], rows,
-      "Fait Paiements : montant réellement versé, moyen de paiement, date ; encaissement client ou paiement fournisseur.",
-      "1 ligne = 1 paiement", "PaymentsList + Payment (fusionnés) — réel + synthétique",
-      "§6.5 Paiements ; §9 fait_paiements (Amount ; indicateur client / fournisseur)",
+    W("dwh/fait_paiements.csv", PAYMENT_COLS, rows,
+      "Fait Paiements : montant réellement versé, moyen de paiement, date ; client qui paie ou fournisseur payé.",
+      "1 ligne = 1 paiement", "PaymentsList + Payment (fusionnés), CompaniesList — réel + synthétique",
+      "§6.5 Paiements ; §6.6 Achats ; §9 fait_paiements (Amount ; client ; fournisseur)",
       [f"{fr(real)} paiements de la période réelle et {fr(len(rows) - real)} de la période synthétique.",
-       f"Montant encaissé = SUM(Amount) où EstPaiementFournisseur = false : {fr(round(sum(f(r['Amount']) for r in cli)))} "
-       f"sur {fr(len(cli))} paiements clients ; {fr(len(sup))} paiements fournisseurs "
-       f"({fr(round(sum(f(r['Amount']) for r in sup)))}) à exclure.",
+       "Encaissement client : `Company_Id` = client qui paie (2 = client comptoir anonyme), `Fournisseur_Id` = -1. "
+       "Paiement fournisseur : `Fournisseur_Id` = fournisseur payé, `Company_Id` = -1.",
+       f"Montant encaissé = SUM(Amount) où Fournisseur_Id = -1 : {fr(round(sum(f(r['Amount']) for r in cli)))} "
+       f"sur {fr(len(cli))} paiements clients (dont {fr(walk)} au comptoir) ; {fr(len(sup))} paiements fournisseurs "
+       f"({fr(round(sum(f(r['Amount']) for r in sup)))}).",
+       "Le client et le fournisseur viennent directement du paiement source (`Company_Id` de PaymentsList, identique "
+       "à celui de la transaction réglée sur 100 % des liens TransactionPayments).",
        "`Amount` est TTC et n'est pas le CA : impayés, paiements fractionnés ou différés.",
-       "Retirés de la version précédente : UsedAmount (égal à Amount à 99,9 %), client, fournisseur, document, heure, "
-       "caisse, compte bancaire."])
+       "`EstPaiementFournisseur` est retiré : il se recalcule (paiement fournisseur ⇔ Fournisseur_Id ≠ -1).",
+       "Retirés de la version précédente : UsedAmount (égal à Amount à 99,9 %), document, heure, caisse, compte bancaire."])
 
 
 # --------------------------------------------------------------------------- #
@@ -726,8 +815,14 @@ SPEC_MAP = [
      "fait_ventes × dim_client × dim_temps ; ml_11_4"),
     ("Responsable approvisionnement / stock", "Stock disponible, ruptures, stock faible, demande à anticiper",
      "SUM(Quantity) ; COUNT où Quantity = 0 ; COUNT où 0 < Quantity ≤ QuantiteAlerte", "fait_stock_actuel × dim_produit ; ml_11_1"),
-    ("Responsable financier / caisse", "Montant encaissé, nombre de paiements, répartition par moyen",
-     "SUM(Amount) où EstPaiementFournisseur = false ; COUNT(Id)", "fait_paiements × dim_paiement × dim_temps ; ml_11_3"),
+    ("Responsable financier / caisse",
+     "Montant encaissé, montant payé par chaque client, montant payé à chaque fournisseur, nombre de paiements, "
+     "répartition par moyen",
+     "SUM(Amount) où Fournisseur_Id = -1 ; SUM(Amount) par client ou par fournisseur ; COUNT(Id)",
+     "fait_paiements × dim_paiement × dim_client × dim_fournisseur × dim_temps ; ml_11_3"),
+    ("Responsable achats", "Achats par fournisseur et par produit, quel produit vient de quel fournisseur",
+     "SUM(MontantAchat_HT) ; SUM(QuantiteAchetee) ; COUNT(DISTINCT Document_Id)",
+     "fait_achats × dim_fournisseur × dim_produit × dim_temps"),
 ]
 
 
@@ -741,13 +836,13 @@ def write_docs():
          "Construit par `build_dataset.py` (branche `main`) à partir de `cleaned/` (réel) et `cleaned/synthetique/` "
          "(données générées). Les fichiers sources ne sont jamais modifiés.", "", f"**Période :** {period}", "",
          "## Règles", "",
-         "- Modèle du §9 du cahier : 4 dimensions (`dim_temps`, `dim_produit`, `dim_client`, `dim_paiement`) et "
-         "3 faits (`fait_ventes`, `fait_stock_actuel`, `fait_paiements`).",
+         "- Modèle du §9 du cahier : 5 dimensions (`dim_temps`, `dim_produit`, `dim_client`, `dim_fournisseur`, "
+         "`dim_paiement`) et 4 faits (`fait_ventes`, `fait_achats`, `fait_stock_actuel`, `fait_paiements`).",
          "- Une colonne n'est stockée que si le cahier l'exige **et** qu'elle ne peut pas être recalculée. Les mesures "
          "(marge, rupture, stock faible, montant encaissé…) sont calculées dans Power BI.",
          "- CSV UTF-8, séparateur virgule, décimale `.`, dates ISO, booléens `true/false`. `DateKey` = `AAAAMMJJ`.",
-         "- Membres `-1` « NON RENSEIGNE » dans `dim_client` et `dim_paiement` : toutes les clés étrangères retrouvent "
-         "leur dimension.",
+         "- Membres `-1` « NON RENSEIGNE » dans `dim_client`, `dim_fournisseur` et `dim_paiement` : toutes les clés "
+         "étrangères retrouvent leur dimension.",
          "- Jeux ML : variables explicatives `X_…`, cibles `Y_…`, règles d'interprétation `Regle_…` (ni X ni Y). Ils "
          "sont construits depuis la zone ETL (données nettoyées), pas depuis le Data Warehouse.", "",
          "## Besoins du cahier → tables", "", "| Décideur | Questions | Mesures | Tables |", "|---|---|---|---|"]
@@ -765,7 +860,7 @@ def write_docs():
           for c in CHECKS]
     (OUT / "dwh" / "DICTIONNAIRE_DATASET.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
-    readme = ["# Data Warehouse – version B (4 dimensions, 3 faits)", "",
+    readme = ["# Data Warehouse – version B (5 dimensions, 4 faits)", "",
               "Tables produites par `build_dataset.py` (branche `main`) à partir de "
               "[`data-cleaned`](../../tree/data-cleaned) et [`data-external`](../../tree/data-external). "
               "Le schéma (diagramme, descriptif, script SQL) est dans la branche [`dwh-schema`](../../tree/dwh-schema).", "",
@@ -773,7 +868,8 @@ def write_docs():
     readme += [f"| `{k.split('/')[1]}` | {'Dimension' if 'dim_' in k else 'Fait'} | {fr(t['n'])} | "
                f"{', '.join(t['cols'])} |" for k, t in dwh]
     readme += ["", "- Mesures Power BI : CA HT, quantité vendue, nombre de ventes, panier moyen, croissance, marge HT, "
-               "clients actifs, stock disponible, ruptures, stock faible, montant encaissé, nombre de paiements.",
+               "clients actifs, stock disponible, ruptures, stock faible, montant encaissé, nombre de paiements, "
+               "montant payé par client et par fournisseur, achats HT, quantité achetée, nombre de factures fournisseurs.",
                "- [`DICTIONNAIRE_DATASET.md`](DICTIONNAIRE_DATASET.md) : description de chaque table et de chaque jeu ML, "
                "règles appliquées. [`controles_qualite.csv`](controles_qualite.csv) : contrôles du §7.1.",
                "- Chargement PostgreSQL : `schema_dwh.sql` dans la branche `dwh-schema`.", "",
@@ -834,18 +930,34 @@ def main():
     ctype = {c["Id"]: c["CompanyType"] for c in R("companies.csv")}
     pays = RA("payments.csv")
     sale_cids = {txn.get(d["Transaction_Id"], "") for d in docs if d["Flow"] in ("SALE", "SALE_RETURN")}
-    clients = build_clients(sale_cids - {""})
+    pay_cids = {p["Company_Id"] for p in pays if not payment_side(p, ctype)}
+    clients = build_clients((sale_cids | pay_cids) - {""})
+    purchase_sids = {txn.get(d["Transaction_Id"], "") for d in docs if d["Flow"] in ("PURCHASE", "PURCHASE_RETURN")}
+    pay_sids = {p["Company_Id"] for p in pays if payment_side(p, ctype)}
+    suppliers = build_suppliers((purchase_sids | pay_sids) - {""})
     build_payment_modes()
     sales = build_sales(docs_by_id, items, linked_invoices, txn, products, cost_by_line)
     check("Ligne de vente sans coût (marge non calculable)", "fait_ventes",
           sum(s["SourceCout"] == "ABSENT" for s in sales), len(sales))
+    purchases = build_purchases(docs_by_id, items, txn, suppliers)
     build_stock(products)
-    build_payments(pays, ctype)
+    build_payments(pays, ctype, clients, suppliers)
 
     # intégrité référentielle des faits (§7.1)
-    for fact, key, dim in (("fait_ventes", "Product_Id", set(products)), ("fait_ventes", "Company_Id", set(clients)),
-                           ("fait_ventes", "DateKey", {datekey(d) for d in cal})):
-        check(f"Clé {key} de {fact} absente de la dimension", fact, sum(1 for s in sales if s[key] not in dim), len(sales))
+    dates = {datekey(d) for d in cal}
+    for fact, rows, key, dim in (("fait_ventes", sales, "Product_Id", set(products)),
+                                 ("fait_ventes", sales, "Company_Id", set(clients)),
+                                 ("fait_ventes", sales, "DateKey", dates),
+                                 ("fait_achats", purchases, "Product_Id", set(products)),
+                                 ("fait_achats", purchases, "Fournisseur_Id", suppliers),
+                                 ("fait_achats", purchases, "DateKey", dates)):
+        check(f"Clé {key} de {fact} absente de la dimension", fact, sum(1 for s in rows if s[key] not in dim), len(rows))
+    with (OUT / "dwh" / "fait_paiements.csv").open(encoding="utf-8") as fh:
+        paid = list(csv.DictReader(fh))
+    for key, dim in (("Company_Id", set(clients)), ("Fournisseur_Id", suppliers), ("PaymentMode_Id", set(PAY_FR)),
+                     ("DateKey", dates)):
+        check(f"Clé {key} de fait_paiements absente de la dimension", "fait_paiements",
+              sum(1 for p in paid if p[key] not in dim), len(paid))
 
     meteo, senti = load_meteo(), load_sentinelles()
     ml_demand(sales, products, cal, meteo, senti)

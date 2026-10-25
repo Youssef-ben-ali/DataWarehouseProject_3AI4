@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Documentation du schéma du Data Warehouse – version B (4 dimensions, 3 tables de faits).
+Documentation du schéma du Data Warehouse – version B (5 dimensions, 4 tables de faits).
 
 Entrée  : ./dataset/dwh/*.csv            (sortie de build_dataset.py)
 Sortie  : ./dataset/schema/
@@ -42,10 +42,7 @@ META = {
         ("Libellé", "TEXT", "", "attribut",
          "Nom du produit (export Produits, sinon dernier libellé connu dans les événements ou les lignes de vente)."),
         ("Famille", "TEXT", "", "attribut", "Catégorie du produit ; NON RENSEIGNE si inconnue."),
-        ("Marque", "TEXT", "", "attribut", "Marque (export Produits, ou déduite du début du libellé) ; NON RENSEIGNE si inconnue."),
-        ("QuantiteAlerte", "NUMERIC(12,3)", "", "attribut",
-         "Seuil d'alerte de stock choisi par le magasin (export Produits, sinon paramètre par défaut du logiciel = 5). "
-         "Non calculable : c'est un paramètre, pas une mesure du stock.")]),
+        ("Marque", "TEXT", "", "attribut", "Marque (export Produits, ou déduite du début du libellé) ; NON RENSEIGNE si inconnue.")]),
     "dim_client": ("Dimension", "1 ligne = 1 client, y compris le client comptoir anonyme", [
         ("Company_Id", "INTEGER", "PK", "PK", "Identifiant de la société dans le logiciel (CompaniesList) ; -1 = client non renseigné."),
         ("Nom", "TEXT", "", "attribut", "Nom du client, pour l'affichage dans le dashboard Clients."),
@@ -55,6 +52,13 @@ META = {
         ("EstClientIdentifie", "BOOLEAN", "", "attribut",
          "false pour le client comptoir anonyme et la ligne -1 : filtre de tous les KPI clients. Gardé bien que "
          "théoriquement déductible : il porte une règle métier (quels clients sont anonymes), définie une seule fois.")]),
+    "dim_fournisseur": ("Dimension", "1 ligne = 1 fournisseur", [
+        ("Fournisseur_Id", "INTEGER", "PK", "PK",
+         "Identifiant de la société fournisseur dans le logiciel (CompaniesList) ; -1 = fournisseur non renseigné, ou "
+         "paiement qui ne concerne pas un fournisseur."),
+        ("Nom", "TEXT", "", "attribut",
+         "Nom du fournisseur (fichier Fournisseurs quand le code y existe, sinon CompaniesList), pour l'affichage dans "
+         "les dashboards Achats et Paiements.")]),
     "dim_paiement": ("Dimension", "1 ligne = 1 moyen de paiement", [
         ("PaymentMode_Id", "INTEGER", "PK", "PK",
          "Identifiant du moyen de paiement : 11 Espèces, 5 Carte bancaire, 1 Chèque, 7 Crédit (paiement différé), "
@@ -75,25 +79,43 @@ META = {
         ("Cout_HT", "NUMERIC(14,4)", "M", "mesure",
          "Coût d'achat HT = quantité × coût unitaire à la date de la vente (coût moyen pondéré du mouvement de stock, "
          "à défaut prix d'achat du produit), calculé dans l'ETL. Vide si aucun coût n'est connu.")]),
+    "fait_achats": ("Fait", "1 produit acheté dans 1 facture fournisseur à 1 date", [
+        ("Id", "BIGINT", "PK", "PK", "Identifiant de la ligne de document source."),
+        ("Document_Id", "BIGINT", "", "dimension dégénérée",
+         "Identifiant de la facture (ou de l'avoir) fournisseur : permet de compter les factures fournisseurs."),
+        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "FK → dim_temps", "Date de la facture fournisseur."),
+        ("Product_Id", "INTEGER", "FK:dim_produit.Product_Id", "FK → dim_produit", "Produit acheté."),
+        ("Fournisseur_Id", "INTEGER", "FK:dim_fournisseur.Fournisseur_Id", "FK → dim_fournisseur",
+         "Fournisseur de la facture ; -1 si la transaction ne cite aucune société."),
+        ("QuantiteAchetee", "NUMERIC(14,4)", "M", "mesure", "Quantité achetée, négative pour un avoir fournisseur."),
+        ("MontantAchat_HT", "NUMERIC(14,4)", "M", "mesure",
+         "Montant HT de la ligne après remise, signé (négatif pour un avoir). Le prix unitaire n'est pas stocké : "
+         "il se recalcule (montant / quantité).")]),
     "fait_stock_actuel": ("Fait (snapshot)", "1 produit à la date de snapshot", [
         ("Product_Id", "INTEGER", "PK FK:dim_produit.Product_Id", "PK / FK → dim_produit", "Produit (une ligne par produit)."),
         ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "FK → dim_temps", "Date de la photo du stock (fin de la période chargée)."),
         ("Quantity", "NUMERIC(14,3)", "M", "mesure",
          "Quantité en stock selon le logiciel ; peut être négative quand une vente est enregistrée avant ou sans la "
-         "réception de la marchandise (le logiciel l'autorise pour les ventes comptoir et les bons de livraison).")]),
+         "réception de la marchandise (le logiciel l'autorise pour les ventes comptoir et les bons de livraison)."),
+        ("QuantiteAlerte", "NUMERIC(12,3)", "", "seuil",
+         "Seuil d'alerte de stock choisi par le magasin pour le produit (export Produits, sinon paramètre par défaut du "
+         "logiciel = 5). Stocké à côté de la quantité : le stock faible se calcule dans la même table. Non additif, non "
+         "calculable ; une seule valeur par produit (une ligne par produit).")]),
     "fait_paiements": ("Fait", "1 paiement", [
         ("Id", "BIGINT", "PK", "PK", "Identifiant du paiement."),
         ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "FK → dim_temps", "Date du paiement."),
         ("PaymentMode_Id", "INTEGER", "FK:dim_paiement.PaymentMode_Id", "FK → dim_paiement", "Moyen de paiement ; -1 si non renseigné."),
+        ("Company_Id", "INTEGER", "FK:dim_client.Company_Id", "FK → dim_client",
+         "Client qui paie (2 = client comptoir anonyme) ; -1 pour un paiement à un fournisseur."),
+        ("Fournisseur_Id", "INTEGER", "FK:dim_fournisseur.Fournisseur_Id", "FK → dim_fournisseur",
+         "Fournisseur payé ; -1 pour un encaissement client. Remplace l'indicateur EstPaiementFournisseur, qui se "
+         "recalcule (paiement fournisseur ⇔ Fournisseur_Id ≠ -1)."),
         ("Amount", "NUMERIC(14,4)", "M", "mesure",
          "Montant TTC réellement versé. Valeur de base non recalculable : elle diffère du CA (impayés, paiements "
-         "fractionnés ou différés, TVA)."),
-        ("EstPaiementFournisseur", "BOOLEAN", "", "indicateur",
-         "true pour un paiement à un fournisseur. Non déductible du montant (tous les montants sont positifs) ; filtre "
-         "exigé par le cahier pour le montant encaissé (§6.5, §9, §12).")]),
+         "fractionnés ou différés, TVA).")]),
 }
-DIMS = ["dim_temps", "dim_produit", "dim_client", "dim_paiement"]
-FACTS = ["fait_stock_actuel", "fait_ventes", "fait_paiements"]
+DIMS = ["dim_temps", "dim_produit", "dim_client", "dim_fournisseur", "dim_paiement"]
+FACTS = ["fait_ventes", "fait_achats", "fait_stock_actuel", "fait_paiements"]
 
 
 # --------------------------------------------------------------------------- #
@@ -135,16 +157,28 @@ def stats(data):
     S["docs"] = len({r["Document_Id"] for r in v})
     S["docs_reel"] = len({r["Document_Id"] for r in v if r["DateKey"] <= REAL_END})
     S["paiements_reel"] = sum(1 for r in p if r["DateKey"] <= REAL_END)
-    cli = [r for r in p if r["EstPaiementFournisseur"] == "false"]
-    sup = [r for r in p if r["EstPaiementFournisseur"] == "true"]
+    cli = [r for r in p if r["Fournisseur_Id"] == "-1"]
+    sup = [r for r in p if r["Fournisseur_Id"] != "-1"]
     S["encaisse"], S["n_cli"] = sum(num(r["Amount"]) for r in cli), len(cli)
     S["decaisse"], S["n_sup"] = sum(num(r["Amount"]) for r in sup), len(sup)
+    S["comptoir"] = sum(1 for r in cli if r["Company_Id"] == "2")
     S["sans_mode"] = sum(1 for r in cli if r["PaymentMode_Id"] == "-1")
+    a = data["fait_achats"]
+    S["achats_reel"] = sum(1 for r in a if r["DateKey"] <= REAL_END)
+    S["achats_ht"] = sum(num(r["MontantAchat_HT"]) for r in a)
+    S["factures_four"] = len({r["Document_Id"] for r in a})
+    doc_total = Counter()
+    for r in a:
+        doc_total[r["Document_Id"]] += num(r["MontantAchat_HT"])
+    S["avoirs_four"] = sum(1 for v in doc_total.values() if v < 0)
+    per_product = Counter(pid for pid, _ in {(r["Product_Id"], r["Fournisseur_Id"]) for r in a})
+    S["multi_four"] = sum(1 for n in per_product.values() if n > 1)
+    S["inconnus_four"] = sum(1 for r in data["dim_fournisseur"] if r["Nom"].startswith("FOURNISSEUR INCONNU"))
     S["ca_ht"] = sum(num(r["CA_HT"]) for r in v)
     S["types"] = Counter(r["TypeClient"] for r in data["dim_client"])
-    S["alertes"] = Counter(r["QuantiteAlerte"] for r in data["dim_produit"]).most_common(2)
+    S["alertes"] = Counter(r["QuantiteAlerte"] for r in data["fait_stock_actuel"]).most_common(2)
     S["stock_date"] = st[0]["DateKey"]
-    alert = {r["Product_Id"]: num(r["QuantiteAlerte"]) for r in data["dim_produit"]}
+    alert = {r["Product_Id"]: num(r["QuantiteAlerte"]) for r in st}
     S["rupture"] = sum(1 for r in st if num(r["Quantity"]) == 0)
     S["negatif"] = sum(1 for r in st if num(r["Quantity"]) < 0)
     S["faible"] = sum(1 for r in st if 0 < num(r["Quantity"]) <= alert[r["Product_Id"]])
@@ -158,14 +192,23 @@ def stats(data):
 # diagramme SVG
 # --------------------------------------------------------------------------- #
 ROW, HEAD = 25, 44
-BOXES = {
-    "dim_temps": (120, 154, 320, "dim"), "dim_produit": (510, 154, 320, "dim"), "dim_client": (900, 154, 300, "dim"),
-    "dim_paiement": (1262, 154, 300, "dim"), "fait_stock_actuel": (196, 532, 410, "fait"),
-    "fait_ventes": (690, 532, 390, "fait"), "fait_paiements": (1150, 532, 396, "pay"),
+BOXES = {   # table -> (x, y, largeur, style)
+    "dim_temps": (57, 150, 330, "dim"), "dim_produit": (421, 150, 330, "dim"), "dim_client": (785, 150, 330, "dim"),
+    "dim_fournisseur": (1149, 150, 330, "dim"), "dim_paiement": (1513, 150, 330, "dim"),
+    "fait_stock_actuel": (83, 600, 390, "fait"), "fait_ventes": (521, 600, 390, "fait"),
+    "fait_achats": (959, 600, 400, "fait"), "fait_paiements": (1407, 600, 410, "pay"),
 }
-ICON = {"dim_temps": "cal", "dim_produit": "box", "dim_client": "users", "dim_paiement": "card",
-        "fait_stock_actuel": "box", "fait_ventes": "chart", "fait_paiements": "coins"}
-COL = {"temps": "#1e63c4", "produit": "#2f9b46", "client": "#7b3fc4", "paiement": "#7b3fc4"}
+ICON = {"dim_temps": "cal", "dim_produit": "box", "dim_client": "users", "dim_fournisseur": "truck",
+        "dim_paiement": "card", "fait_stock_actuel": "box", "fait_ventes": "chart", "fait_achats": "cart",
+        "fait_paiements": "coins"}
+COL = {"dim_temps": "#1e63c4", "dim_produit": "#2f9b46", "dim_client": "#7b3fc4", "dim_fournisseur": "#c0661c",
+       "dim_paiement": "#b0397a"}
+# relations dimension -> faits, une voie horizontale par dimension (de haut en bas)
+LANES = [("dim_temps", 425, ["fait_stock_actuel", "fait_ventes", "fait_achats", "fait_paiements"]),
+         ("dim_produit", 450, ["fait_stock_actuel", "fait_ventes", "fait_achats"]),
+         ("dim_client", 475, ["fait_ventes", "fait_paiements"]),
+         ("dim_fournisseur", 500, ["fait_achats", "fait_paiements"]),
+         ("dim_paiement", 525, ["fait_paiements"])]
 
 
 def esc(s):
@@ -180,15 +223,19 @@ def svg_icon(kind, x, y):
          "box": f'<path d="M12 1 L23 6.5 L23 18.5 L12 24 L1 18.5 L1 6.5 Z" {w}/><path d="M1 6.5 L12 12 L23 6.5 M12 12 L12 24" {w}/>',
          "users": f'<circle cx="9" cy="7" r="5" {w}/><path d="M0 23 C0 15 18 15 18 23" {w}/><circle cx="19" cy="8" r="4" {w}/>'
                   f'<path d="M17 15 C24 15 26 18 26 22" {w}/>',
+         "truck": f'<rect x="0" y="5" width="16" height="13" rx="1.5" {w}/><path d="M16 9 H22 L26 14 V18 H16 Z" {w}/>'
+                  f'<circle cx="6" cy="21" r="2.6" {w}/><circle cx="20" cy="21" r="2.6" {w}/>',
          "card": f'<rect x="0" y="3" width="26" height="19" rx="3" {w}/><line x1="0" y1="9" x2="26" y2="9" {w}/>'
                  f'<line x1="4" y1="16" x2="11" y2="16" {w}/>',
+         "cart": f'<path d="M0 2 H4 L7 16 H22 L25 6 H5.5" {w}/><circle cx="9" cy="21" r="2.2" {w}/><circle cx="20" cy="21" r="2.2" {w}/>',
          "chart": "".join(f'<rect x="{a}" y="{24 - h}" width="4.5" height="{h}" rx="1" fill="#fff"/>' for a, h in ((2, 8), (9, 14), (16, 19), (23, 24))),
          "coins": "".join(f'<ellipse cx="11" cy="{yy}" rx="10" ry="4" {w}/>' for yy in (6, 12, 18)) + f'<ellipse cx="21" cy="14" rx="6" ry="6" {w}/>'}[kind]
     return f'<g transform="translate({x},{y})">{g}</g>'
 
 
 def svg_diagram(S):
-    W, H = 1672, 941
+    W, H = 1900, 1000
+    cx = W / 2
     o = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" '
          'font-family="Segoe UI, Arial, sans-serif">',
          '<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2f7fd"/>'
@@ -199,19 +246,18 @@ def svg_diagram(S):
          '<filter id="sh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="3" stdDeviation="4" '
          'flood-color="#1f3b63" flood-opacity="0.16"/></filter></defs>',
          f'<rect x="0" y="0" width="{W}" height="{H}" fill="url(#bg)"/>',
-         '<rect x="380" y="8" width="912" height="64" rx="22" fill="#e6f0fc" stroke="#c5d9f2" stroke-width="1.5"/>',
-         '<text x="836" y="52" text-anchor="middle" font-size="33" font-weight="700" fill="#12365e">'
+         f'<rect x="{cx - 456}" y="8" width="912" height="64" rx="22" fill="#e6f0fc" stroke="#c5d9f2" stroke-width="1.5"/>',
+         f'<text x="{cx}" y="52" text-anchor="middle" font-size="33" font-weight="700" fill="#12365e">'
          'Schéma du Data Warehouse — Health Retailers</text>',
-         f'<text x="836" y="98" text-anchor="middle" font-size="19" fill="#3e5f86">Modèle BI final simplifié : '
-         f'4 dimensions et 3 tables de faits — volumes : {esc(S["dates"][0][8:10] + "/" + S["dates"][0][5:7] + "/" + S["dates"][0][:4])}'
+         f'<text x="{cx}" y="98" text-anchor="middle" font-size="19" fill="#3e5f86">Modèle BI : '
+         f'5 dimensions et 4 tables de faits — volumes : {esc(S["dates"][0][8:10] + "/" + S["dates"][0][5:7] + "/" + S["dates"][0][:4])}'
          f' → {esc(S["dates"][1][8:10] + "/" + S["dates"][1][5:7] + "/" + S["dates"][1][:4])} (réel + synthétique)</text>',
-         '<rect x="66" y="122" width="1540" height="296" rx="22" fill="#dfeaf8" fill-opacity="0.6" stroke="#c3d6ef" stroke-width="1.5"/>',
-         '<rect x="66" y="496" width="1540" height="336" rx="22" fill="#e0f2e8" fill-opacity="0.65" stroke="#bfe0cc" stroke-width="1.5"/>',
-         '<rect x="88" y="106" width="210" height="36" rx="10" fill="#174a8b"/>'
-         '<text x="106" y="131" font-size="19" font-weight="700" fill="#fff" letter-spacing="0.5">DIMENSIONS</text>',
-         '<rect x="88" y="478" width="252" height="36" rx="10" fill="#1b7a52"/>'
-         '<text x="106" y="503" font-size="19" font-weight="700" fill="#fff" letter-spacing="0.5">FAITS '
-         '<tspan font-weight="400">(tables de faits)</tspan></text>']
+         f'<rect x="38" y="116" width="{W - 76}" height="290" rx="22" fill="#dfeaf8" fill-opacity="0.6" stroke="#c3d6ef" stroke-width="1.5"/>',
+         f'<rect x="38" y="560" width="{W - 76}" height="340" rx="22" fill="#e0f2e8" fill-opacity="0.65" stroke="#bfe0cc" stroke-width="1.5"/>',
+         '<rect x="57" y="104" width="190" height="32" rx="10" fill="#174a8b"/>'
+         '<text x="73" y="127" font-size="18" font-weight="700" fill="#fff" letter-spacing="0.5">DIMENSIONS</text>',
+         '<rect x="57" y="548" width="100" height="32" rx="10" fill="#1b7a52"/>'
+         '<text x="73" y="571" font-size="18" font-weight="700" fill="#fff" letter-spacing="0.5">FAITS</text>']
     geo = {}
     for t, (x, y, w, kind) in BOXES.items():
         cols = META[t][2]
@@ -244,47 +290,52 @@ def svg_diagram(S):
                     ref = f'<tspan dx="6" font-size="15" fill="#5a6b82">→ {fk}</tspan>'
             o.append(f'<text x="{x + 24}" y="{ry + 17}" font-size="16" font-weight="{700 if is_key else 400}" '
                      f'fill="#1d2330">{esc(col)}{tag}{ref}</text>')
-    bottom = lambda t: geo[t][1] + geo[t][3]
-    top = 532
 
-    def line(d, color, halo=False):
-        if halo:
-            o.append(f'<path d="{d}" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>')
+    def line(d, color):
+        o.append(f'<path d="{d}" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>')
         o.append(f'<path d="{d}" stroke="{color}" stroke-width="3.5" fill="none" stroke-linejoin="round"/>')
 
     def badge(x, y, label, color):
         o.append(f'<circle cx="{x}" cy="{y}" r="13" fill="{color}" stroke="#fff" stroke-width="2.5"/>'
                  f'<text x="{x}" y="{y + 5.5}" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">{label}</text>')
 
-    bus, tx = 462, 390                       # dim_temps → les 3 faits (lien qui se divise)
-    line(f"M{tx} {bottom('dim_temps')} V{top}", COL["temps"])
-    line(f"M{tx} {bus} H1250", COL["temps"])
-    line(f"M880 {bus} V{top}", COL["temps"])
-    line(f"M1250 {bus} V{top}", COL["temps"])
-    for x, src, c in ((560, "dim_produit", "produit"), (770, "dim_produit", "produit"), (1010, "dim_client", "client"),
-                      (1412, "dim_paiement", "paiement")):
-        line(f"M{x} {bottom(src)} V{top}", COL[c], halo=True)
-    badge(tx, bottom("dim_temps") + 16, "1", COL["temps"])
-    for x, src, c in ((560, "dim_produit", "produit"), (770, "dim_produit", "produit"), (1010, "dim_client", "client"),
-                      (1412, "dim_paiement", "paiement")):
-        badge(x, bottom(src) + 16, "1", COL[c])
-    for x, c in ((tx, "temps"), (880, "temps"), (1250, "temps"), (560, "produit"), (770, "produit"), (1010, "client"),
-                 (1412, "paiement")):
-        badge(x, top - 16, "N", COL[c])
-    o += ['<rect x="66" y="852" width="1540" height="74" rx="14" fill="#fff" fill-opacity="0.7" stroke="#b8c6d8" '
+    # point d'arrivée de chaque relation sur sa table de faits : répartis sur la largeur de la boîte
+    incoming = {f: [d for d, _, facts in LANES if f in facts] for f in BOXES if f.startswith("fait_")}
+    slot = {}
+    for f, dims in incoming.items():
+        x, _, w, _ = geo[f]
+        for k, d in enumerate(dims):
+            slot[(d, f)] = x + w * (k + 1) / (len(dims) + 1)
+    badges = []
+    for d, lane, facts in LANES:
+        x, y, w, h = geo[d]
+        dx = x + w / 2
+        xs = [slot[(d, f)] for f in facts]
+        line(f"M{dx} {y + h} V{lane}", COL[d])
+        line(f"M{min(xs + [dx])} {lane} H{max(xs + [dx])}", COL[d])
+        for f, fx in zip(facts, xs):
+            line(f"M{fx} {lane} V{geo[f][1]}", COL[d])
+            badges.append((fx, geo[f][1] - 16, "N", COL[d]))
+        badges.append((dx, y + h + 16, "1", COL[d]))
+    for b in badges:
+        badge(*b)
+    ly = 920
+    o += [f'<rect x="38" y="{ly}" width="{W - 76}" height="68" rx="14" fill="#fff" fill-opacity="0.7" stroke="#b8c6d8" '
           'stroke-width="1.5" stroke-dasharray="6 5"/>',
-          '<text x="100" y="896" font-size="17" font-weight="700" fill="#1d2330">Légende :</text>']
-    for x, w, label, fill, color, txt in ((205, 78, "PK", "#d6e5f8", "#1f4e8c", "= clé primaire"),
-                                          (420, 78, "FK", "#d5eedf", "#2a7a52", "= clé étrangère"),
-                                          (640, 100, "mesure", "#e7ddf6", "#5a3f8f", "= valeur additive")):
-        o.append(f'<rect x="{x}" y="872" width="{w}" height="34" rx="17" fill="{fill}"/>'
-                 f'<text x="{x + w / 2}" y="895" text-anchor="middle" font-size="16" font-weight="700" fill="{color}">{label}</text>'
-                 f'<text x="{x + w + 14}" y="895" font-size="15" fill="#2b3442">{txt}</text>')
-    badge(925, 889, "1", COL["temps"])
-    o.append(f'<path d="M940 889 H1010" stroke="{COL["temps"]}" stroke-width="3"/><path d="M1006 883 L1016 889 L1006 895 Z" fill="{COL["temps"]}"/>')
-    badge(1032, 889, "N", COL["temps"])
-    o.append('<text x="1058" y="885" font-size="15" fill="#2b3442">= relation 1 vers plusieurs</text>'
-             '<text x="1058" y="904" font-size="12" fill="#5a6b82">(1 ligne de dimension pour plusieurs lignes de la table de faits)</text>')
+          f'<text x="70" y="{ly + 41}" font-size="17" font-weight="700" fill="#1d2330">Légende :</text>']
+    for x, w, label, fill, color, txt in ((175, 78, "PK", "#d6e5f8", "#1f4e8c", "= clé primaire"),
+                                          (390, 78, "FK", "#d5eedf", "#2a7a52", "= clé étrangère"),
+                                          (610, 100, "mesure", "#e7ddf6", "#5a3f8f", "= valeur additive")):
+        o.append(f'<rect x="{x}" y="{ly + 17}" width="{w}" height="34" rx="17" fill="{fill}"/>'
+                 f'<text x="{x + w / 2}" y="{ly + 40}" text-anchor="middle" font-size="16" font-weight="700" fill="{color}">{label}</text>'
+                 f'<text x="{x + w + 14}" y="{ly + 40}" font-size="15" fill="#2b3442">{txt}</text>')
+    badge(900, ly + 34, "1", COL["dim_temps"])
+    o.append(f'<path d="M915 {ly + 34} H985" stroke="{COL["dim_temps"]}" stroke-width="3"/>'
+             f'<path d="M981 {ly + 28} L991 {ly + 34} L981 {ly + 40} Z" fill="{COL["dim_temps"]}"/>')
+    badge(1007, ly + 34, "N", COL["dim_temps"])
+    o.append(f'<text x="1033" y="{ly + 30}" font-size="15" fill="#2b3442">= relation 1 vers plusieurs</text>'
+             f'<text x="1033" y="{ly + 49}" font-size="12" fill="#5a6b82">(1 ligne de dimension pour plusieurs lignes de la '
+             'table de faits ; la couleur est celle de la dimension)</text>')
     o.append("</svg>")
     return "\n".join(o), W, H
 
@@ -336,19 +387,21 @@ def build_html(S):
     H = [f"<!doctype html><html lang='fr'><head><meta charset='utf-8'><title>Schéma du Data Warehouse — Health Retailers"
          f"</title><style>{CSS}</style></head><body>",
          "<section class='paysage'><h1>Schéma du Data Warehouse — Health Retailers</h1>"
-         "<div class='sub'>Modèle BI final simplifié (version B) : 4 dimensions et 3 tables de faits — descriptif détaillé</div>"
+         "<div class='sub'>Modèle BI (version B) : 5 dimensions et 4 tables de faits — descriptif détaillé</div>"
          "<div class='schema'><img src='schema_dwh_diagramme.png' alt='Schéma du Data Warehouse'></div>"
          f"<div class='legend'>Clés primaires (PK), clés étrangères (FK) et mesures. La couleur d'un lien est celle de la "
          f"dimension d'origine. Volumes de la période chargée ({d0} → {d1}) : données réelles du {reel}, puis données "
          "synthétiques. Le détail de chaque table, des relations et des mesures figure dans les pages suivantes.</div></section>",
          "<h2>1. Présentation du modèle</h2>",
-         "<p>Le Data Warehouse de Health Retailers est un <b>modèle dimensionnel en constellation</b> : trois tables de faits "
-         "partagent des dimensions communes. Chaque table de faits enregistre un processus métier (une vente, l'état du stock, "
-         "un paiement) au niveau de détail utile au cahier de spécification ; chaque dimension apporte le contexte d'analyse "
-         "(quand, quoi, qui, comment).</p>",
+         "<p>Le Data Warehouse de Health Retailers est un <b>modèle dimensionnel en constellation</b> : quatre tables de faits "
+         "partagent des dimensions communes. Chaque table de faits enregistre un processus métier (une vente, un achat, l'état "
+         "du stock, un paiement) au niveau de détail utile au cahier de spécification ; chaque dimension apporte le contexte "
+         "d'analyse (quand, quoi, quel client, quel fournisseur, comment).</p>",
          "<table><tr><th style='width:22%'>Élément</th><th>Choix retenu</th></tr>"
-         "<tr><td>Dimensions (4)</td><td><code>dim_temps</code>, <code>dim_produit</code>, <code>dim_client</code>, <code>dim_paiement</code></td></tr>"
-         "<tr><td>Tables de faits (3)</td><td><code>fait_ventes</code>, <code>fait_stock_actuel</code>, <code>fait_paiements</code></td></tr>"
+         "<tr><td>Dimensions (5)</td><td><code>dim_temps</code>, <code>dim_produit</code>, <code>dim_client</code>, "
+         "<code>dim_fournisseur</code>, <code>dim_paiement</code></td></tr>"
+         "<tr><td>Tables de faits (4)</td><td><code>fait_ventes</code>, <code>fait_achats</code>, <code>fait_stock_actuel</code>, "
+         "<code>fait_paiements</code></td></tr>"
          "<tr><td>Règle de conservation d'une colonne</td><td>Une colonne n'est stockée que si elle est <b>exigée par le cahier</b> "
          "(KPI, filtre ou attribut cité) <b>et</b> qu'elle <b>ne peut pas être recalculée</b> à partir des autres colonnes du Data "
          "Warehouse. Tout le reste est calculé dans Power BI ou reste en zone ETL.</td></tr>"
@@ -373,14 +426,20 @@ def build_html(S):
                  f"<td>{len(cols)}</td><td>{fr(S[t])}</td></tr>")
     H.append("</table>")
     H.append(f"<p class='small'>fait_ventes : {fr(S['ventes_reel'])} lignes réelles et {fr(S['fait_ventes'] - S['ventes_reel'])} "
+             f"synthétiques ; fait_achats : {fr(S['achats_reel'])} lignes réelles et {fr(S['fait_achats'] - S['achats_reel'])} "
              f"synthétiques ; fait_paiements : {fr(S['paiements_reel'])} réels et {fr(S['fait_paiements'] - S['paiements_reel'])} "
              f"synthétiques ; fait_stock_actuel : photo au {S['stock_date'][6:]}/{S['stock_date'][4:6]}/{S['stock_date'][:4]}.</p>")
     rel = [("dim_temps", "fait_ventes", "DateKey", "Évolution du CA, des ventes, du panier ; croissance"),
            ("dim_temps", "fait_stock_actuel", "DateKey", "Date du snapshot de stock"),
-           ("dim_temps", "fait_paiements", "DateKey", "Évolution des encaissements"),
+           ("dim_temps", "fait_achats", "DateKey", "Évolution des achats"),
+           ("dim_temps", "fait_paiements", "DateKey", "Évolution des encaissements et des paiements fournisseurs"),
            ("dim_produit", "fait_ventes", "Product_Id", "Ventes et marge par produit, famille, marque"),
+           ("dim_produit", "fait_achats", "Product_Id", "Achats par produit, famille, marque ; quel produit vient de quel fournisseur"),
            ("dim_produit", "fait_stock_actuel", "Product_Id", "Stock disponible, ruptures, stock faible par produit, famille, marque"),
-           ("dim_client", "fait_ventes", "Company_Id", "Analyse des clients identifiés, clients actifs"),
+           ("dim_client", "fait_ventes", "Company_Id", "Analyse des clients identifiés, clients actifs ; qui a acheté quoi et quand"),
+           ("dim_client", "fait_paiements", "Company_Id", "Montant payé par chaque client"),
+           ("dim_fournisseur", "fait_achats", "Fournisseur_Id", "Achats par fournisseur"),
+           ("dim_fournisseur", "fait_paiements", "Fournisseur_Id", "Montant payé à chaque fournisseur"),
            ("dim_paiement", "fait_paiements", "PaymentMode_Id", "Répartition des encaissements par moyen de paiement")]
     H += ["<h2>3. Relations</h2><p>Toutes les relations vont d'une dimension (côté 1) vers une table de faits (côté N).</p>",
           "<table><tr><th>Dimension (1)</th><th>Table de faits (N)</th><th>Clé de jointure</th><th>Utilisation</th></tr>"]
@@ -390,8 +449,13 @@ def build_html(S):
           "<h2>4. Dictionnaire des données</h2><p class='small'>Légende : <span class='pk'>PK</span> clé primaire · "
           "<span class='fk'>FK</span> clé étrangère · <span class='ms'>mesure</span> valeur additive.</p>"]
     notes = {
-        "dim_produit": f"Seuils d'alerte les plus fréquents : " + ", ".join(f"{v} ({fr(n)} produits)" for v, n in S["alertes"]) + ".",
         "dim_client": "Types : " + ", ".join(f"{k} ({v})" for k, v in S["types"].most_common()) + ".",
+        "dim_fournisseur": (f"{fr(S['dim_fournisseur'] - 1)} fournisseurs, dont {fr(S['inconnus_four'])} cités par des factures "
+                            "ou des paiements mais absents de la liste des sociétés (« FOURNISSEUR INCONNU &lt;id&gt; »)."),
+        "fait_achats": (f"{fr(S['factures_four'])} factures et avoirs fournisseurs (dont {fr(S['avoirs_four'])} à montant négatif : avoirs et factures de correction), "
+                        f"{fr(S['achats_ht'])} € HT d'achats. {fr(S['multi_four'])} produits sont achetés chez plusieurs "
+                        "fournisseurs : le lien produit → fournisseur passe donc par cette table, pas par <code>dim_produit</code>. "
+                        "Seuls les documents validés sont chargés ; aucune facture fournisseur ne regroupe d'autres documents."),
         "fait_ventes": (f"<b>Exemple réel — Document_Id 15 (ticket VC0013/24) :</b> {S['ex']['n']} lignes, CA HT = "
                         + " + ".join(fr(x, 2) for x in S["ex"]["lignes"]) + f" = {fr(S['ex']['ca'], 2)} € ; coût HT = "
                         f"{fr(S['ex']['cout'], 2)} € ; marge HT = {fr(S['ex']['ca'] - S['ex']['cout'], 2)} €. Il compte pour "
@@ -400,10 +464,13 @@ def build_html(S):
                         "qui regroupent des bons de livraison déjà comptés sont exclus."),
         "fait_stock_actuel": (f"Au snapshot : {fr(S['rupture'])} produits à 0, {fr(S['faible'])} en stock faible, "
                               f"{fr(S['negatif'])} à stock négatif. Rupture et stock faible ne sont <b>pas stockés</b> : mesures "
-                              "Power BI à partir de <code>Quantity</code> et <code>dim_produit.QuantiteAlerte</code> (§9)."),
-        "fait_paiements": (f"Encaissé clients : {fr(S['encaisse'])} € sur {fr(S['n_cli'])} paiements ; paiements fournisseurs : "
-                           f"{fr(S['n_sup'])} ({fr(S['decaisse'])} €), exclus du montant encaissé. {fr(S['sans_mode'])} paiements "
-                           f"clients ({100 * S['sans_mode'] / max(S['n_cli'], 1):.0f} %) n'ont pas de moyen renseigné dans la source."),
+                              "Power BI à partir de <code>Quantity</code> et <code>QuantiteAlerte</code>, dans la même table (§9). "
+                              "Seuils d'alerte les plus fréquents : " + ", ".join(f"{v} ({fr(n)} produits)" for v, n in S["alertes"]) + "."),
+        "fait_paiements": (f"Encaissé clients : {fr(S['encaisse'])} € sur {fr(S['n_cli'])} paiements (dont {fr(S['comptoir'])} au "
+                           f"comptoir, Company_Id = 2) ; paiements fournisseurs : {fr(S['n_sup'])} ({fr(S['decaisse'])} €), exclus "
+                           "du montant encaissé. Chaque paiement porte soit un client, soit un fournisseur (jamais les deux). "
+                           f"{fr(S['sans_mode'])} paiements clients ({100 * S['sans_mode'] / max(S['n_cli'], 1):.0f} %) n'ont pas "
+                           "de moyen renseigné dans la source."),
     }
     for t, (kind, grain, cols) in META.items():
         cls, lab = tag[kind]
@@ -423,15 +490,22 @@ def build_html(S):
              "fait_ventes + dim_client", "Clients"),
             ("Stock disponible", "SUM(Quantity)", "fait_stock_actuel", "Stock"),
             ("Produits en rupture", "COUNT(Product_Id) où Quantity = 0", "fait_stock_actuel", "Stock"),
-            ("Produits en stock faible", "COUNT(Product_Id) où 0 < Quantity ≤ QuantiteAlerte", "fait_stock_actuel + dim_produit", "Stock"),
-            ("Montant encaissé", "SUM(Amount) où EstPaiementFournisseur = false", "fait_paiements", "Paiements"),
-            ("Nombre de paiements", "COUNT(Id)", "fait_paiements", "Paiements")]
+            ("Produits en stock faible", "COUNT(Product_Id) où 0 < Quantity ≤ QuantiteAlerte", "fait_stock_actuel", "Stock"),
+            ("Montant encaissé", "SUM(Amount) où Fournisseur_Id = -1", "fait_paiements", "Paiements"),
+            ("Montant payé par client", "Montant encaissé par Company_Id, filtre EstClientIdentifie = true",
+             "fait_paiements + dim_client", "Paiements, Clients"),
+            ("Montant payé aux fournisseurs", "SUM(Amount) où Fournisseur_Id ≠ -1", "fait_paiements + dim_fournisseur",
+             "Paiements, Achats"),
+            ("Nombre de paiements", "COUNT(Id)", "fait_paiements", "Paiements"),
+            ("Achats HT", "SUM(MontantAchat_HT)", "fait_achats", "Achats"),
+            ("Quantité achetée", "SUM(QuantiteAchetee)", "fait_achats", "Achats"),
+            ("Nombre de factures fournisseurs", "COUNT(DISTINCT Document_Id)", "fait_achats", "Achats"),
+            ("Prix d'achat moyen", "Achats HT / Quantité achetée", "fait_achats", "Achats")]
     H += ["<h2>5. Mesures et KPI (Power BI)</h2><table><tr><th style='width:20%'>Mesure / KPI</th><th style='width:32%'>"
           "Formule</th><th style='width:18%'>Tables</th><th>Dashboards</th></tr>"]
     H += [f"<tr><td>{a}</td><td><code>{esc(b)}</code></td><td>{c}</td><td>{d}</td></tr>" for a, b, c, d in meas]
     H.append("</table>")
     removed = [("dim_document", "Document_Id est gardé directement dans fait_ventes ; aucun KPI n'analyse le type ou le statut du document."),
-               ("dim_fournisseur, fait_achats", "Analyse fournisseur hors périmètre ; les factures fournisseur restent en zone ETL (coût, stock)."),
                ("dim_geographie, dim_utilisateur", "Analyses géographique et par utilisateur hors périmètre BI."),
                ("fait_stock_hebdo, fait_stock_mouvements", "Pas d'historique de stock dans le BI ; les mouvements restent en source / ETL."),
                ("dim_temps : météo, épidémies, vacances, AnneeMois, NomJour, Saison…", "Météo et épidémies réservées au ML ; vacances non retenues ; le reste se déduit de la date."),
@@ -440,17 +514,32 @@ def build_html(S):
                ("dim_paiement : EstEspeces, EstDiffere, ligne « Inconnu (4) »", "Déductibles du moyen de paiement ; la ligne 4 n'est utilisée par aucun paiement."),
                ("fait_ventes : CA_TTC, Marge_HT, CoutUnitaire, Signe, taux de remise, colonnes brutes", "Recalculables ou non utilisées par les KPI ; la marge devient une mesure."),
                ("fait_stock_actuel : EnRupture, StockFaible, ValeurStock_HT, rotation, couverture…", "Rupture et stock faible deviennent des mesures ; les autres ne sont pas des KPI du cahier."),
-               ("fait_paiements : UsedAmount, client, fournisseur, document, heure, caisse", "UsedAmount = Amount à 99,9 % ; aucun KPI n'utilise les autres colonnes.")]
+               ("fait_paiements : UsedAmount, document, heure, caisse", "UsedAmount = Amount à 99,9 % ; aucun KPI n'utilise les autres colonnes.")]
+    added = [("dim_fournisseur", "Nouvelle dimension : savoir quel fournisseur est payé et chez qui un produit est acheté."),
+             ("fait_achats", "Nouveau fait : achats par fournisseur, produit et période ; quel produit vient de quel fournisseur."),
+             ("fait_paiements : Company_Id", "Montant payé par chaque client (2 = paiements au comptoir)."),
+             ("fait_paiements : Fournisseur_Id", "Montant payé à chaque fournisseur."),
+             ("fait_paiements : EstPaiementFournisseur retiré", "Recalculable : paiement fournisseur ⇔ Fournisseur_Id ≠ -1."),
+             ("QuantiteAlerte : de dim_produit vers fait_stock_actuel",
+              "Le seuil est stocké à côté de la quantité ; le stock faible se calcule dans une seule table.")]
     H += ["<h2>6. Différences avec le modèle précédent (version A)</h2><table><tr><th style='width:36%'>Élément retiré</th>"
           "<th>Raison</th></tr>"]
     H += [f"<tr><td>{esc(a)}</td><td>{esc(b)}</td></tr>" for a, b in removed]
-    H += ["</table><h2>7. Règles de chargement et limites</h2><ul>",
-          "<li><b>Valeurs inconnues :</b> un client ou un moyen de paiement absent pointe vers la ligne -1 « NON RENSEIGNE » "
-          "de <code>dim_client</code> ou <code>dim_paiement</code> ; le produit et la date sont toujours renseignés.</li>",
+    H += ["</table><h2>7. Ajouts au modèle B (achats, fournisseurs, client et fournisseur des paiements)</h2>"
+          "<table><tr><th style='width:36%'>Élément</th><th>Raison</th></tr>"]
+    H += [f"<tr><td>{esc(a)}</td><td>{esc(b)}</td></tr>" for a, b in added]
+    H += ["</table><h2>8. Règles de chargement et limites</h2><ul>",
+          "<li><b>Valeurs inconnues :</b> un client, un fournisseur ou un moyen de paiement absent pointe vers la ligne -1 "
+          "« NON RENSEIGNE » de <code>dim_client</code>, <code>dim_fournisseur</code> ou <code>dim_paiement</code> ; le produit "
+          "et la date sont toujours renseignés.</li>",
           "<li><b>Documents :</b> seuls les documents validés sont chargés ; retours et avoirs signés négativement ; pas de double "
           "comptage entre factures et bons de livraison.</li>",
           "<li><b>Ventes anonymes :</b> conservées (client comptoir) mais exclues des KPI clients par <code>EstClientIdentifie</code>.</li>",
-          "<li><b>Encaissements :</b> paiements fournisseurs exclus du montant encaissé par <code>EstPaiementFournisseur</code>.</li>",
+          "<li><b>Paiements :</b> un encaissement porte le client qui paie (<code>Fournisseur_Id</code> = -1), un paiement "
+          "fournisseur porte le fournisseur payé (<code>Company_Id</code> = -1) ; le montant encaissé exclut les paiements "
+          "fournisseurs par le filtre <code>Fournisseur_Id = -1</code>.</li>",
+          "<li><b>Achats :</b> factures fournisseurs validées ; avoirs fournisseurs signés négativement. Les achats sont HT, "
+          "les paiements TTC : ne pas comparer les deux montants directement.</li>",
           "<li><b>Stock :</b> quantité du logiciel conservée, y compris les stocks négatifs (signalés par les contrôles qualité).</li>",
           "<li><b>Données synthétiques :</b> générées par simulation (hypothèses documentées dans la branche data-external) ; "
           "l'apport de la météo et des épidémies se mesure sur la période réelle uniquement.</li>",
@@ -464,10 +553,10 @@ def build_html(S):
 # --------------------------------------------------------------------------- #
 def build_sql():
     L = ["-- Schéma du Data Warehouse Health Retailers – version B (PostgreSQL)",
-         "-- Généré par build_schema.py. 4 dimensions, 3 tables de faits.",
+         "-- Généré par build_schema.py. 5 dimensions, 4 tables de faits.",
          "-- Chargement : \\copy <table> FROM 'dataset/dwh/<table>.csv' WITH (FORMAT csv, HEADER true, NULL '')",
          "-- Ordre : dimensions puis faits (même ordre que ci-dessous).", ""]
-    for t in DIMS + ["fait_ventes", "fait_stock_actuel", "fait_paiements"]:
+    for t in DIMS + FACTS:
         kind, grain, cols = META[t]
         lines = [f'    "{c}" {typ}{" NOT NULL" if "PK" in key.split() else ""}' for c, typ, key, _, _ in cols]
         pk = [c for c, _, key, _, _ in cols if "PK" in key.split()]
@@ -480,7 +569,7 @@ def build_sql():
         L += [f"-- {kind} : {grain}", f"CREATE TABLE {t} (", ",\n".join(lines), ");", ""]
     L += ["-- Chargement des données (psql)"]
     L += [f"\\copy {t} FROM 'dataset/dwh/{t}.csv' WITH (FORMAT csv, HEADER true, NULL '')"
-          for t in DIMS + ["fait_ventes", "fait_stock_actuel", "fait_paiements"]]
+          for t in DIMS + FACTS]
     return "\n".join(L) + "\n"
 
 
@@ -525,7 +614,8 @@ def write_readme(S):
          "mesures Power BI, différences avec la version A, règles de chargement |",
          "| `schema_dwh_diagramme.png` / `.svg` | Diagramme seul |",
          "| `schema_dwh.sql` | `CREATE TABLE` PostgreSQL avec clés primaires et étrangères + commandes de chargement des CSV |", "",
-         "Modèle : 3 tables de faits (ventes, stock actuel, paiements) partagent 4 dimensions (temps, produit, client, paiement). "
+         "Modèle : 4 tables de faits (ventes, achats, stock actuel, paiements) partagent 5 dimensions (temps, produit, client, "
+         "fournisseur, paiement). "
          f"Période : {S['dates'][0]} → {S['dates'][1]} (réel jusqu'au 2025-04-30, synthétique ensuite).", "",
          "Retour à la vue d'ensemble : branche [`main`](../../tree/main).", ""]
     (OUT / "README.md").write_text("\n".join(L), encoding="utf-8", newline="\n")

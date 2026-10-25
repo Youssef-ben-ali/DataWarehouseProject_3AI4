@@ -77,7 +77,7 @@ def stats():
     seg = R("ml/ml_11_4_segmentation_clients.csv")
     S["clients_id"] = len(seg)
     S["clients_ca_pct"] = 100 * sum(float(c["X_CA_HT_Total"]) for c in seg) / S["ca_ht"]
-    pays = [p for p in R("dwh/fait_paiements.csv") if p["EstPaiementFournisseur"] == "false" and p["DateKey"] <= REAL_END]
+    pays = [p for p in R("dwh/fait_paiements.csv") if p["Fournisseur_Id"] == "-1" and p["DateKey"] <= REAL_END]
     S["sans_mode_pct"] = 100 * sum(p["PaymentMode_Id"] == "-1" for p in pays) / len(pays)
     S["rows"] = {p.stem: sum(1 for _ in p.open(encoding="utf-8")) - 1 for p in (DS / "dwh").glob("*.csv")}
     S["ml_rows"] = {p.stem: sum(1 for _ in p.open(encoding="utf-8")) - 1 for p in (DS / "ml").glob("*.csv")}
@@ -633,7 +633,7 @@ def build(S):
     card(fx, fy, fw, "fait_ventes", fact_rows, "2563EB")
     fk_y = {name: fy + 0.47 + i * 0.3 + 0.15 for i, (name, _) in enumerate(fact_rows)}
     dims_l = [("dim_temps", [("DateKey", "PK"), ("Date, année, trimestre", ""), ("Mois, semaine ISO", ""), ("Jour férié", "")], "DateKey")]
-    dims_r = [("dim_produit", [("Product_Id", "PK"), ("Libellé, famille", ""), ("Marque", ""), ("Seuil d'alerte", "")], "Product_Id"),
+    dims_r = [("dim_produit", [("Product_Id", "PK"), ("Libellé, famille", ""), ("Marque", "")], "Product_Id"),
               ("dim_client", [("Company_Id", "PK"), ("Nom, type de client", ""), ("Client identifié (oui / non)", "")], "Company_Id")]
     for side, dims in (("L", dims_l), ("R", dims_r)):
         y = 1.45
@@ -665,7 +665,8 @@ def build(S):
         ["fait_ventes", "1 produit vendu dans 1 document à 1 date", fr(rw["fait_ventes"]),
          "QuantiteVendue, Remise_HT, CA_HT, Cout_HT\n(+ Document_Id pour compter les ventes)", "Temps, Produit, Client"],
         ["fait_stock_actuel", "1 produit à la date de snapshot (29/09/2026)", fr(rw["fait_stock_actuel"]),
-         "Quantity", "Temps, Produit"],
+         "Quantity
+(+ QuantiteAlerte, seuil du produit)", "Temps, Produit"],
         ["fait_paiements", "1 paiement", fr(rw["fait_paiements"]), "Amount\n(+ EstPaiementFournisseur pour filtrer)", "Temps, Paiement"],
         ["Mesures Power BI", "calculées, non stockées", "—",
          "Marge HT, panier moyen, croissance, clients actifs,\nruptures, stock faible, montant encaissé", "selon la mesure"],
@@ -679,7 +680,7 @@ def build(S):
     table(s, 0.55, 1.45, 12.25, [
         ["Dimension", "Clé primaire", "Attributs principaux", "Lignes"],
         ["dim_temps", "DateKey", "Date, année, trimestre, mois, semaine ISO, jour férié (30/09/2024 → 29/09/2026)", fr(rw["dim_temps"])],
-        ["dim_produit", "Product_Id", "Libellé, famille, marque, seuil d'alerte de stock", fr(rw["dim_produit"])],
+        ["dim_produit", "Product_Id", "Libellé, famille, marque", fr(rw["dim_produit"])],
         ["dim_client", "Company_Id", "Nom, type (particulier / B2B / comptoir anonyme), client identifié", fr(rw["dim_client"])],
         ["dim_paiement", "PaymentMode_Id", "Espèces, carte bancaire, chèque, crédit, jetons, non renseigné", fr(rw["dim_paiement"])],
     ], [2.3, 2.0, 6.75, 1.2], size=13, row_h=0.75)

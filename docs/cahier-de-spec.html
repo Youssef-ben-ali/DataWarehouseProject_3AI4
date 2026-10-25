@@ -40,7 +40,7 @@ table.d th { background: #d9e2ec; font-weight: 700; }
   <div class="t2">Projet Data Engineering — HEALTH RETAILERS</div>
   <div class="t3">Business Intelligence • Data Warehouse • Machine Learning</div>
   <div class="t4">Conception d’une solution décisionnelle et analytique pour un drugstore en France</div>
-  <div class="t5">Version mise à jour après retour enseignant — modèle BI simplifié et objectifs ML précisés</div>
+  <div class="t5">Version mise à jour après retour enseignant — modèle BI simplifié, étendu aux achats et aux fournisseurs, objectifs ML précisés</div>
 </div>
 
 <h2>1. Présentation de l’entreprise et du projet</h2>
@@ -60,7 +60,8 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <tr><td>Responsable commercial</td><td>Analyser les ventes</td><td>Quels produits, familles et marques se vendent le plus ? Quelle est la quantité vendue et le panier moyen ? Quels produits, familles et marques sont les plus rentables ?</td></tr>
 <tr><td>Responsable relation client</td><td>Analyser les clients</td><td>Quels clients identifiés sont actifs ? Quelle est leur fréquence d’achat et leur valeur ?</td></tr>
 <tr><td>Responsable approvisionnement / stock</td><td>Piloter le stock</td><td>Quels produits sont disponibles, en stock faible ou en rupture ? Quelle demande faut-il anticiper ?</td></tr>
-<tr><td>Responsable financier / caisse</td><td>Suivre les flux de paiement</td><td>Quel montant est encaissé ? Quels moyens de paiement sont utilisés ? Comment évoluent les encaissements ?</td></tr>
+<tr><td>Responsable financier / caisse</td><td>Suivre les flux de paiement</td><td>Quel montant est encaissé ? Quels moyens de paiement sont utilisés ? Comment évoluent les encaissements ? Combien chaque client a-t-il payé ? Combien a-t-on payé à chaque fournisseur ?</td></tr>
+<tr><td>Responsable achats</td><td>Piloter les achats et les fournisseurs</td><td>Combien achète-t-on à chaque fournisseur ? Quels produits, familles et marques sont achetés ? Quel produit vient de quel fournisseur ?</td></tr>
 </table>
 
 <h2>4. Périmètre</h2>
@@ -70,14 +71,15 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <li>Documents de vente et lignes de vente nécessaires au calcul des mesures commerciales.</li>
 <li>Clients identifiés et attributs disponibles pour l’analyse client.</li>
 <li>Stock actuel par produit à une date de référence.</li>
-<li>Paiements, montants et moyens de paiement.</li>
+<li>Paiements, montants et moyens de paiement, avec le client qui paie ou le fournisseur payé.</li>
+<li>Fournisseurs et lignes d’achat des factures et avoirs fournisseurs.</li>
 <li>Dimension temporelle et calendrier français.</li>
 <li>Jeux de données ML pour la prévision de demande, les anomalies de ventes, les anomalies de caisse et la segmentation client.</li>
 </ul>
 <h3>4.2 Hors périmètre BI actuel</h3>
 <ul>
 <li>Analyse détaillée des mouvements de stock comme table de faits BI.</li>
-<li>Analyse fournisseur, géographique ou par utilisateur tant qu’aucun objectif BI ne la justifie.</li>
+<li>Analyse géographique ou par utilisateur tant qu’aucun objectif BI ne la justifie.</li>
 <li>Données techniques d’authentification, permissions et sécurité.</li>
 <li>Météo et indicateurs épidémiques comme dimensions BI : ils sont réservés au cas ML de prévision de la demande.</li>
 </ul>
@@ -92,7 +94,8 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <tr><td>Ventes / documents</td><td>Documents.csv ; DocumentsReports.csv ; documentItemm.csv ; DocumentTypes.csv ; RelatedDocuments.csv</td><td>Construction de fait_ventes, Document_Id, dates, quantités, montants et contrôle du double comptage.</td></tr>
 <tr><td>Stock</td><td>ProductStocks.csv ; StockMovements.csv ; InventaireItems.csv</td><td>ProductStocks alimente le stock actuel. Les mouvements restent disponibles en source/ETL si un calcul historique est nécessaire.</td></tr>
 <tr><td>Clients</td><td>Clients - 24112025081756 (3).csv ; CompaniesList.csv ; Transactions.csv</td><td>Construction de dim_client et analyses limitées aux clients identifiés.</td></tr>
-<tr><td>Paiements / caisse</td><td>Payment.csv ; TransactionPayments.csv ; PaymentsList.csv ; CaisseOperations.csv ; TresoreriePayments.csv</td><td>Construction de fait_paiements et préparation du cas ML caisse.</td></tr>
+<tr><td>Fournisseurs / achats</td><td>Fournisseurs - 24112025081816 (2).csv ; CompaniesList.csv ; Documents.csv et documentItemm.csv (factures et avoirs fournisseurs)</td><td>Construction de dim_fournisseur et fait_achats.</td></tr>
+<tr><td>Paiements / caisse</td><td>Payment.csv ; TransactionPayments.csv ; PaymentsList.csv ; CaisseOperations.csv ; TresoreriePayments.csv</td><td>Construction de fait_paiements (montant, moyen, client ou fournisseur) et préparation du cas ML caisse.</td></tr>
 <tr><td>Autres référentiels</td><td>users_csv.csv ; DomainEvents.csv ; Events.csv ; Permissions.csv</td><td>À utiliser uniquement pour ETL ou ML lorsqu’une question métier le justifie.</td></tr>
 </table>
 
@@ -109,9 +112,13 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <tr><td>Clients actifs</td><td>DISTINCTCOUNT(Company_Id) avec au moins une vente sur la période</td><td>Company_Id, DateKey</td><td>Temps, type client</td></tr>
 <tr><td>Stock disponible</td><td>Quantity</td><td>Product_Id, Quantity</td><td>Produit, famille, marque</td></tr>
 <tr><td>Produits en rupture</td><td>COUNT(Product_Id) où Quantity = 0</td><td>Product_Id, Quantity</td><td>Produit, famille, marque</td></tr>
-<tr><td>Produits en stock faible</td><td>COUNT(Product_Id) où 0 &lt; Quantity &lt;= QuantiteAlerte</td><td>Product_Id, Quantity, QuantiteAlerte</td><td>Produit, famille, marque</td></tr>
-<tr><td>Montant encaissé</td><td>SUM(Amount) sur les encaissements clients</td><td>Amount</td><td>Temps, moyen de paiement</td></tr>
-<tr><td>Nombre de paiements</td><td>COUNT(Id)</td><td>Id</td><td>Temps, moyen de paiement</td></tr>
+<tr><td>Produits en stock faible</td><td>COUNT(Product_Id) où 0 &lt; Quantity &lt;= QuantiteAlerte (fait_stock_actuel)</td><td>Product_Id, Quantity, QuantiteAlerte</td><td>Produit, famille, marque</td></tr>
+<tr><td>Montant encaissé</td><td>SUM(Amount) où Fournisseur_Id = -1 (encaissements clients)</td><td>Amount, Fournisseur_Id</td><td>Temps, moyen de paiement, client</td></tr>
+<tr><td>Montant payé aux fournisseurs</td><td>SUM(Amount) où Fournisseur_Id ≠ -1</td><td>Amount, Fournisseur_Id</td><td>Temps, fournisseur</td></tr>
+<tr><td>Nombre de paiements</td><td>COUNT(Id)</td><td>Id</td><td>Temps, moyen de paiement, client, fournisseur</td></tr>
+<tr><td>Achats HT</td><td>SUM(MontantAchat_HT)</td><td>MontantAchat_HT</td><td>Temps, fournisseur, produit, famille, marque</td></tr>
+<tr><td>Quantité achetée</td><td>SUM(QuantiteAchetee)</td><td>QuantiteAchetee</td><td>Temps, fournisseur, produit</td></tr>
+<tr><td>Nombre de factures fournisseurs</td><td>COUNT(DISTINCT Document_Id) sur fait_achats</td><td>Document_Id</td><td>Temps, fournisseur</td></tr>
 </table>
 
 <div class="keep"><h3 class="a">6.1 Direction générale — Performance globale</h3>
@@ -155,7 +162,7 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <tr><td>Questions analytiques</td><td>Quel est le stock disponible ? Quels produits sont en rupture ? Quels produits ont un stock inférieur au seuil d’alerte ?</td></tr>
 <tr><td>Mesures de base</td><td>Stock disponible ; Nombre de produits en rupture ; Nombre de produits en stock faible.</td></tr>
 <tr><td>Variables minimales</td><td>Product_Id ; Quantity ; QuantiteAlerte ; DateKey.</td></tr>
-<tr><td>Dimensions / filtres</td><td>dim_produit. Les vues par produit, famille ou marque sont des filtres sur les mêmes indicateurs.</td></tr>
+<tr><td>Dimensions / filtres</td><td>dim_produit. Les vues par produit, famille ou marque sont des filtres sur les mêmes indicateurs. Le seuil d’alerte est stocké dans fait_stock_actuel, à côté de la quantité.</td></tr>
 <tr><td>Résultat attendu</td><td>État du stock actuel et liste des produits en rupture ou en stock faible.</td></tr>
 <tr><td>Limite</td><td>La rotation historique n’est pas retenue dans le BI actuel tant qu’un historique de stock fiable n’est pas validé. La prévision de demande relève du ML.</td></tr>
 </table></div>
@@ -163,23 +170,36 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <div class="keep"><h3 class="a">6.5 Responsable financier / caisse — Paiements</h3>
 <table class="d">
 <tr><th>Élément</th><th>Détail</th></tr>
-<tr><td>Objectif BI</td><td>Suivre les encaissements et leur répartition sans créer une mesure différente pour chaque moyen ou période.</td></tr>
-<tr><td>Questions analytiques</td><td>Quel montant est encaissé ? Combien de paiements sont enregistrés ? Comment se répartissent-ils par moyen ? Comment évoluent-ils dans le temps ?</td></tr>
-<tr><td>Mesures de base</td><td>Montant encaissé ; Nombre de paiements.</td></tr>
-<tr><td>Variables minimales</td><td>Id ; Amount ; PaymentMode_Id ; DateKey.</td></tr>
-<tr><td>Dimensions / filtres</td><td>dim_paiement et dim_temps. Les analyses par carte, espèces ou période utilisent les mêmes mesures avec filtres.</td></tr>
-<tr><td>Résultat attendu</td><td>Suivi des encaissements par période et moyen de paiement.</td></tr>
-<tr><td>Précaution</td><td>Si la source mélange encaissements clients et paiements fournisseurs, appliquer un filtre avant le calcul du montant encaissé.</td></tr>
+<tr><td>Objectif BI</td><td>Suivre les encaissements, les paiements fournisseurs et leur répartition sans créer une mesure différente pour chaque moyen, client, fournisseur ou période.</td></tr>
+<tr><td>Questions analytiques</td><td>Quel montant est encaissé ? Combien de paiements sont enregistrés ? Comment se répartissent-ils par moyen ? Comment évoluent-ils dans le temps ? Combien chaque client a-t-il payé ? Combien a-t-on payé à chaque fournisseur ?</td></tr>
+<tr><td>Mesures de base</td><td>Montant encaissé ; Montant payé aux fournisseurs ; Nombre de paiements.</td></tr>
+<tr><td>Variables minimales</td><td>Id ; Amount ; PaymentMode_Id ; Company_Id ; Fournisseur_Id ; DateKey.</td></tr>
+<tr><td>Dimensions / filtres</td><td>dim_paiement, dim_client, dim_fournisseur et dim_temps. Les analyses par carte, espèces, client, fournisseur ou période utilisent les mêmes mesures avec filtres.</td></tr>
+<tr><td>Résultat attendu</td><td>Suivi des encaissements par période, moyen de paiement et client ; suivi des paiements par fournisseur.</td></tr>
+<tr><td>Précaution</td><td>La source mélange encaissements clients et paiements fournisseurs : chaque paiement porte soit un client (Company_Id), soit un fournisseur (Fournisseur_Id), l’autre valant -1. Le montant encaissé filtre Fournisseur_Id = -1. Les paiements au comptoir sont rattachés au client comptoir anonyme. Les paiements (TTC) ne se comparent pas directement au CA ou aux achats (HT).</td></tr>
 </table></div>
 
-<h3>6.6 Synthèse d’utilisation par décideur</h3>
+<div class="keep"><h3 class="a">6.6 Responsable achats — Achats et fournisseurs</h3>
+<table class="d">
+<tr><th>Élément</th><th>Détail</th></tr>
+<tr><td>Objectif BI</td><td>Suivre les achats par fournisseur et par produit, et savoir chez quel fournisseur chaque produit est acheté.</td></tr>
+<tr><td>Questions analytiques</td><td>Combien achète-t-on à chaque fournisseur ? Quels produits, familles et marques sont achetés ? Quel produit vient de quel fournisseur ? Comment évoluent les achats ? Combien a-t-on payé à chaque fournisseur ?</td></tr>
+<tr><td>Mesures de base</td><td>Achats HT ; Quantité achetée ; Nombre de factures fournisseurs ; Montant payé aux fournisseurs.</td></tr>
+<tr><td>Variables minimales</td><td>MontantAchat_HT ; QuantiteAchetee ; Document_Id ; Product_Id ; Fournisseur_Id ; DateKey.</td></tr>
+<tr><td>Dimensions / filtres</td><td>dim_fournisseur, dim_produit et dim_temps. Un même produit pouvant venir de plusieurs fournisseurs, le lien produit → fournisseur passe par fait_achats et non par dim_produit.</td></tr>
+<tr><td>Résultat attendu</td><td>Comparaison des achats par fournisseur, produit, famille, marque et période.</td></tr>
+<tr><td>Limite</td><td>Seules les factures et avoirs fournisseurs validés sont chargés (avoirs en négatif). Les achats sont HT et les paiements TTC : le solde dû à un fournisseur n’est pas calculé.</td></tr>
+</table></div>
+
+<h3>6.7 Synthèse d’utilisation par décideur</h3>
 <table class="t">
 <tr><th>Décideur</th><th>Mesures utilisées</th><th>Analyse réalisée avec les dimensions</th></tr>
 <tr><td>Direction générale</td><td>CA HT, nombre de ventes, panier moyen, croissance</td><td>Évolution par jour, mois, trimestre ou année.</td></tr>
 <tr><td>Responsable commercial</td><td>CA HT, quantité vendue, panier moyen, marge HT</td><td>Produit, famille, marque, période.</td></tr>
 <tr><td>Responsable relation client</td><td>CA HT, nombre de ventes, panier moyen, clients actifs</td><td>Client identifié, type client, période.</td></tr>
 <tr><td>Responsable stock</td><td>Stock disponible, produits en rupture, produits en stock faible</td><td>Produit, famille, marque. La prévision de demande relève du ML.</td></tr>
-<tr><td>Responsable financier / caisse</td><td>Montant encaissé, nombre de paiements</td><td>Période et moyen de paiement.</td></tr>
+<tr><td>Responsable financier / caisse</td><td>Montant encaissé, montant payé aux fournisseurs, nombre de paiements</td><td>Période, moyen de paiement, client, fournisseur.</td></tr>
+<tr><td>Responsable achats</td><td>Achats HT, quantité achetée, nombre de factures fournisseurs</td><td>Fournisseur, produit, famille, marque, période.</td></tr>
 </table>
 <p class="note">La rotation du stock n’est pas retenue comme KPI BI dans la version actuelle. Elle nécessite un stock moyen historique fiable. Elle pourra être réintroduite si l’historique est validé et si le responsable stock confirme ce besoin.</p>
 
@@ -187,10 +207,12 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <table class="t">
 <tr><th>Domaine</th><th>Variables minimales recherchées</th><th>Utilisation</th></tr>
 <tr><td>Ventes</td><td>Document_Id, DateKey, Product_Id, Company_Id, QuantiteVendue, CA_HT, Cout_HT</td><td>Mesures commerciales et client.</td></tr>
-<tr><td>Produits</td><td>Product_Id, Libellé, Famille, Marque, QuantiteAlerte</td><td>Filtres produit et calcul du stock faible.</td></tr>
+<tr><td>Produits</td><td>Product_Id, Libellé, Famille, Marque</td><td>Filtres produit.</td></tr>
 <tr><td>Clients</td><td>Company_Id, TypeClient et attributs fiables</td><td>Analyse des clients identifiés.</td></tr>
-<tr><td>Stock</td><td>Product_Id, Quantity, DateKey</td><td>Stock actuel, rupture et stock faible.</td></tr>
-<tr><td>Paiements</td><td>Id, DateKey, PaymentMode_Id, Amount</td><td>Montant et nombre de paiements.</td></tr>
+<tr><td>Stock</td><td>Product_Id, Quantity, QuantiteAlerte, DateKey</td><td>Stock actuel, rupture et stock faible.</td></tr>
+<tr><td>Paiements</td><td>Id, DateKey, PaymentMode_Id, Company_Id, Fournisseur_Id, Amount</td><td>Montant et nombre de paiements, par client ou par fournisseur.</td></tr>
+<tr><td>Achats</td><td>Document_Id, DateKey, Product_Id, Fournisseur_Id, QuantiteAchetee, MontantAchat_HT</td><td>Achats par fournisseur et par produit.</td></tr>
+<tr><td>Fournisseurs</td><td>Fournisseur_Id, Nom</td><td>Filtre et affichage des fournisseurs.</td></tr>
 <tr><td>Temps</td><td>DateKey, Date, semaine, mois, trimestre, année, EstFerie</td><td>Analyse temporelle et filtres.</td></tr>
 </table>
 <h3>7.1 Contrôles de qualité</h3>
@@ -198,7 +220,7 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <li>Valeurs manquantes, aberrantes ou impossibles.</li>
 <li>Doublons et unicité des clés.</li>
 <li>Cohérence des types et formats de dates.</li>
-<li>Intégrité référentielle entre documents, lignes, produits et clients.</li>
+<li>Intégrité référentielle entre documents, lignes, produits, clients et fournisseurs.</li>
 <li>Traitement des retours / avoirs et prévention du double comptage entre factures et bons de livraison.</li>
 <li>Validation de la granularité réelle de chaque jeu de données.</li>
 <li>Séparation des ventes anonymes des analyses nécessitant un client identifié.</li>
@@ -216,19 +238,21 @@ table.d th { background: #d9e2ec; font-weight: 700; }
 <p>Cette évaluation est réalisée sur la période réelle uniquement (données datées jusqu’au 30 avril 2025), car des effets météo et épidémiques ont servi d’hypothèses à la génération des données synthétiques.</p>
 
 <h2>9. Modèle Data Warehouse cible</h2>
-<p>Le modèle cible est volontairement réduit aux tables nécessaires aux objectifs BI. Le dépôt Git actuel contient un modèle plus large (8 dimensions et 6 faits) ; la présente spécification retient une version plus simple à aligner dans les scripts après validation.</p>
+<p>Le modèle cible est volontairement réduit aux tables nécessaires aux objectifs BI : 5 dimensions et 4 tables de faits. Les achats et les fournisseurs y ont été ajoutés pour répondre au besoin du responsable achats (§6.6) et attribuer chaque paiement à un client ou à un fournisseur (§6.5).</p>
 <table class="t">
 <tr><th>Type</th><th>Table</th><th>Grain</th><th>PK / FK principales</th><th>Variables utiles / rôle</th></tr>
 <tr><td>Dimension</td><td>dim_temps</td><td>1 ligne = 1 date (du 30/09/2024 au 29/09/2026)</td><td>PK DateKey</td><td>Date, semaine, mois, trimestre, année, EstFerie</td></tr>
-<tr><td>Dimension</td><td>dim_produit</td><td>1 ligne = 1 produit</td><td>PK Product_Id</td><td>Libellé, Famille, Marque, QuantiteAlerte</td></tr>
+<tr><td>Dimension</td><td>dim_produit</td><td>1 ligne = 1 produit</td><td>PK Product_Id</td><td>Libellé, Famille, Marque</td></tr>
 <tr><td>Dimension</td><td>dim_client</td><td>1 ligne = 1 client, y compris le client comptoir anonyme (filtre EstClientIdentifie pour les KPI clients)</td><td>PK Company_Id</td><td>TypeClient + attributs fiables</td></tr>
+<tr><td>Dimension</td><td>dim_fournisseur</td><td>1 ligne = 1 fournisseur</td><td>PK Fournisseur_Id</td><td>Nom (-1 = non renseigné ou sans objet)</td></tr>
 <tr><td>Dimension</td><td>dim_paiement</td><td>1 ligne = 1 moyen de paiement</td><td>PK PaymentMode_Id</td><td>Libellé / type de moyen</td></tr>
 <tr><td>Fait</td><td>fait_ventes</td><td>1 produit vendu dans 1 document à 1 date</td><td>PK Id ; FK DateKey, Product_Id, Company_Id</td><td>Document_Id, QuantiteVendue, CA_HT, Remise_HT, Cout_HT</td></tr>
-<tr><td>Fait</td><td>fait_stock_actuel</td><td>1 produit à la date de snapshot</td><td>PK/FK Product_Id ; FK DateKey</td><td>Quantity. Rupture et stock faible sont calculés.</td></tr>
-<tr><td>Fait</td><td>fait_paiements</td><td>1 paiement</td><td>PK Id ; FK DateKey, PaymentMode_Id</td><td>Amount ; indicateur client/fournisseur uniquement si nécessaire au filtrage</td></tr>
+<tr><td>Fait</td><td>fait_achats</td><td>1 produit acheté dans 1 facture fournisseur à 1 date</td><td>PK Id ; FK DateKey, Product_Id, Fournisseur_Id</td><td>Document_Id, QuantiteAchetee, MontantAchat_HT (avoirs en négatif)</td></tr>
+<tr><td>Fait</td><td>fait_stock_actuel</td><td>1 produit à la date de snapshot</td><td>PK/FK Product_Id ; FK DateKey</td><td>Quantity, QuantiteAlerte (seuil d’alerte du produit). Rupture et stock faible sont calculés.</td></tr>
+<tr><td>Fait</td><td>fait_paiements</td><td>1 paiement</td><td>PK Id ; FK DateKey, PaymentMode_Id, Company_Id, Fournisseur_Id</td><td>Amount. Un encaissement porte le client qui paie (2 = comptoir), un paiement fournisseur le fournisseur payé ; l’autre clé vaut -1.</td></tr>
 </table>
 <p class="note">Document_Id est conservé directement dans fait_ventes pour compter les ventes distinctes et calculer le panier moyen. Une dimension Document séparée n’est pas nécessaire tant qu’aucun objectif BI n’analyse le type, le statut ou le canal du document.<br>
-Les sources StockMovements, fournisseurs, utilisateurs et géographie peuvent rester disponibles dans les zones source/ETL ou les datasets ML sans devenir des tables du Data Warehouse BI final.</p>
+Les sources StockMovements, utilisateurs et géographie peuvent rester disponibles dans les zones source/ETL ou les datasets ML sans devenir des tables du Data Warehouse BI final.</p>
 
 <h2>10. Besoins BI / Reporting</h2>
 <table class="t">
@@ -237,7 +261,8 @@ Les sources StockMovements, fournisseurs, utilisateurs et géographie peuvent re
 <tr><td>Commercial</td><td>CA HT, quantité vendue, panier moyen, marge HT</td><td>Période, produit, famille, marque</td></tr>
 <tr><td>Stock</td><td>Stock disponible, produits en rupture, produits en stock faible</td><td>Produit, famille, marque</td></tr>
 <tr><td>Clients</td><td>CA HT, nombre de ventes, panier moyen, clients actifs</td><td>Client identifié, type client, période</td></tr>
-<tr><td>Paiements</td><td>Montant encaissé, nombre de paiements</td><td>Période, moyen de paiement</td></tr>
+<tr><td>Paiements</td><td>Montant encaissé, montant payé aux fournisseurs, nombre de paiements</td><td>Période, moyen de paiement, client, fournisseur</td></tr>
+<tr><td>Achats</td><td>Achats HT, quantité achetée, nombre de factures fournisseurs</td><td>Période, fournisseur, produit, famille, marque</td></tr>
 </table>
 <p class="bold">Les mêmes mesures de base sont réutilisées dans plusieurs dashboards. La variation de l’analyse est obtenue par les dimensions et filtres Power BI, et non par des mesures redondantes.</p>
 
@@ -303,8 +328,9 @@ Les sources StockMovements, fournisseurs, utilisateurs et géographie peuvent re
 <tr><td>Croissance du CA</td><td>(CA_N - CA_N-1) / CA_N-1 × 100</td><td>Comparer des périodes cohérentes.</td></tr>
 <tr><td>Marge HT</td><td>SUM(CA_HT) - SUM(Cout_HT)</td><td>Calculée comme mesure, non stockée ; les lignes sans coût sont exclues.</td></tr>
 <tr><td>Produits en rupture</td><td>COUNT(Product_Id où Quantity = 0)</td><td>Basé sur le snapshot de stock retenu.</td></tr>
-<tr><td>Stock faible</td><td>0 &lt; Quantity &lt;= QuantiteAlerte</td><td>Le seuil doit provenir du référentiel produit ou d’une règle validée.</td></tr>
-<tr><td>Montant encaissé</td><td>SUM(Amount)</td><td>Filtrer les décaissements / paiements fournisseurs si les sources les mélangent.</td></tr>
+<tr><td>Stock faible</td><td>0 &lt; Quantity &lt;= QuantiteAlerte</td><td>Le seuil provient du référentiel produit (ou d’une règle validée) et est stocké dans fait_stock_actuel.</td></tr>
+<tr><td>Montant encaissé</td><td>SUM(Amount) où Fournisseur_Id = -1</td><td>Exclut les paiements fournisseurs ; un paiement porte soit un client, soit un fournisseur.</td></tr>
+<tr><td>Achats HT</td><td>SUM(MontantAchat_HT)</td><td>Factures fournisseurs validées uniquement ; avoirs en négatif.</td></tr>
 <tr><td>Erreur de prévision</td><td>MAE / RMSE</td><td>Évaluer sur une période future non utilisée pour l’entraînement et comparer à une baseline.</td></tr>
 </table>
 
@@ -323,8 +349,8 @@ Les sources StockMovements, fournisseurs, utilisateurs et géographie peuvent re
 <h2>14. Résultats attendus et étapes suivantes</h2>
 <ul>
 <li>Alignement du schéma et des scripts Git sur le modèle BI simplifié après validation par l’équipe.</li>
-<li>Construction / chargement des 3 faits et 4 dimensions cibles.</li>
-<li>Développement des cinq dashboards Power BI avec des mesures réutilisables et des filtres.</li>
+<li>Construction / chargement des 4 faits et 5 dimensions cibles.</li>
+<li>Développement des six dashboards Power BI avec des mesures réutilisables et des filtres.</li>
 <li>Préparation et entraînement des quatre cas ML selon la disponibilité et la qualité des données.</li>
 <li>Comparaison des modèles de prévision à une baseline et validation de l’apport des variables externes.</li>
 <li>Documentation finale du mapping source → variable → mesure / KPI → dashboard ou cas ML.</li>
@@ -343,7 +369,7 @@ Les sources StockMovements, fournisseurs, utilisateurs et géographie peuvent re
 </ul>
 
 <h2>16. Conclusion</h2>
-<p>Le projet Health Retailers doit fournir une base décisionnelle simple, cohérente et directement reliée aux besoins des responsables. La version cible retient trois tables de faits — ventes, stock actuel et paiements — et quatre dimensions — temps, produit, client et paiement. Les mesures BI sont centralisées et réutilisées dans Power BI par filtrage plutôt que dupliquées pour chaque axe d’analyse.<br>
+<p>Le projet Health Retailers doit fournir une base décisionnelle simple, cohérente et directement reliée aux besoins des responsables. La version cible retient quatre tables de faits — ventes, achats, stock actuel et paiements — et cinq dimensions — temps, produit, client, fournisseur et paiement. Les mesures BI sont centralisées et réutilisées dans Power BI par filtrage plutôt que dupliquées pour chaque axe d’analyse.<br>
 Les cas Machine Learning sont traités séparément avec leurs propres variables, granularités et critères d’évaluation. La prévision de demande est définie à la semaine, séparément par famille ou par marque ; la météo et les indicateurs épidémiques restent des variables explicatives candidates, uniquement conservées si leur contribution est démontrée.<br>
 Cette organisation respecte le principe directeur du projet : une donnée n’est intégrée au modèle que si elle répond à une question métier, permet de calculer une mesure / KPI ou apporte une valeur démontrable à un cas Machine Learning.</p>
 
