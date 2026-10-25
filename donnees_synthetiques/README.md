@@ -21,13 +21,13 @@ formats de date, `VRAI/FAUX`, encodage, guillemets de `DomainEvents.csv`). Le sc
 
 | Fichier | Lignes | Contenu |
 |---|---|---|
-| `Documents.csv` | 33,326 | ventes comptoir, bons de livraison, factures client, factures fournisseur |
-| `documentItemm.csv` | 83,865 | lignes de ces documents (y compris les lignes vides de mise en page des factures) |
-| `Transactions.csv` | 33,326 | une transaction par document |
-| `TransactionPayments.csv`, `PaymentsList.csv` | 29,261 | paiements |
+| `Documents.csv` | 32,906 | ventes comptoir, bons de livraison, factures client, factures fournisseur |
+| `documentItemm.csv` | 82,574 | lignes de ces documents (y compris les lignes vides de mise en page des factures) |
+| `Transactions.csv` | 32,906 | une transaction par document |
+| `TransactionPayments.csv`, `PaymentsList.csv` | 28,871 | paiements |
 | `TresoreriePayments.csv`, `CaisseOperations.csv` | — | affectation des paiements aux caisses / comptes bancaires |
-| `StockMovements.csv` | 95,733 | mouvements de stock (ventes, achats, corrections, modifications manuelles) |
-| `DomainEvents.csv` | 63,412 | événements de trésorerie : paiements, ouvertures / fermetures de caisse, écarts |
+| `StockMovements.csv` | 94,762 | mouvements de stock (ventes, achats, corrections, modifications manuelles) |
+| `DomainEvents.csv` | 62,756 | événements de trésorerie : paiements, ouvertures / fermetures de caisse, écarts |
 | `ProductStocks.csv` | 6,842 | **état du stock au 29/09/2026** (remplace l'état réel pour la fin de période) |
 | `comparaison_mensuelle.csv` | — | indicateurs mensuels réels et générés côte à côte (contrôle de vraisemblance) |
 | `parametres_generation.json` | — | tous les paramètres appris ou supposés |
@@ -95,11 +95,17 @@ de ces hypothèses. Pour évaluer honnêtement un modèle, entraînez-le et test
 ## Limites
 
 - Pas de nouveaux produits, clients ou fournisseurs créés (le catalogue reste celui de l'export).
-- Les types de documents rares (avoirs, retours, proformas, commandes) ne sont pas générés.
+- Les types de documents rares (avoirs, retours, proformas, commandes) ne sont pas générés : les retours clients
+  n'apparaissent que comme lignes négatives des ventes (à la fréquence réelle, surtout des échanges sur un ticket
+  de plusieurs lignes), et il n'y a pas d'avoir fournisseur après le 30/04/2025.
+- Un ticket ou une facture de total nul ou négatif ne crée pas de paiement, comme dans l'export (aucun paiement
+  négatif) : l'argent rendu à un client n'est pas enregistré comme paiement.
+- Moyen de paiement : reproduit tel qu'il est saisi dans l'export depuis novembre 2024, c'est-à-dire presque jamais
+  (< 1 % des paiements clients) ; seules les premières semaines de l'export (septembre-octobre 2024) le renseignent.
 - Pas de dépôts / retraits bancaires ni d'ajustements de solde bancaire (rares dans l'export).
 - Les paiements saisis puis supprimés (≈ 1.1%, statut 2 en caisse) sont reproduits ; les mises à jour
   de paiement (`PaymentUpdated`, 11 cas réels) ne le sont pas.
-- 339 produits finissent avec un stock négatif (vente sans réception : 132 dans l'export au
+- 308 produits finissent avec un stock négatif (vente sans réception : 132 dans l'export au
   30/04/2025) — c'est un défaut de qualité réel du logiciel, conservé.
 - Les mois de mai à septembre n'ont jamais été observés : leur niveau repose sur les indices supposés.
 
@@ -115,20 +121,20 @@ de ces hypothèses. Pour évaluer honnêtement un modèle, entraînez-le et test
 | 2025-02 | original | 1378 | 93269.61 | 67.68 | 134 | 39 | 115 | 157464.12 |
 | 2025-03 | original | 1126 | 80214.69 | 71.24 | 88 | 46 | 111 | 145947.32 |
 | 2025-04 | original | 1778 | 118560.42 | 66.68 | 133 | 52 | 111 | 159333.37 |
-| 2025-05 | synthetique | 1420 | 101829.36 | 71.71 | 132 | 36 | 122 | 148197.98 |
-| 2025-06 | synthetique | 1634 | 121975.81 | 74.65 | 145 | 42 | 121 | 152480.65 |
-| 2025-07 | synthetique | 1824 | 138226.33 | 75.78 | 164 | 62 | 138 | 143054.69 |
-| 2025-08 | synthetique | 1417 | 104831.13 | 73.98 | 128 | 42 | 116 | 159399.12 |
-| 2025-09 | synthetique | 1727 | 126042.24 | 72.98 | 133 | 39 | 122 | 152104.79 |
-| 2025-10 | synthetique | 1471 | 100038.44 | 68.01 | 151 | 53 | 150 | 141360.17 |
-| 2025-11 | synthetique | 1522 | 101599.4 | 66.75 | 138 | 39 | 133 | 128304.39 |
-| 2025-12 | synthetique | 1437 | 96159.4 | 66.92 | 143 | 40 | 124 | 130899.11 |
-| 2026-01 | synthetique | 1665 | 117725.84 | 70.71 | 143 | 60 | 140 | 146291.4 |
-| 2026-02 | synthetique | 1459 | 101407.97 | 69.51 | 134 | 39 | 112 | 114349.17 |
-| 2026-03 | synthetique | 1826 | 127228.72 | 69.68 | 158 | 44 | 167 | 145337.34 |
-| 2026-04 | synthetique | 1997 | 142088.77 | 71.15 | 149 | 49 | 140 | 215491.75 |
-| 2026-05 | synthetique | 1469 | 110627.94 | 75.31 | 131 | 49 | 118 | 126860.85 |
-| 2026-06 | synthetique | 1745 | 139340.97 | 79.85 | 157 | 49 | 143 | 209590.9 |
-| 2026-07 | synthetique | 1951 | 150876.14 | 77.33 | 158 | 60 | 172 | 223577.29 |
-| 2026-08 | synthetique | 1426 | 103369.16 | 72.49 | 143 | 41 | 127 | 132359.21 |
-| 2026-09 | synthetique | 1737 | 131009.22 | 75.42 | 147 | 53 | 122 | 134836.15 |
+| 2025-05 | synthetique | 1427 | 103157.62 | 72.29 | 134 | 50 | 120 | 149125.17 |
+| 2025-06 | synthetique | 1692 | 121092.73 | 71.57 | 128 | 43 | 125 | 117439.53 |
+| 2025-07 | synthetique | 1664 | 129061.2 | 77.56 | 116 | 49 | 146 | 161282.1 |
+| 2025-08 | synthetique | 1367 | 101410.08 | 74.18 | 131 | 39 | 139 | 127277.23 |
+| 2025-09 | synthetique | 1594 | 112748.9 | 70.73 | 182 | 41 | 139 | 149481.52 |
+| 2025-10 | synthetique | 1493 | 109524.81 | 73.36 | 147 | 51 | 139 | 171216.13 |
+| 2025-11 | synthetique | 1490 | 100321.53 | 67.33 | 125 | 39 | 117 | 135821.12 |
+| 2025-12 | synthetique | 1511 | 107441.22 | 71.11 | 138 | 42 | 151 | 158072.06 |
+| 2026-01 | synthetique | 1480 | 103883.12 | 70.19 | 158 | 51 | 123 | 125323.62 |
+| 2026-02 | synthetique | 1461 | 104283.89 | 71.38 | 136 | 45 | 127 | 130913.95 |
+| 2026-03 | synthetique | 1867 | 134255.27 | 71.91 | 122 | 52 | 131 | 124370.36 |
+| 2026-04 | synthetique | 2058 | 141667.42 | 68.84 | 140 | 48 | 131 | 155009.49 |
+| 2026-05 | synthetique | 1440 | 108165.88 | 75.12 | 150 | 46 | 115 | 198551.85 |
+| 2026-06 | synthetique | 1783 | 130704.43 | 73.31 | 152 | 57 | 139 | 158144.16 |
+| 2026-07 | synthetique | 1933 | 152025.98 | 78.65 | 134 | 50 | 155 | 188223.2 |
+| 2026-08 | synthetique | 1445 | 110236.22 | 76.29 | 151 | 51 | 132 | 177476.18 |
+| 2026-09 | synthetique | 1690 | 123357.6 | 72.99 | 154 | 43 | 126 | 163733.36 |
