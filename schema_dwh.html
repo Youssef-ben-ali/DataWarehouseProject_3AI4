@@ -23,29 +23,36 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 .keep { break-inside: avoid; page-break-inside: avoid; }
 .small { font-size: 7.6pt; color: #4a5a70; }
 </style></head><body>
-<section class='paysage'><h1>Schéma du Data Warehouse — Health Retailers</h1><div class='sub'>Modèle BI final simplifié (version B) : 4 dimensions et 3 tables de faits — descriptif détaillé</div><div class='schema'><img src='schema_dwh_diagramme.png' alt='Schéma du Data Warehouse'></div><div class='legend'>Clés primaires (PK), clés étrangères (FK) et mesures. La couleur d'un lien est celle de la dimension d'origine. Volumes de la période chargée (30/09/2024 → 29/09/2026) : données réelles du 30/09/2024 → 30/04/2025, puis données synthétiques. Le détail de chaque table, des relations et des mesures figure dans les pages suivantes.</div></section>
+<section class='paysage'><h1>Schéma du Data Warehouse — Health Retailers</h1><div class='sub'>Modèle BI (version B) : 5 dimensions et 4 tables de faits — descriptif détaillé</div><div class='schema'><img src='schema_dwh_diagramme.png' alt='Schéma du Data Warehouse'></div><div class='legend'>Clés primaires (PK), clés étrangères (FK) et mesures. La couleur d'un lien est celle de la dimension d'origine. Volumes de la période chargée (30/09/2024 → 29/09/2026) : données réelles du 30/09/2024 → 30/04/2025, puis données synthétiques. Le détail de chaque table, des relations et des mesures figure dans les pages suivantes.</div></section>
 <h2>1. Présentation du modèle</h2>
-<p>Le Data Warehouse de Health Retailers est un <b>modèle dimensionnel en constellation</b> : trois tables de faits partagent des dimensions communes. Chaque table de faits enregistre un processus métier (une vente, l'état du stock, un paiement) au niveau de détail utile au cahier de spécification ; chaque dimension apporte le contexte d'analyse (quand, quoi, qui, comment).</p>
-<table><tr><th style='width:22%'>Élément</th><th>Choix retenu</th></tr><tr><td>Dimensions (4)</td><td><code>dim_temps</code>, <code>dim_produit</code>, <code>dim_client</code>, <code>dim_paiement</code></td></tr><tr><td>Tables de faits (3)</td><td><code>fait_ventes</code>, <code>fait_stock_actuel</code>, <code>fait_paiements</code></td></tr><tr><td>Règle de conservation d'une colonne</td><td>Une colonne n'est stockée que si elle est <b>exigée par le cahier</b> (KPI, filtre ou attribut cité) <b>et</b> qu'elle <b>ne peut pas être recalculée</b> à partir des autres colonnes du Data Warehouse. Tout le reste est calculé dans Power BI ou reste en zone ETL.</td></tr><tr><td>Principe des mesures</td><td>Une mesure est définie une seule fois dans Power BI ; les vues par produit, marque, client, période ou moyen de paiement sont obtenues par les dimensions et les filtres.</td></tr><tr><td>Période</td><td>Données réelles du 30/09/2024 → 30/04/2025 (7 mois), prolongées par des données synthétiques jusqu'au 29/09/2026 (2 ans au total).</td></tr><tr><td>Délimitation réel / synthétique</td><td>Par la date, sans colonne dédiée : toute donnée datée jusqu'au 30/04/2025 inclus est réelle ; toute donnée à partir du 01/05/2025 est synthétique.</td></tr><tr><td>Données externes</td><td>Météo (Open-Meteo) et indicateurs épidémiques (Réseau Sentinelles) : réservés au jeu ML de prévision de la demande, <b>hors du Data Warehouse</b>. Le calendrier français (jours fériés) est calculé dans <code>dim_temps</code>.</td></tr><tr><td>Machine Learning</td><td>Les jeux ML sont construits à partir des données nettoyées (zone ETL), pas à partir du Data Warehouse : retirer une colonne du DW n'enlève rien aux cas ML.</td></tr></table>
+<p>Le Data Warehouse de Health Retailers est un <b>modèle dimensionnel en constellation</b> : quatre tables de faits partagent des dimensions communes. Chaque table de faits enregistre un processus métier (une vente, un achat, l'état du stock, un paiement) au niveau de détail utile au cahier de spécification ; chaque dimension apporte le contexte d'analyse (quand, quoi, quel client, quel fournisseur, comment).</p>
+<table><tr><th style='width:22%'>Élément</th><th>Choix retenu</th></tr><tr><td>Dimensions (5)</td><td><code>dim_temps</code>, <code>dim_produit</code>, <code>dim_client</code>, <code>dim_fournisseur</code>, <code>dim_paiement</code></td></tr><tr><td>Tables de faits (4)</td><td><code>fait_ventes</code>, <code>fait_achats</code>, <code>fait_stock_actuel</code>, <code>fait_paiements</code></td></tr><tr><td>Règle de conservation d'une colonne</td><td>Une colonne n'est stockée que si elle est <b>exigée par le cahier</b> (KPI, filtre ou attribut cité) <b>et</b> qu'elle <b>ne peut pas être recalculée</b> à partir des autres colonnes du Data Warehouse. Tout le reste est calculé dans Power BI ou reste en zone ETL.</td></tr><tr><td>Principe des mesures</td><td>Une mesure est définie une seule fois dans Power BI ; les vues par produit, marque, client, période ou moyen de paiement sont obtenues par les dimensions et les filtres.</td></tr><tr><td>Période</td><td>Données réelles du 30/09/2024 → 30/04/2025 (7 mois), prolongées par des données synthétiques jusqu'au 29/09/2026 (2 ans au total).</td></tr><tr><td>Délimitation réel / synthétique</td><td>Par la date, sans colonne dédiée : toute donnée datée jusqu'au 30/04/2025 inclus est réelle ; toute donnée à partir du 01/05/2025 est synthétique.</td></tr><tr><td>Données externes</td><td>Météo (Open-Meteo) et indicateurs épidémiques (Réseau Sentinelles) : réservés au jeu ML de prévision de la demande, <b>hors du Data Warehouse</b>. Le calendrier français (jours fériés) est calculé dans <code>dim_temps</code>.</td></tr><tr><td>Machine Learning</td><td>Les jeux ML sont construits à partir des données nettoyées (zone ETL), pas à partir du Data Warehouse : retirer une colonne du DW n'enlève rien aux cas ML.</td></tr></table>
 <h2>2. Vue d'ensemble des tables</h2>
 <table><tr><th>Table</th><th>Type</th><th>Grain</th><th>Clé primaire</th><th>Clés étrangères</th><th>Col.</th><th>Lignes</th></tr>
 <tr><td><code>dim_temps</code></td><td>Dimension</td><td>1 ligne = 1 date</td><td>DateKey</td><td>—</td><td>7</td><td>730</td></tr>
-<tr><td><code>dim_produit</code></td><td>Dimension</td><td>1 ligne = 1 produit</td><td>Product_Id</td><td>—</td><td>5</td><td>6 842</td></tr>
+<tr><td><code>dim_produit</code></td><td>Dimension</td><td>1 ligne = 1 produit</td><td>Product_Id</td><td>—</td><td>4</td><td>6 842</td></tr>
 <tr><td><code>dim_client</code></td><td>Dimension</td><td>1 ligne = 1 client, y compris le client comptoir anonyme</td><td>Company_Id</td><td>—</td><td>4</td><td>82</td></tr>
+<tr><td><code>dim_fournisseur</code></td><td>Dimension</td><td>1 ligne = 1 fournisseur</td><td>Fournisseur_Id</td><td>—</td><td>2</td><td>116</td></tr>
 <tr><td><code>dim_paiement</code></td><td>Dimension</td><td>1 ligne = 1 moyen de paiement</td><td>PaymentMode_Id</td><td>—</td><td>2</td><td>6</td></tr>
 <tr><td><code>fait_ventes</code></td><td>Fait</td><td>1 produit vendu dans 1 document à 1 date</td><td>Id</td><td>DateKey, Product_Id, Company_Id</td><td>9</td><td>91 995</td></tr>
-<tr><td><code>fait_stock_actuel</code></td><td>Fait (snapshot)</td><td>1 produit à la date de snapshot</td><td>Product_Id</td><td>Product_Id, DateKey</td><td>3</td><td>6 842</td></tr>
-<tr><td><code>fait_paiements</code></td><td>Fait</td><td>1 paiement</td><td>Id</td><td>DateKey, PaymentMode_Id</td><td>5</td><td>40 160</td></tr>
+<tr><td><code>fait_achats</code></td><td>Fait</td><td>1 produit acheté dans 1 facture fournisseur à 1 date</td><td>Id</td><td>DateKey, Product_Id, Fournisseur_Id</td><td>7</td><td>24 045</td></tr>
+<tr><td><code>fait_stock_actuel</code></td><td>Fait (snapshot)</td><td>1 produit à la date de snapshot</td><td>Product_Id</td><td>Product_Id, DateKey</td><td>4</td><td>6 842</td></tr>
+<tr><td><code>fait_paiements</code></td><td>Fait</td><td>1 paiement</td><td>Id</td><td>DateKey, PaymentMode_Id, Company_Id, Fournisseur_Id</td><td>6</td><td>40 160</td></tr>
 </table>
-<p class='small'>fait_ventes : 25 743 lignes réelles et 66 252 synthétiques ; fait_paiements : 10 899 réels et 29 261 synthétiques ; fait_stock_actuel : photo au 29/09/2026.</p>
+<p class='small'>fait_ventes : 25 743 lignes réelles et 66 252 synthétiques ; fait_achats : 6 980 lignes réelles et 17 065 synthétiques ; fait_paiements : 10 899 réels et 29 261 synthétiques ; fait_stock_actuel : photo au 29/09/2026.</p>
 <h2>3. Relations</h2><p>Toutes les relations vont d'une dimension (côté 1) vers une table de faits (côté N).</p>
 <table><tr><th>Dimension (1)</th><th>Table de faits (N)</th><th>Clé de jointure</th><th>Utilisation</th></tr>
 <tr><td><code>dim_temps</code></td><td><code>fait_ventes</code></td><td>DateKey</td><td>Évolution du CA, des ventes, du panier ; croissance</td></tr>
 <tr><td><code>dim_temps</code></td><td><code>fait_stock_actuel</code></td><td>DateKey</td><td>Date du snapshot de stock</td></tr>
-<tr><td><code>dim_temps</code></td><td><code>fait_paiements</code></td><td>DateKey</td><td>Évolution des encaissements</td></tr>
+<tr><td><code>dim_temps</code></td><td><code>fait_achats</code></td><td>DateKey</td><td>Évolution des achats</td></tr>
+<tr><td><code>dim_temps</code></td><td><code>fait_paiements</code></td><td>DateKey</td><td>Évolution des encaissements et des paiements fournisseurs</td></tr>
 <tr><td><code>dim_produit</code></td><td><code>fait_ventes</code></td><td>Product_Id</td><td>Ventes et marge par produit, famille, marque</td></tr>
+<tr><td><code>dim_produit</code></td><td><code>fait_achats</code></td><td>Product_Id</td><td>Achats par produit, famille, marque ; quel produit vient de quel fournisseur</td></tr>
 <tr><td><code>dim_produit</code></td><td><code>fait_stock_actuel</code></td><td>Product_Id</td><td>Stock disponible, ruptures, stock faible par produit, famille, marque</td></tr>
-<tr><td><code>dim_client</code></td><td><code>fait_ventes</code></td><td>Company_Id</td><td>Analyse des clients identifiés, clients actifs</td></tr>
+<tr><td><code>dim_client</code></td><td><code>fait_ventes</code></td><td>Company_Id</td><td>Analyse des clients identifiés, clients actifs ; qui a acheté quoi et quand</td></tr>
+<tr><td><code>dim_client</code></td><td><code>fait_paiements</code></td><td>Company_Id</td><td>Montant payé par chaque client</td></tr>
+<tr><td><code>dim_fournisseur</code></td><td><code>fait_achats</code></td><td>Fournisseur_Id</td><td>Achats par fournisseur</td></tr>
+<tr><td><code>dim_fournisseur</code></td><td><code>fait_paiements</code></td><td>Fournisseur_Id</td><td>Montant payé à chaque fournisseur</td></tr>
 <tr><td><code>dim_paiement</code></td><td><code>fait_paiements</code></td><td>PaymentMode_Id</td><td>Répartition des encaissements par moyen de paiement</td></tr>
 </table><div class='box'>Les tables de faits ne sont <b>pas reliées entre elles</b> : une analyse croisée (par exemple ventes et stock d'un même produit) passe par la dimension commune, ici <code>dim_produit</code>.</div>
 <h2>4. Dictionnaire des données</h2><p class='small'>Légende : <span class='pk'>PK</span> clé primaire · <span class='fk'>FK</span> clé étrangère · <span class='ms'>mesure</span> valeur additive.</p>
@@ -63,9 +70,7 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>Libellé</td><td>attribut</td><td>Nom du produit (export Produits, sinon dernier libellé connu dans les événements ou les lignes de vente).</td></tr>
 <tr><td>Famille</td><td>attribut</td><td>Catégorie du produit ; NON RENSEIGNE si inconnue.</td></tr>
 <tr><td>Marque</td><td>attribut</td><td>Marque (export Produits, ou déduite du début du libellé) ; NON RENSEIGNE si inconnue.</td></tr>
-<tr><td>QuantiteAlerte</td><td>attribut</td><td>Seuil d&#x27;alerte de stock choisi par le magasin (export Produits, sinon paramètre par défaut du logiciel = 5). Non calculable : c&#x27;est un paramètre, pas une mesure du stock.</td></tr>
 </table></div>
-<div class='box'>Seuils d'alerte les plus fréquents : 5 (3 868 produits), 1 (2 970 produits).</div>
 <div class='keep'><h3>dim_client <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
 <tr><td>Company_Id</td><td><span class="pk">PK</span></td><td>Identifiant de la société dans le logiciel (CompaniesList) ; -1 = client non renseigné.</td></tr>
 <tr><td>Nom</td><td>attribut</td><td>Nom du client, pour l&#x27;affichage dans le dashboard Clients.</td></tr>
@@ -73,6 +78,11 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>EstClientIdentifie</td><td>attribut</td><td>false pour le client comptoir anonyme et la ligne -1 : filtre de tous les KPI clients. Gardé bien que théoriquement déductible : il porte une règle métier (quels clients sont anonymes), définie une seule fois.</td></tr>
 </table></div>
 <div class='box'>Types : NON RENSEIGNE (34), PARTICULIER (29), B2B (18), COMPTOIR_ANONYME (1).</div>
+<div class='keep'><h3>dim_fournisseur <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
+<tr><td>Fournisseur_Id</td><td><span class="pk">PK</span></td><td>Identifiant de la société fournisseur dans le logiciel (CompaniesList) ; -1 = fournisseur non renseigné, ou paiement qui ne concerne pas un fournisseur.</td></tr>
+<tr><td>Nom</td><td>attribut</td><td>Nom du fournisseur (fichier Fournisseurs quand le code y existe, sinon CompaniesList), pour l&#x27;affichage dans les dashboards Achats et Paiements.</td></tr>
+</table></div>
+<div class='box'>115 fournisseurs, dont 21 cités par des factures ou des paiements mais absents de la liste des sociétés (« FOURNISSEUR INCONNU &lt;id&gt; »).</div>
 <div class='keep'><h3>dim_paiement <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
 <tr><td>PaymentMode_Id</td><td><span class="pk">PK</span></td><td>Identifiant du moyen de paiement : 11 Espèces, 5 Carte bancaire, 1 Chèque, 7 Crédit (paiement différé), 21 Jetons, -1 Non renseigné.</td></tr>
 <tr><td>PaymentModeName</td><td>attribut</td><td>Libellé affiché dans les graphiques et les filtres du dashboard Paiements (§9 : « Libellé / type de moyen »).</td></tr>
@@ -89,20 +99,32 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>Cout_HT</td><td><span class="ms">mesure</span></td><td>Coût d&#x27;achat HT = quantité × coût unitaire à la date de la vente (coût moyen pondéré du mouvement de stock, à défaut prix d&#x27;achat du produit), calculé dans l&#x27;ETL. Vide si aucun coût n&#x27;est connu.</td></tr>
 </table></div>
 <div class='box'><b>Exemple réel — Document_Id 15 (ticket VC0013/24) :</b> 3 lignes, CA HT = 86,05 + 34,96 + 34,96 = 155,97 € ; coût HT = 134,89 € ; marge HT = 21,08 €. Il compte pour <b>1 vente</b> (91 995 lignes = 42 540 ventes). Lignes chargées : ventes comptoir, bons de livraison, factures client et retours validés ; brouillons, lignes de commentaire et factures qui regroupent des bons de livraison déjà comptés sont exclus.</div>
+<div class='keep'><h3>fait_achats <span class='tag fait'>FAIT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
+<tr><td>Id</td><td><span class="pk">PK</span></td><td>Identifiant de la ligne de document source.</td></tr>
+<tr><td>Document_Id</td><td>dimension dégénérée</td><td>Identifiant de la facture (ou de l&#x27;avoir) fournisseur : permet de compter les factures fournisseurs.</td></tr>
+<tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date de la facture fournisseur.</td></tr>
+<tr><td>Product_Id</td><td><span class="fk">FK</span> → dim_produit</td><td>Produit acheté.</td></tr>
+<tr><td>Fournisseur_Id</td><td><span class="fk">FK</span> → dim_fournisseur</td><td>Fournisseur de la facture ; -1 si la transaction ne cite aucune société.</td></tr>
+<tr><td>QuantiteAchetee</td><td><span class="ms">mesure</span></td><td>Quantité achetée, négative pour un avoir fournisseur.</td></tr>
+<tr><td>MontantAchat_HT</td><td><span class="ms">mesure</span></td><td>Montant HT de la ligne après remise, signé (négatif pour un avoir). Le prix unitaire n&#x27;est pas stocké : il se recalcule (montant / quantité).</td></tr>
+</table></div>
+<div class='box'>3 157 factures et avoirs fournisseurs (dont 14 à montant négatif : avoirs et factures de correction), 3 167 787 € HT d'achats. 385 produits sont achetés chez plusieurs fournisseurs : le lien produit → fournisseur passe donc par cette table, pas par <code>dim_produit</code>. Seuls les documents validés sont chargés ; aucune facture fournisseur ne regroupe d'autres documents.</div>
 <div class='keep'><h3>fait_stock_actuel <span class='tag fait'>FAIT · SNAPSHOT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
 <tr><td>Product_Id</td><td><span class="pk">PK</span> / <span class="fk">FK</span> → dim_produit</td><td>Produit (une ligne par produit).</td></tr>
 <tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date de la photo du stock (fin de la période chargée).</td></tr>
 <tr><td>Quantity</td><td><span class="ms">mesure</span></td><td>Quantité en stock selon le logiciel ; peut être négative quand une vente est enregistrée avant ou sans la réception de la marchandise (le logiciel l&#x27;autorise pour les ventes comptoir et les bons de livraison).</td></tr>
+<tr><td>QuantiteAlerte</td><td>seuil</td><td>Seuil d&#x27;alerte de stock choisi par le magasin pour le produit (export Produits, sinon paramètre par défaut du logiciel = 5). Stocké à côté de la quantité : le stock faible se calcule dans la même table. Non additif, non calculable ; une seule valeur par produit (une ligne par produit).</td></tr>
 </table></div>
-<div class='box'>Au snapshot : 1 777 produits à 0, 2 470 en stock faible, 339 à stock négatif. Rupture et stock faible ne sont <b>pas stockés</b> : mesures Power BI à partir de <code>Quantity</code> et <code>dim_produit.QuantiteAlerte</code> (§9).</div>
+<div class='box'>Au snapshot : 1 777 produits à 0, 2 470 en stock faible, 339 à stock négatif. Rupture et stock faible ne sont <b>pas stockés</b> : mesures Power BI à partir de <code>Quantity</code> et <code>QuantiteAlerte</code>, dans la même table (§9). Seuils d'alerte les plus fréquents : 5 (3 868 produits), 1 (2 970 produits).</div>
 <div class='keep'><h3>fait_paiements <span class='tag fait'>FAIT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
 <tr><td>Id</td><td><span class="pk">PK</span></td><td>Identifiant du paiement.</td></tr>
 <tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date du paiement.</td></tr>
 <tr><td>PaymentMode_Id</td><td><span class="fk">FK</span> → dim_paiement</td><td>Moyen de paiement ; -1 si non renseigné.</td></tr>
+<tr><td>Company_Id</td><td><span class="fk">FK</span> → dim_client</td><td>Client qui paie (2 = client comptoir anonyme) ; -1 pour un paiement à un fournisseur.</td></tr>
+<tr><td>Fournisseur_Id</td><td><span class="fk">FK</span> → dim_fournisseur</td><td>Fournisseur payé ; -1 pour un encaissement client. Remplace l&#x27;indicateur EstPaiementFournisseur, qui se recalcule (paiement fournisseur ⇔ Fournisseur_Id ≠ -1).</td></tr>
 <tr><td>Amount</td><td><span class="ms">mesure</span></td><td>Montant TTC réellement versé. Valeur de base non recalculable : elle diffère du CA (impayés, paiements fractionnés ou différés, TVA).</td></tr>
-<tr><td>EstPaiementFournisseur</td><td>indicateur</td><td>true pour un paiement à un fournisseur. Non déductible du montant (tous les montants sont positifs) ; filtre exigé par le cahier pour le montant encaissé (§6.5, §9, §12).</td></tr>
 </table></div>
-<div class='box'>Encaissé clients : 3 026 072 € sur 38 541 paiements ; paiements fournisseurs : 1 619 (1 930 937 €), exclus du montant encaissé. 37 659 paiements clients (98 %) n'ont pas de moyen renseigné dans la source.</div>
+<div class='box'>Encaissé clients : 3 026 072 € sur 38 541 paiements (dont 36 466 au comptoir, Company_Id = 2) ; paiements fournisseurs : 1 619 (1 930 937 €), exclus du montant encaissé. Chaque paiement porte soit un client, soit un fournisseur (jamais les deux). 37 659 paiements clients (98 %) n'ont pas de moyen renseigné dans la source.</div>
 <h2>5. Mesures et KPI (Power BI)</h2><table><tr><th style='width:20%'>Mesure / KPI</th><th style='width:32%'>Formule</th><th style='width:18%'>Tables</th><th>Dashboards</th></tr>
 <tr><td>CA HT</td><td><code>SUM(CA_HT)</code></td><td>fait_ventes</td><td>Synthèse, Commercial, Clients</td></tr>
 <tr><td>Quantité vendue</td><td><code>SUM(QuantiteVendue)</code></td><td>fait_ventes</td><td>Commercial</td></tr>
@@ -113,13 +135,18 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>Clients actifs</td><td><code>DISTINCTCOUNT(Company_Id) avec au moins une vente, filtre EstClientIdentifie = true</code></td><td>fait_ventes + dim_client</td><td>Clients</td></tr>
 <tr><td>Stock disponible</td><td><code>SUM(Quantity)</code></td><td>fait_stock_actuel</td><td>Stock</td></tr>
 <tr><td>Produits en rupture</td><td><code>COUNT(Product_Id) où Quantity = 0</code></td><td>fait_stock_actuel</td><td>Stock</td></tr>
-<tr><td>Produits en stock faible</td><td><code>COUNT(Product_Id) où 0 &lt; Quantity ≤ QuantiteAlerte</code></td><td>fait_stock_actuel + dim_produit</td><td>Stock</td></tr>
-<tr><td>Montant encaissé</td><td><code>SUM(Amount) où EstPaiementFournisseur = false</code></td><td>fait_paiements</td><td>Paiements</td></tr>
+<tr><td>Produits en stock faible</td><td><code>COUNT(Product_Id) où 0 &lt; Quantity ≤ QuantiteAlerte</code></td><td>fait_stock_actuel</td><td>Stock</td></tr>
+<tr><td>Montant encaissé</td><td><code>SUM(Amount) où Fournisseur_Id = -1</code></td><td>fait_paiements</td><td>Paiements</td></tr>
+<tr><td>Montant payé par client</td><td><code>Montant encaissé par Company_Id, filtre EstClientIdentifie = true</code></td><td>fait_paiements + dim_client</td><td>Paiements, Clients</td></tr>
+<tr><td>Montant payé aux fournisseurs</td><td><code>SUM(Amount) où Fournisseur_Id ≠ -1</code></td><td>fait_paiements + dim_fournisseur</td><td>Paiements, Achats</td></tr>
 <tr><td>Nombre de paiements</td><td><code>COUNT(Id)</code></td><td>fait_paiements</td><td>Paiements</td></tr>
+<tr><td>Achats HT</td><td><code>SUM(MontantAchat_HT)</code></td><td>fait_achats</td><td>Achats</td></tr>
+<tr><td>Quantité achetée</td><td><code>SUM(QuantiteAchetee)</code></td><td>fait_achats</td><td>Achats</td></tr>
+<tr><td>Nombre de factures fournisseurs</td><td><code>COUNT(DISTINCT Document_Id)</code></td><td>fait_achats</td><td>Achats</td></tr>
+<tr><td>Prix d'achat moyen</td><td><code>Achats HT / Quantité achetée</code></td><td>fait_achats</td><td>Achats</td></tr>
 </table>
 <h2>6. Différences avec le modèle précédent (version A)</h2><table><tr><th style='width:36%'>Élément retiré</th><th>Raison</th></tr>
 <tr><td>dim_document</td><td>Document_Id est gardé directement dans fait_ventes ; aucun KPI n&#x27;analyse le type ou le statut du document.</td></tr>
-<tr><td>dim_fournisseur, fait_achats</td><td>Analyse fournisseur hors périmètre ; les factures fournisseur restent en zone ETL (coût, stock).</td></tr>
 <tr><td>dim_geographie, dim_utilisateur</td><td>Analyses géographique et par utilisateur hors périmètre BI.</td></tr>
 <tr><td>fait_stock_hebdo, fait_stock_mouvements</td><td>Pas d&#x27;historique de stock dans le BI ; les mouvements restent en source / ETL.</td></tr>
 <tr><td>dim_temps : météo, épidémies, vacances, AnneeMois, NomJour, Saison…</td><td>Météo et épidémies réservées au ML ; vacances non retenues ; le reste se déduit de la date.</td></tr>
@@ -128,12 +155,20 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>dim_paiement : EstEspeces, EstDiffere, ligne « Inconnu (4) »</td><td>Déductibles du moyen de paiement ; la ligne 4 n&#x27;est utilisée par aucun paiement.</td></tr>
 <tr><td>fait_ventes : CA_TTC, Marge_HT, CoutUnitaire, Signe, taux de remise, colonnes brutes</td><td>Recalculables ou non utilisées par les KPI ; la marge devient une mesure.</td></tr>
 <tr><td>fait_stock_actuel : EnRupture, StockFaible, ValeurStock_HT, rotation, couverture…</td><td>Rupture et stock faible deviennent des mesures ; les autres ne sont pas des KPI du cahier.</td></tr>
-<tr><td>fait_paiements : UsedAmount, client, fournisseur, document, heure, caisse</td><td>UsedAmount = Amount à 99,9 % ; aucun KPI n&#x27;utilise les autres colonnes.</td></tr>
-</table><h2>7. Règles de chargement et limites</h2><ul>
-<li><b>Valeurs inconnues :</b> un client ou un moyen de paiement absent pointe vers la ligne -1 « NON RENSEIGNE » de <code>dim_client</code> ou <code>dim_paiement</code> ; le produit et la date sont toujours renseignés.</li>
+<tr><td>fait_paiements : UsedAmount, document, heure, caisse</td><td>UsedAmount = Amount à 99,9 % ; aucun KPI n&#x27;utilise les autres colonnes.</td></tr>
+</table><h2>7. Ajouts au modèle B (achats, fournisseurs, client et fournisseur des paiements)</h2><table><tr><th style='width:36%'>Élément</th><th>Raison</th></tr>
+<tr><td>dim_fournisseur</td><td>Nouvelle dimension : savoir quel fournisseur est payé et chez qui un produit est acheté.</td></tr>
+<tr><td>fait_achats</td><td>Nouveau fait : achats par fournisseur, produit et période ; quel produit vient de quel fournisseur.</td></tr>
+<tr><td>fait_paiements : Company_Id</td><td>Montant payé par chaque client (2 = paiements au comptoir).</td></tr>
+<tr><td>fait_paiements : Fournisseur_Id</td><td>Montant payé à chaque fournisseur.</td></tr>
+<tr><td>fait_paiements : EstPaiementFournisseur retiré</td><td>Recalculable : paiement fournisseur ⇔ Fournisseur_Id ≠ -1.</td></tr>
+<tr><td>QuantiteAlerte : de dim_produit vers fait_stock_actuel</td><td>Le seuil est stocké à côté de la quantité ; le stock faible se calcule dans une seule table.</td></tr>
+</table><h2>8. Règles de chargement et limites</h2><ul>
+<li><b>Valeurs inconnues :</b> un client, un fournisseur ou un moyen de paiement absent pointe vers la ligne -1 « NON RENSEIGNE » de <code>dim_client</code>, <code>dim_fournisseur</code> ou <code>dim_paiement</code> ; le produit et la date sont toujours renseignés.</li>
 <li><b>Documents :</b> seuls les documents validés sont chargés ; retours et avoirs signés négativement ; pas de double comptage entre factures et bons de livraison.</li>
 <li><b>Ventes anonymes :</b> conservées (client comptoir) mais exclues des KPI clients par <code>EstClientIdentifie</code>.</li>
-<li><b>Encaissements :</b> paiements fournisseurs exclus du montant encaissé par <code>EstPaiementFournisseur</code>.</li>
+<li><b>Paiements :</b> un encaissement porte le client qui paie (<code>Fournisseur_Id</code> = -1), un paiement fournisseur porte le fournisseur payé (<code>Company_Id</code> = -1) ; le montant encaissé exclut les paiements fournisseurs par le filtre <code>Fournisseur_Id = -1</code>.</li>
+<li><b>Achats :</b> factures fournisseurs validées ; avoirs fournisseurs signés négativement. Les achats sont HT, les paiements TTC : ne pas comparer les deux montants directement.</li>
 <li><b>Stock :</b> quantité du logiciel conservée, y compris les stocks négatifs (signalés par les contrôles qualité).</li>
 <li><b>Données synthétiques :</b> générées par simulation (hypothèses documentées dans la branche data-external) ; l'apport de la météo et des épidémies se mesure sur la période réelle uniquement.</li>
 <li><b>Sources brutes :</b> jamais modifiées ; le nettoyage produit des copies, puis le chargement du Data Warehouse.</li>

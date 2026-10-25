@@ -1,134 +1,195 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941" font-family="Segoe UI, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="1000" viewBox="0 0 1900 1000" font-family="Segoe UI, Arial, sans-serif">
 <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2f7fd"/><stop offset="0.5" stop-color="#f4f9fb"/><stop offset="1" stop-color="#eff8f2"/></linearGradient><linearGradient id="hdim" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#123f7c"/><stop offset="1" stop-color="#1d5aa6"/></linearGradient><linearGradient id="hfait" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0f5e3c"/><stop offset="1" stop-color="#1b7f55"/></linearGradient><linearGradient id="hpay" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a2f93"/><stop offset="1" stop-color="#7b4cc0"/></linearGradient><filter id="sh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#1f3b63" flood-opacity="0.16"/></filter></defs>
-<rect x="0" y="0" width="1672" height="941" fill="url(#bg)"/>
-<rect x="380" y="8" width="912" height="64" rx="22" fill="#e6f0fc" stroke="#c5d9f2" stroke-width="1.5"/>
-<text x="836" y="52" text-anchor="middle" font-size="33" font-weight="700" fill="#12365e">Schéma du Data Warehouse — Health Retailers</text>
-<text x="836" y="98" text-anchor="middle" font-size="19" fill="#3e5f86">Modèle BI final simplifié : 4 dimensions et 3 tables de faits — volumes : 30/09/2024 → 29/09/2026 (réel + synthétique)</text>
-<rect x="66" y="122" width="1540" height="296" rx="22" fill="#dfeaf8" fill-opacity="0.6" stroke="#c3d6ef" stroke-width="1.5"/>
-<rect x="66" y="496" width="1540" height="336" rx="22" fill="#e0f2e8" fill-opacity="0.65" stroke="#bfe0cc" stroke-width="1.5"/>
-<rect x="88" y="106" width="210" height="36" rx="10" fill="#174a8b"/><text x="106" y="131" font-size="19" font-weight="700" fill="#fff" letter-spacing="0.5">DIMENSIONS</text>
-<rect x="88" y="478" width="252" height="36" rx="10" fill="#1b7a52"/><text x="106" y="503" font-size="19" font-weight="700" fill="#fff" letter-spacing="0.5">FAITS <tspan font-weight="400">(tables de faits)</tspan></text>
-<rect x="120" y="154" width="320" height="235" rx="10" fill="#fff" stroke="#c9d7ea" stroke-width="1.5" filter="url(#sh)"/>
-<path d="M120 198 V164 Q120 154 130 154 H430 Q440 154 440 164 V198 Z" fill="url(#hdim)"/>
-<g transform="translate(136,163)"><rect x="0" y="3" width="24" height="21" rx="3" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="0" y1="10" x2="24" y2="10" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="7" y1="0" x2="7" y2="6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="17" y1="0" x2="17" y2="6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="5" cy="15" r="1.4" fill="#fff"/><circle cx="12" cy="15" r="1.4" fill="#fff"/><circle cx="19" cy="15" r="1.4" fill="#fff"/><circle cx="5" cy="20" r="1.4" fill="#fff"/><circle cx="12" cy="20" r="1.4" fill="#fff"/></g>
-<text x="174" y="183" font-size="21" font-weight="700" fill="#fff">dim_temps</text>
-<text x="424" y="182" text-anchor="end" font-size="15" fill="#e8f0fb">730 lignes</text>
-<rect x="132" y="206" width="296" height="23" rx="5" fill="#f2f6fc"/>
-<text x="144" y="223" font-size="16" font-weight="700" fill="#1d2330">DateKey<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
-<text x="144" y="248" font-size="16" font-weight="400" fill="#1d2330">Date</text>
-<rect x="132" y="256" width="296" height="23" rx="5" fill="#f2f6fc"/>
-<text x="144" y="273" font-size="16" font-weight="400" fill="#1d2330">Annee</text>
-<text x="144" y="298" font-size="16" font-weight="400" fill="#1d2330">Trimestre</text>
-<rect x="132" y="306" width="296" height="23" rx="5" fill="#f2f6fc"/>
-<text x="144" y="323" font-size="16" font-weight="400" fill="#1d2330">Mois</text>
-<text x="144" y="348" font-size="16" font-weight="400" fill="#1d2330">SemaineISO</text>
-<rect x="132" y="356" width="296" height="23" rx="5" fill="#f2f6fc"/>
-<text x="144" y="373" font-size="16" font-weight="400" fill="#1d2330">EstFerie</text>
-<rect x="510" y="154" width="320" height="185" rx="10" fill="#fff" stroke="#c9d7ea" stroke-width="1.5" filter="url(#sh)"/>
-<path d="M510 198 V164 Q510 154 520 154 H820 Q830 154 830 164 V198 Z" fill="url(#hdim)"/>
-<g transform="translate(526,163)"><path d="M12 1 L23 6.5 L23 18.5 L12 24 L1 18.5 L1 6.5 Z" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 6.5 L12 12 L23 6.5 M12 12 L12 24" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="564" y="183" font-size="21" font-weight="700" fill="#fff">dim_produit</text>
-<text x="814" y="182" text-anchor="end" font-size="15" fill="#e8f0fb">6 842 lignes</text>
-<rect x="522" y="206" width="296" height="23" rx="5" fill="#f2f6fc"/>
-<text x="534" y="223" font-size="16" font-weight="700" fill="#1d2330">Product_Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
-<text x="534" y="248" font-size="16" font-weight="400" fill="#1d2330">Libellé</text>
-<rect x="522" y="256" width="296" height="23" rx="5" fill="#f2f6fc"/>
-<text x="534" y="273" font-size="16" font-weight="400" fill="#1d2330">Famille</text>
-<text x="534" y="298" font-size="16" font-weight="400" fill="#1d2330">Marque</text>
-<rect x="522" y="306" width="296" height="23" rx="5" fill="#f2f6fc"/>
-<text x="534" y="323" font-size="16" font-weight="400" fill="#1d2330">QuantiteAlerte</text>
-<rect x="900" y="154" width="300" height="160" rx="10" fill="#fff" stroke="#c9d7ea" stroke-width="1.5" filter="url(#sh)"/>
-<path d="M900 198 V164 Q900 154 910 154 H1190 Q1200 154 1200 164 V198 Z" fill="url(#hdim)"/>
-<g transform="translate(916,163)"><circle cx="9" cy="7" r="5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M0 23 C0 15 18 15 18 23" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="8" r="4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 15 C24 15 26 18 26 22" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="954" y="183" font-size="21" font-weight="700" fill="#fff">dim_client</text>
-<text x="1184" y="182" text-anchor="end" font-size="15" fill="#e8f0fb">82 lignes</text>
-<rect x="912" y="206" width="276" height="23" rx="5" fill="#f2f6fc"/>
-<text x="924" y="223" font-size="16" font-weight="700" fill="#1d2330">Company_Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
-<text x="924" y="248" font-size="16" font-weight="400" fill="#1d2330">Nom</text>
-<rect x="912" y="256" width="276" height="23" rx="5" fill="#f2f6fc"/>
-<text x="924" y="273" font-size="16" font-weight="400" fill="#1d2330">TypeClient</text>
-<text x="924" y="298" font-size="16" font-weight="400" fill="#1d2330">EstClientIdentifie</text>
-<rect x="1262" y="154" width="300" height="110" rx="10" fill="#fff" stroke="#c9d7ea" stroke-width="1.5" filter="url(#sh)"/>
-<path d="M1262 198 V164 Q1262 154 1272 154 H1552 Q1562 154 1562 164 V198 Z" fill="url(#hdim)"/>
-<g transform="translate(1278,163)"><rect x="0" y="3" width="26" height="19" rx="3" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="0" y1="9" x2="26" y2="9" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="16" x2="11" y2="16" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="1316" y="183" font-size="21" font-weight="700" fill="#fff">dim_paiement</text>
-<text x="1546" y="182" text-anchor="end" font-size="15" fill="#e8f0fb">6 lignes</text>
-<rect x="1274" y="206" width="276" height="23" rx="5" fill="#f2f6fc"/>
-<text x="1286" y="223" font-size="16" font-weight="700" fill="#1d2330">PaymentMode_Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
-<text x="1286" y="248" font-size="16" font-weight="400" fill="#1d2330">PaymentModeName</text>
-<rect x="196" y="532" width="410" height="135" rx="10" fill="#fff" stroke="#bfe2cf" stroke-width="1.5" filter="url(#sh)"/>
-<path d="M196 576 V542 Q196 532 206 532 H596 Q606 532 606 542 V576 Z" fill="url(#hfait)"/>
-<g transform="translate(212,541)"><path d="M12 1 L23 6.5 L23 18.5 L12 24 L1 18.5 L1 6.5 Z" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 6.5 L12 12 L23 6.5 M12 12 L12 24" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="250" y="561" font-size="21" font-weight="700" fill="#fff">fait_stock_actuel</text>
-<text x="590" y="560" text-anchor="end" font-size="15" fill="#e8f0fb">6 842 lignes</text>
-<rect x="208" y="584" width="386" height="23" rx="5" fill="#f1f8f4"/>
-<text x="220" y="601" font-size="16" font-weight="700" fill="#1d2330">Product_Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK/FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_produit</tspan></text>
-<text x="220" y="626" font-size="16" font-weight="700" fill="#1d2330">DateKey<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_temps</tspan></text>
-<rect x="208" y="634" width="386" height="23" rx="5" fill="#f1f8f4"/>
-<text x="220" y="651" font-size="16" font-weight="400" fill="#1d2330">Quantity<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
-<rect x="690" y="532" width="390" height="285" rx="10" fill="#fff" stroke="#bfe2cf" stroke-width="1.5" filter="url(#sh)"/>
-<path d="M690 576 V542 Q690 532 700 532 H1070 Q1080 532 1080 542 V576 Z" fill="url(#hfait)"/>
-<g transform="translate(706,541)"><rect x="2" y="16" width="4.5" height="8" rx="1" fill="#fff"/><rect x="9" y="10" width="4.5" height="14" rx="1" fill="#fff"/><rect x="16" y="5" width="4.5" height="19" rx="1" fill="#fff"/><rect x="23" y="0" width="4.5" height="24" rx="1" fill="#fff"/></g>
-<text x="744" y="561" font-size="21" font-weight="700" fill="#fff">fait_ventes</text>
-<text x="1064" y="560" text-anchor="end" font-size="15" fill="#e8f0fb">91 995 lignes</text>
-<rect x="702" y="584" width="366" height="23" rx="5" fill="#f1f8f4"/>
-<text x="714" y="601" font-size="16" font-weight="700" fill="#1d2330">Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
-<text x="714" y="626" font-size="16" font-weight="400" fill="#1d2330">Document_Id</text>
-<rect x="702" y="634" width="366" height="23" rx="5" fill="#f1f8f4"/>
-<text x="714" y="651" font-size="16" font-weight="700" fill="#1d2330">DateKey<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_temps</tspan></text>
-<text x="714" y="676" font-size="16" font-weight="700" fill="#1d2330">Product_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_produit</tspan></text>
-<rect x="702" y="684" width="366" height="23" rx="5" fill="#f1f8f4"/>
-<text x="714" y="701" font-size="16" font-weight="700" fill="#1d2330">Company_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_client</tspan></text>
-<text x="714" y="726" font-size="16" font-weight="400" fill="#1d2330">QuantiteVendue<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
-<rect x="702" y="734" width="366" height="23" rx="5" fill="#f1f8f4"/>
-<text x="714" y="751" font-size="16" font-weight="400" fill="#1d2330">Remise_HT<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
-<text x="714" y="776" font-size="16" font-weight="400" fill="#1d2330">CA_HT<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
-<rect x="702" y="784" width="366" height="23" rx="5" fill="#f1f8f4"/>
-<text x="714" y="801" font-size="16" font-weight="400" fill="#1d2330">Cout_HT<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
-<rect x="1150" y="532" width="396" height="185" rx="10" fill="#fff" stroke="#d6c8ee" stroke-width="1.5" filter="url(#sh)"/>
-<path d="M1150 576 V542 Q1150 532 1160 532 H1536 Q1546 532 1546 542 V576 Z" fill="url(#hpay)"/>
-<g transform="translate(1166,541)"><ellipse cx="11" cy="6" rx="10" ry="4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="11" cy="12" rx="10" ry="4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="11" cy="18" rx="10" ry="4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="21" cy="14" rx="6" ry="6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
-<text x="1204" y="561" font-size="21" font-weight="700" fill="#fff">fait_paiements</text>
-<text x="1530" y="560" text-anchor="end" font-size="15" fill="#e8f0fb">40 160 lignes</text>
-<rect x="1162" y="584" width="372" height="23" rx="5" fill="#f6f2fc"/>
-<text x="1174" y="601" font-size="16" font-weight="700" fill="#1d2330">Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
-<text x="1174" y="626" font-size="16" font-weight="700" fill="#1d2330">DateKey<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_temps</tspan></text>
-<rect x="1162" y="634" width="372" height="23" rx="5" fill="#f6f2fc"/>
-<text x="1174" y="651" font-size="16" font-weight="700" fill="#1d2330">PaymentMode_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_paiement</tspan></text>
-<text x="1174" y="676" font-size="16" font-weight="400" fill="#1d2330">Amount<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
-<rect x="1162" y="684" width="372" height="23" rx="5" fill="#f6f2fc"/>
-<text x="1174" y="701" font-size="16" font-weight="400" fill="#1d2330">EstPaiementFournisseur</text>
-<path d="M390 389 V532" stroke="#1e63c4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
-<path d="M390 462 H1250" stroke="#1e63c4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
-<path d="M880 462 V532" stroke="#1e63c4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
-<path d="M1250 462 V532" stroke="#1e63c4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
-<path d="M560 339 V532" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
-<path d="M560 339 V532" stroke="#2f9b46" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
-<path d="M770 339 V532" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
-<path d="M770 339 V532" stroke="#2f9b46" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
-<path d="M1010 314 V532" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
-<path d="M1010 314 V532" stroke="#7b3fc4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
-<path d="M1412 264 V532" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
-<path d="M1412 264 V532" stroke="#7b3fc4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
-<circle cx="390" cy="405" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="390" y="410.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">1</text>
-<circle cx="560" cy="355" r="13" fill="#2f9b46" stroke="#fff" stroke-width="2.5"/><text x="560" y="360.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">1</text>
-<circle cx="770" cy="355" r="13" fill="#2f9b46" stroke="#fff" stroke-width="2.5"/><text x="770" y="360.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">1</text>
-<circle cx="1010" cy="330" r="13" fill="#7b3fc4" stroke="#fff" stroke-width="2.5"/><text x="1010" y="335.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">1</text>
-<circle cx="1412" cy="280" r="13" fill="#7b3fc4" stroke="#fff" stroke-width="2.5"/><text x="1412" y="285.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">1</text>
-<circle cx="390" cy="516" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="390" y="521.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
-<circle cx="880" cy="516" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="880" y="521.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
-<circle cx="1250" cy="516" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="1250" y="521.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
-<circle cx="560" cy="516" r="13" fill="#2f9b46" stroke="#fff" stroke-width="2.5"/><text x="560" y="521.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
-<circle cx="770" cy="516" r="13" fill="#2f9b46" stroke="#fff" stroke-width="2.5"/><text x="770" y="521.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
-<circle cx="1010" cy="516" r="13" fill="#7b3fc4" stroke="#fff" stroke-width="2.5"/><text x="1010" y="521.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
-<circle cx="1412" cy="516" r="13" fill="#7b3fc4" stroke="#fff" stroke-width="2.5"/><text x="1412" y="521.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
-<rect x="66" y="852" width="1540" height="74" rx="14" fill="#fff" fill-opacity="0.7" stroke="#b8c6d8" stroke-width="1.5" stroke-dasharray="6 5"/>
-<text x="100" y="896" font-size="17" font-weight="700" fill="#1d2330">Légende :</text>
-<rect x="205" y="872" width="78" height="34" rx="17" fill="#d6e5f8"/><text x="244.0" y="895" text-anchor="middle" font-size="16" font-weight="700" fill="#1f4e8c">PK</text><text x="297" y="895" font-size="15" fill="#2b3442">= clé primaire</text>
-<rect x="420" y="872" width="78" height="34" rx="17" fill="#d5eedf"/><text x="459.0" y="895" text-anchor="middle" font-size="16" font-weight="700" fill="#2a7a52">FK</text><text x="512" y="895" font-size="15" fill="#2b3442">= clé étrangère</text>
-<rect x="640" y="872" width="100" height="34" rx="17" fill="#e7ddf6"/><text x="690.0" y="895" text-anchor="middle" font-size="16" font-weight="700" fill="#5a3f8f">mesure</text><text x="754" y="895" font-size="15" fill="#2b3442">= valeur additive</text>
-<circle cx="925" cy="889" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="925" y="894.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">1</text>
-<path d="M940 889 H1010" stroke="#1e63c4" stroke-width="3"/><path d="M1006 883 L1016 889 L1006 895 Z" fill="#1e63c4"/>
-<circle cx="1032" cy="889" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="1032" y="894.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
-<text x="1058" y="885" font-size="15" fill="#2b3442">= relation 1 vers plusieurs</text><text x="1058" y="904" font-size="12" fill="#5a6b82">(1 ligne de dimension pour plusieurs lignes de la table de faits)</text>
+<rect x="0" y="0" width="1900" height="1000" fill="url(#bg)"/>
+<rect x="494.0" y="8" width="912" height="64" rx="22" fill="#e6f0fc" stroke="#c5d9f2" stroke-width="1.5"/>
+<text x="950.0" y="52" text-anchor="middle" font-size="33" font-weight="700" fill="#12365e">Schéma du Data Warehouse — Health Retailers</text>
+<text x="950.0" y="98" text-anchor="middle" font-size="19" fill="#3e5f86">Modèle BI : 5 dimensions et 4 tables de faits — volumes : 30/09/2024 → 29/09/2026 (réel + synthétique)</text>
+<rect x="38" y="116" width="1824" height="290" rx="22" fill="#dfeaf8" fill-opacity="0.6" stroke="#c3d6ef" stroke-width="1.5"/>
+<rect x="38" y="560" width="1824" height="340" rx="22" fill="#e0f2e8" fill-opacity="0.65" stroke="#bfe0cc" stroke-width="1.5"/>
+<rect x="57" y="104" width="190" height="32" rx="10" fill="#174a8b"/><text x="73" y="127" font-size="18" font-weight="700" fill="#fff" letter-spacing="0.5">DIMENSIONS</text>
+<rect x="57" y="548" width="100" height="32" rx="10" fill="#1b7a52"/><text x="73" y="571" font-size="18" font-weight="700" fill="#fff" letter-spacing="0.5">FAITS</text>
+<rect x="57" y="150" width="330" height="235" rx="10" fill="#fff" stroke="#c9d7ea" stroke-width="1.5" filter="url(#sh)"/>
+<path d="M57 194 V160 Q57 150 67 150 H377 Q387 150 387 160 V194 Z" fill="url(#hdim)"/>
+<g transform="translate(73,159)"><rect x="0" y="3" width="24" height="21" rx="3" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="0" y1="10" x2="24" y2="10" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="7" y1="0" x2="7" y2="6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="17" y1="0" x2="17" y2="6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="5" cy="15" r="1.4" fill="#fff"/><circle cx="12" cy="15" r="1.4" fill="#fff"/><circle cx="19" cy="15" r="1.4" fill="#fff"/><circle cx="5" cy="20" r="1.4" fill="#fff"/><circle cx="12" cy="20" r="1.4" fill="#fff"/></g>
+<text x="111" y="179" font-size="21" font-weight="700" fill="#fff">dim_temps</text>
+<text x="371" y="178" text-anchor="end" font-size="15" fill="#e8f0fb">730 lignes</text>
+<rect x="69" y="202" width="306" height="23" rx="5" fill="#f2f6fc"/>
+<text x="81" y="219" font-size="16" font-weight="700" fill="#1d2330">DateKey<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
+<text x="81" y="244" font-size="16" font-weight="400" fill="#1d2330">Date</text>
+<rect x="69" y="252" width="306" height="23" rx="5" fill="#f2f6fc"/>
+<text x="81" y="269" font-size="16" font-weight="400" fill="#1d2330">Annee</text>
+<text x="81" y="294" font-size="16" font-weight="400" fill="#1d2330">Trimestre</text>
+<rect x="69" y="302" width="306" height="23" rx="5" fill="#f2f6fc"/>
+<text x="81" y="319" font-size="16" font-weight="400" fill="#1d2330">Mois</text>
+<text x="81" y="344" font-size="16" font-weight="400" fill="#1d2330">SemaineISO</text>
+<rect x="69" y="352" width="306" height="23" rx="5" fill="#f2f6fc"/>
+<text x="81" y="369" font-size="16" font-weight="400" fill="#1d2330">EstFerie</text>
+<rect x="421" y="150" width="330" height="160" rx="10" fill="#fff" stroke="#c9d7ea" stroke-width="1.5" filter="url(#sh)"/>
+<path d="M421 194 V160 Q421 150 431 150 H741 Q751 150 751 160 V194 Z" fill="url(#hdim)"/>
+<g transform="translate(437,159)"><path d="M12 1 L23 6.5 L23 18.5 L12 24 L1 18.5 L1 6.5 Z" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 6.5 L12 12 L23 6.5 M12 12 L12 24" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+<text x="475" y="179" font-size="21" font-weight="700" fill="#fff">dim_produit</text>
+<text x="735" y="178" text-anchor="end" font-size="15" fill="#e8f0fb">6 842 lignes</text>
+<rect x="433" y="202" width="306" height="23" rx="5" fill="#f2f6fc"/>
+<text x="445" y="219" font-size="16" font-weight="700" fill="#1d2330">Product_Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
+<text x="445" y="244" font-size="16" font-weight="400" fill="#1d2330">Libellé</text>
+<rect x="433" y="252" width="306" height="23" rx="5" fill="#f2f6fc"/>
+<text x="445" y="269" font-size="16" font-weight="400" fill="#1d2330">Famille</text>
+<text x="445" y="294" font-size="16" font-weight="400" fill="#1d2330">Marque</text>
+<rect x="785" y="150" width="330" height="160" rx="10" fill="#fff" stroke="#c9d7ea" stroke-width="1.5" filter="url(#sh)"/>
+<path d="M785 194 V160 Q785 150 795 150 H1105 Q1115 150 1115 160 V194 Z" fill="url(#hdim)"/>
+<g transform="translate(801,159)"><circle cx="9" cy="7" r="5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M0 23 C0 15 18 15 18 23" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="8" r="4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 15 C24 15 26 18 26 22" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+<text x="839" y="179" font-size="21" font-weight="700" fill="#fff">dim_client</text>
+<text x="1099" y="178" text-anchor="end" font-size="15" fill="#e8f0fb">82 lignes</text>
+<rect x="797" y="202" width="306" height="23" rx="5" fill="#f2f6fc"/>
+<text x="809" y="219" font-size="16" font-weight="700" fill="#1d2330">Company_Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
+<text x="809" y="244" font-size="16" font-weight="400" fill="#1d2330">Nom</text>
+<rect x="797" y="252" width="306" height="23" rx="5" fill="#f2f6fc"/>
+<text x="809" y="269" font-size="16" font-weight="400" fill="#1d2330">TypeClient</text>
+<text x="809" y="294" font-size="16" font-weight="400" fill="#1d2330">EstClientIdentifie</text>
+<rect x="1149" y="150" width="330" height="110" rx="10" fill="#fff" stroke="#c9d7ea" stroke-width="1.5" filter="url(#sh)"/>
+<path d="M1149 194 V160 Q1149 150 1159 150 H1469 Q1479 150 1479 160 V194 Z" fill="url(#hdim)"/>
+<g transform="translate(1165,159)"><rect x="0" y="5" width="16" height="13" rx="1.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 9 H22 L26 14 V18 H16 Z" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="21" r="2.6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="21" r="2.6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+<text x="1203" y="179" font-size="21" font-weight="700" fill="#fff">dim_fournisseur</text>
+<text x="1463" y="178" text-anchor="end" font-size="15" fill="#e8f0fb">116 lignes</text>
+<rect x="1161" y="202" width="306" height="23" rx="5" fill="#f2f6fc"/>
+<text x="1173" y="219" font-size="16" font-weight="700" fill="#1d2330">Fournisseur_Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
+<text x="1173" y="244" font-size="16" font-weight="400" fill="#1d2330">Nom</text>
+<rect x="1513" y="150" width="330" height="110" rx="10" fill="#fff" stroke="#c9d7ea" stroke-width="1.5" filter="url(#sh)"/>
+<path d="M1513 194 V160 Q1513 150 1523 150 H1833 Q1843 150 1843 160 V194 Z" fill="url(#hdim)"/>
+<g transform="translate(1529,159)"><rect x="0" y="3" width="26" height="19" rx="3" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="0" y1="9" x2="26" y2="9" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="16" x2="11" y2="16" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+<text x="1567" y="179" font-size="21" font-weight="700" fill="#fff">dim_paiement</text>
+<text x="1827" y="178" text-anchor="end" font-size="15" fill="#e8f0fb">6 lignes</text>
+<rect x="1525" y="202" width="306" height="23" rx="5" fill="#f2f6fc"/>
+<text x="1537" y="219" font-size="16" font-weight="700" fill="#1d2330">PaymentMode_Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
+<text x="1537" y="244" font-size="16" font-weight="400" fill="#1d2330">PaymentModeName</text>
+<rect x="83" y="600" width="390" height="160" rx="10" fill="#fff" stroke="#bfe2cf" stroke-width="1.5" filter="url(#sh)"/>
+<path d="M83 644 V610 Q83 600 93 600 H463 Q473 600 473 610 V644 Z" fill="url(#hfait)"/>
+<g transform="translate(99,609)"><path d="M12 1 L23 6.5 L23 18.5 L12 24 L1 18.5 L1 6.5 Z" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 6.5 L12 12 L23 6.5 M12 12 L12 24" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+<text x="137" y="629" font-size="21" font-weight="700" fill="#fff">fait_stock_actuel</text>
+<text x="457" y="628" text-anchor="end" font-size="15" fill="#e8f0fb">6 842 lignes</text>
+<rect x="95" y="652" width="366" height="23" rx="5" fill="#f1f8f4"/>
+<text x="107" y="669" font-size="16" font-weight="700" fill="#1d2330">Product_Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK/FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_produit</tspan></text>
+<text x="107" y="694" font-size="16" font-weight="700" fill="#1d2330">DateKey<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_temps</tspan></text>
+<rect x="95" y="702" width="366" height="23" rx="5" fill="#f1f8f4"/>
+<text x="107" y="719" font-size="16" font-weight="400" fill="#1d2330">Quantity<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
+<text x="107" y="744" font-size="16" font-weight="400" fill="#1d2330">QuantiteAlerte</text>
+<rect x="521" y="600" width="390" height="285" rx="10" fill="#fff" stroke="#bfe2cf" stroke-width="1.5" filter="url(#sh)"/>
+<path d="M521 644 V610 Q521 600 531 600 H901 Q911 600 911 610 V644 Z" fill="url(#hfait)"/>
+<g transform="translate(537,609)"><rect x="2" y="16" width="4.5" height="8" rx="1" fill="#fff"/><rect x="9" y="10" width="4.5" height="14" rx="1" fill="#fff"/><rect x="16" y="5" width="4.5" height="19" rx="1" fill="#fff"/><rect x="23" y="0" width="4.5" height="24" rx="1" fill="#fff"/></g>
+<text x="575" y="629" font-size="21" font-weight="700" fill="#fff">fait_ventes</text>
+<text x="895" y="628" text-anchor="end" font-size="15" fill="#e8f0fb">91 995 lignes</text>
+<rect x="533" y="652" width="366" height="23" rx="5" fill="#f1f8f4"/>
+<text x="545" y="669" font-size="16" font-weight="700" fill="#1d2330">Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
+<text x="545" y="694" font-size="16" font-weight="400" fill="#1d2330">Document_Id</text>
+<rect x="533" y="702" width="366" height="23" rx="5" fill="#f1f8f4"/>
+<text x="545" y="719" font-size="16" font-weight="700" fill="#1d2330">DateKey<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_temps</tspan></text>
+<text x="545" y="744" font-size="16" font-weight="700" fill="#1d2330">Product_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_produit</tspan></text>
+<rect x="533" y="752" width="366" height="23" rx="5" fill="#f1f8f4"/>
+<text x="545" y="769" font-size="16" font-weight="700" fill="#1d2330">Company_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_client</tspan></text>
+<text x="545" y="794" font-size="16" font-weight="400" fill="#1d2330">QuantiteVendue<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
+<rect x="533" y="802" width="366" height="23" rx="5" fill="#f1f8f4"/>
+<text x="545" y="819" font-size="16" font-weight="400" fill="#1d2330">Remise_HT<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
+<text x="545" y="844" font-size="16" font-weight="400" fill="#1d2330">CA_HT<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
+<rect x="533" y="852" width="366" height="23" rx="5" fill="#f1f8f4"/>
+<text x="545" y="869" font-size="16" font-weight="400" fill="#1d2330">Cout_HT<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
+<rect x="959" y="600" width="400" height="235" rx="10" fill="#fff" stroke="#bfe2cf" stroke-width="1.5" filter="url(#sh)"/>
+<path d="M959 644 V610 Q959 600 969 600 H1349 Q1359 600 1359 610 V644 Z" fill="url(#hfait)"/>
+<g transform="translate(975,609)"><path d="M0 2 H4 L7 16 H22 L25 6 H5.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="21" r="2.2" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="21" r="2.2" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+<text x="1013" y="629" font-size="21" font-weight="700" fill="#fff">fait_achats</text>
+<text x="1343" y="628" text-anchor="end" font-size="15" fill="#e8f0fb">24 045 lignes</text>
+<rect x="971" y="652" width="376" height="23" rx="5" fill="#f1f8f4"/>
+<text x="983" y="669" font-size="16" font-weight="700" fill="#1d2330">Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
+<text x="983" y="694" font-size="16" font-weight="400" fill="#1d2330">Document_Id</text>
+<rect x="971" y="702" width="376" height="23" rx="5" fill="#f1f8f4"/>
+<text x="983" y="719" font-size="16" font-weight="700" fill="#1d2330">DateKey<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_temps</tspan></text>
+<text x="983" y="744" font-size="16" font-weight="700" fill="#1d2330">Product_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_produit</tspan></text>
+<rect x="971" y="752" width="376" height="23" rx="5" fill="#f1f8f4"/>
+<text x="983" y="769" font-size="16" font-weight="700" fill="#1d2330">Fournisseur_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_fournisseur</tspan></text>
+<text x="983" y="794" font-size="16" font-weight="400" fill="#1d2330">QuantiteAchetee<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
+<rect x="971" y="802" width="376" height="23" rx="5" fill="#f1f8f4"/>
+<text x="983" y="819" font-size="16" font-weight="400" fill="#1d2330">MontantAchat_HT<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
+<rect x="1407" y="600" width="410" height="210" rx="10" fill="#fff" stroke="#d6c8ee" stroke-width="1.5" filter="url(#sh)"/>
+<path d="M1407 644 V610 Q1407 600 1417 600 H1807 Q1817 600 1817 610 V644 Z" fill="url(#hpay)"/>
+<g transform="translate(1423,609)"><ellipse cx="11" cy="6" rx="10" ry="4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="11" cy="12" rx="10" ry="4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="11" cy="18" rx="10" ry="4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="21" cy="14" rx="6" ry="6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+<text x="1461" y="629" font-size="21" font-weight="700" fill="#fff">fait_paiements</text>
+<text x="1801" y="628" text-anchor="end" font-size="15" fill="#e8f0fb">40 160 lignes</text>
+<rect x="1419" y="652" width="386" height="23" rx="5" fill="#f6f2fc"/>
+<text x="1431" y="669" font-size="16" font-weight="700" fill="#1d2330">Id<tspan dx="10" font-size="15" font-weight="700" fill="#1f4e8c">[PK]</tspan></text>
+<text x="1431" y="694" font-size="16" font-weight="700" fill="#1d2330">DateKey<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_temps</tspan></text>
+<rect x="1419" y="702" width="386" height="23" rx="5" fill="#f6f2fc"/>
+<text x="1431" y="719" font-size="16" font-weight="700" fill="#1d2330">PaymentMode_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_paiement</tspan></text>
+<text x="1431" y="744" font-size="16" font-weight="700" fill="#1d2330">Company_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_client</tspan></text>
+<rect x="1419" y="752" width="386" height="23" rx="5" fill="#f6f2fc"/>
+<text x="1431" y="769" font-size="16" font-weight="700" fill="#1d2330">Fournisseur_Id<tspan dx="10" font-size="15" font-weight="700" fill="#2a7a52">[FK]</tspan><tspan dx="6" font-size="15" fill="#5a6b82">→ dim_fournisseur</tspan></text>
+<text x="1431" y="794" font-size="16" font-weight="400" fill="#1d2330">Amount<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan></text>
+<path d="M222.0 385 V425" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M222.0 385 V425" stroke="#1e63c4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M213.0 425 H1489.0" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M213.0 425 H1489.0" stroke="#1e63c4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M213.0 425 V600" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M213.0 425 V600" stroke="#1e63c4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M618.5 425 V600" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M618.5 425 V600" stroke="#1e63c4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M1059.0 425 V600" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M1059.0 425 V600" stroke="#1e63c4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M1489.0 425 V600" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M1489.0 425 V600" stroke="#1e63c4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M586.0 310 V450" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M586.0 310 V450" stroke="#2f9b46" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M343.0 450 H1159.0" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M343.0 450 H1159.0" stroke="#2f9b46" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M343.0 450 V600" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M343.0 450 V600" stroke="#2f9b46" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M716.0 450 V600" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M716.0 450 V600" stroke="#2f9b46" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M1159.0 450 V600" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M1159.0 450 V600" stroke="#2f9b46" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M950.0 310 V475" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M950.0 310 V475" stroke="#7b3fc4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M813.5 475 H1571.0" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M813.5 475 H1571.0" stroke="#7b3fc4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M813.5 475 V600" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M813.5 475 V600" stroke="#7b3fc4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M1571.0 475 V600" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M1571.0 475 V600" stroke="#7b3fc4" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M1314.0 260 V500" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M1314.0 260 V500" stroke="#c0661c" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M1259.0 500 H1653.0" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M1259.0 500 H1653.0" stroke="#c0661c" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M1259.0 500 V600" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M1259.0 500 V600" stroke="#c0661c" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M1653.0 500 V600" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M1653.0 500 V600" stroke="#c0661c" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M1678.0 260 V525" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M1678.0 260 V525" stroke="#b0397a" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M1678.0 525 H1735.0" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M1678.0 525 H1735.0" stroke="#b0397a" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<path d="M1735.0 525 V600" stroke="#f3f8fb" stroke-width="10" fill="none" stroke-linecap="round"/>
+<path d="M1735.0 525 V600" stroke="#b0397a" stroke-width="3.5" fill="none" stroke-linejoin="round"/>
+<circle cx="213.0" cy="584" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="213.0" y="589.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<circle cx="618.5" cy="584" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="618.5" y="589.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<circle cx="1059.0" cy="584" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="1059.0" y="589.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<circle cx="1489.0" cy="584" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="1489.0" y="589.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<circle cx="222.0" cy="401" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="222.0" y="406.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">1</text>
+<circle cx="343.0" cy="584" r="13" fill="#2f9b46" stroke="#fff" stroke-width="2.5"/><text x="343.0" y="589.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<circle cx="716.0" cy="584" r="13" fill="#2f9b46" stroke="#fff" stroke-width="2.5"/><text x="716.0" y="589.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<circle cx="1159.0" cy="584" r="13" fill="#2f9b46" stroke="#fff" stroke-width="2.5"/><text x="1159.0" y="589.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<circle cx="586.0" cy="326" r="13" fill="#2f9b46" stroke="#fff" stroke-width="2.5"/><text x="586.0" y="331.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">1</text>
+<circle cx="813.5" cy="584" r="13" fill="#7b3fc4" stroke="#fff" stroke-width="2.5"/><text x="813.5" y="589.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<circle cx="1571.0" cy="584" r="13" fill="#7b3fc4" stroke="#fff" stroke-width="2.5"/><text x="1571.0" y="589.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<circle cx="950.0" cy="326" r="13" fill="#7b3fc4" stroke="#fff" stroke-width="2.5"/><text x="950.0" y="331.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">1</text>
+<circle cx="1259.0" cy="584" r="13" fill="#c0661c" stroke="#fff" stroke-width="2.5"/><text x="1259.0" y="589.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<circle cx="1653.0" cy="584" r="13" fill="#c0661c" stroke="#fff" stroke-width="2.5"/><text x="1653.0" y="589.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<circle cx="1314.0" cy="276" r="13" fill="#c0661c" stroke="#fff" stroke-width="2.5"/><text x="1314.0" y="281.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">1</text>
+<circle cx="1735.0" cy="584" r="13" fill="#b0397a" stroke="#fff" stroke-width="2.5"/><text x="1735.0" y="589.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<circle cx="1678.0" cy="276" r="13" fill="#b0397a" stroke="#fff" stroke-width="2.5"/><text x="1678.0" y="281.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">1</text>
+<rect x="38" y="920" width="1824" height="68" rx="14" fill="#fff" fill-opacity="0.7" stroke="#b8c6d8" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="70" y="961" font-size="17" font-weight="700" fill="#1d2330">Légende :</text>
+<rect x="175" y="937" width="78" height="34" rx="17" fill="#d6e5f8"/><text x="214.0" y="960" text-anchor="middle" font-size="16" font-weight="700" fill="#1f4e8c">PK</text><text x="267" y="960" font-size="15" fill="#2b3442">= clé primaire</text>
+<rect x="390" y="937" width="78" height="34" rx="17" fill="#d5eedf"/><text x="429.0" y="960" text-anchor="middle" font-size="16" font-weight="700" fill="#2a7a52">FK</text><text x="482" y="960" font-size="15" fill="#2b3442">= clé étrangère</text>
+<rect x="610" y="937" width="100" height="34" rx="17" fill="#e7ddf6"/><text x="660.0" y="960" text-anchor="middle" font-size="16" font-weight="700" fill="#5a3f8f">mesure</text><text x="724" y="960" font-size="15" fill="#2b3442">= valeur additive</text>
+<circle cx="900" cy="954" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="900" y="959.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">1</text>
+<path d="M915 954 H985" stroke="#1e63c4" stroke-width="3"/><path d="M981 948 L991 954 L981 960 Z" fill="#1e63c4"/>
+<circle cx="1007" cy="954" r="13" fill="#1e63c4" stroke="#fff" stroke-width="2.5"/><text x="1007" y="959.5" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">N</text>
+<text x="1033" y="950" font-size="15" fill="#2b3442">= relation 1 vers plusieurs</text><text x="1033" y="969" font-size="12" fill="#5a6b82">(1 ligne de dimension pour plusieurs lignes de la table de faits ; la couleur est celle de la dimension)</text>
 </svg>

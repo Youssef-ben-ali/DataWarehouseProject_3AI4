@@ -1,5 +1,5 @@
 -- Schéma du Data Warehouse Health Retailers – version B (PostgreSQL)
--- Généré par build_schema.py. 4 dimensions, 3 tables de faits.
+-- Généré par build_schema.py. 5 dimensions, 4 tables de faits.
 -- Chargement : \copy <table> FROM 'dataset/dwh/<table>.csv' WITH (FORMAT csv, HEADER true, NULL '')
 -- Ordre : dimensions puis faits (même ordre que ci-dessous).
 
@@ -21,7 +21,6 @@ CREATE TABLE dim_produit (
     "Libellé" TEXT,
     "Famille" TEXT,
     "Marque" TEXT,
-    "QuantiteAlerte" NUMERIC(12,3),
     CONSTRAINT pk_dim_produit PRIMARY KEY ("Product_Id")
 );
 
@@ -32,6 +31,13 @@ CREATE TABLE dim_client (
     "TypeClient" TEXT,
     "EstClientIdentifie" BOOLEAN,
     CONSTRAINT pk_dim_client PRIMARY KEY ("Company_Id")
+);
+
+-- Dimension : 1 ligne = 1 fournisseur
+CREATE TABLE dim_fournisseur (
+    "Fournisseur_Id" INTEGER NOT NULL,
+    "Nom" TEXT,
+    CONSTRAINT pk_dim_fournisseur PRIMARY KEY ("Fournisseur_Id")
 );
 
 -- Dimension : 1 ligne = 1 moyen de paiement
@@ -58,11 +64,27 @@ CREATE TABLE fait_ventes (
     CONSTRAINT fk_fait_ventes_company_id FOREIGN KEY ("Company_Id") REFERENCES dim_client ("Company_Id")
 );
 
+-- Fait : 1 produit acheté dans 1 facture fournisseur à 1 date
+CREATE TABLE fait_achats (
+    "Id" BIGINT NOT NULL,
+    "Document_Id" BIGINT,
+    "DateKey" INTEGER,
+    "Product_Id" INTEGER,
+    "Fournisseur_Id" INTEGER,
+    "QuantiteAchetee" NUMERIC(14,4),
+    "MontantAchat_HT" NUMERIC(14,4),
+    CONSTRAINT pk_fait_achats PRIMARY KEY ("Id"),
+    CONSTRAINT fk_fait_achats_datekey FOREIGN KEY ("DateKey") REFERENCES dim_temps ("DateKey"),
+    CONSTRAINT fk_fait_achats_product_id FOREIGN KEY ("Product_Id") REFERENCES dim_produit ("Product_Id"),
+    CONSTRAINT fk_fait_achats_fournisseur_id FOREIGN KEY ("Fournisseur_Id") REFERENCES dim_fournisseur ("Fournisseur_Id")
+);
+
 -- Fait (snapshot) : 1 produit à la date de snapshot
 CREATE TABLE fait_stock_actuel (
     "Product_Id" INTEGER NOT NULL,
     "DateKey" INTEGER,
     "Quantity" NUMERIC(14,3),
+    "QuantiteAlerte" NUMERIC(12,3),
     CONSTRAINT pk_fait_stock_actuel PRIMARY KEY ("Product_Id"),
     CONSTRAINT fk_fait_stock_actuel_product_id FOREIGN KEY ("Product_Id") REFERENCES dim_produit ("Product_Id"),
     CONSTRAINT fk_fait_stock_actuel_datekey FOREIGN KEY ("DateKey") REFERENCES dim_temps ("DateKey")
@@ -73,18 +95,23 @@ CREATE TABLE fait_paiements (
     "Id" BIGINT NOT NULL,
     "DateKey" INTEGER,
     "PaymentMode_Id" INTEGER,
+    "Company_Id" INTEGER,
+    "Fournisseur_Id" INTEGER,
     "Amount" NUMERIC(14,4),
-    "EstPaiementFournisseur" BOOLEAN,
     CONSTRAINT pk_fait_paiements PRIMARY KEY ("Id"),
     CONSTRAINT fk_fait_paiements_datekey FOREIGN KEY ("DateKey") REFERENCES dim_temps ("DateKey"),
-    CONSTRAINT fk_fait_paiements_paymentmode_id FOREIGN KEY ("PaymentMode_Id") REFERENCES dim_paiement ("PaymentMode_Id")
+    CONSTRAINT fk_fait_paiements_paymentmode_id FOREIGN KEY ("PaymentMode_Id") REFERENCES dim_paiement ("PaymentMode_Id"),
+    CONSTRAINT fk_fait_paiements_company_id FOREIGN KEY ("Company_Id") REFERENCES dim_client ("Company_Id"),
+    CONSTRAINT fk_fait_paiements_fournisseur_id FOREIGN KEY ("Fournisseur_Id") REFERENCES dim_fournisseur ("Fournisseur_Id")
 );
 
 -- Chargement des données (psql)
 \copy dim_temps FROM 'dataset/dwh/dim_temps.csv' WITH (FORMAT csv, HEADER true, NULL '')
 \copy dim_produit FROM 'dataset/dwh/dim_produit.csv' WITH (FORMAT csv, HEADER true, NULL '')
 \copy dim_client FROM 'dataset/dwh/dim_client.csv' WITH (FORMAT csv, HEADER true, NULL '')
+\copy dim_fournisseur FROM 'dataset/dwh/dim_fournisseur.csv' WITH (FORMAT csv, HEADER true, NULL '')
 \copy dim_paiement FROM 'dataset/dwh/dim_paiement.csv' WITH (FORMAT csv, HEADER true, NULL '')
 \copy fait_ventes FROM 'dataset/dwh/fait_ventes.csv' WITH (FORMAT csv, HEADER true, NULL '')
+\copy fait_achats FROM 'dataset/dwh/fait_achats.csv' WITH (FORMAT csv, HEADER true, NULL '')
 \copy fait_stock_actuel FROM 'dataset/dwh/fait_stock_actuel.csv' WITH (FORMAT csv, HEADER true, NULL '')
 \copy fait_paiements FROM 'dataset/dwh/fait_paiements.csv' WITH (FORMAT csv, HEADER true, NULL '')
