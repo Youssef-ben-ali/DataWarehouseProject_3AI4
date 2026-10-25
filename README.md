@@ -8,9 +8,9 @@ Un fichier par objectif ML du cahier de spécification (§11), produit par `buil
 |---|---|---|
 | `ml_11_1_prevision_demande_famille_hebdo.csv` | §11.1 Prévision de la demande | 735 |
 | `ml_11_1_prevision_demande_marque_hebdo.csv` | §11.1 Prévision de la demande | 2 730 |
-| `ml_11_2_anomalies_ventes.csv` | §11.2 Détection d'anomalies | 91 952 |
-| `ml_11_3_operations_caisse.csv` | §11.3 Détection d'anomalies de caisse ; Y possible = IsCancelled | 38 153 |
-| `ml_11_3_ecarts_caisse.csv` | §11.3 | 2 107 |
+| `ml_11_2_anomalies_ventes.csv` | §11.2 Détection d'anomalies | 90 972 |
+| `ml_11_3_operations_caisse.csv` | §11.3 Détection d'anomalies de caisse ; Y possible = IsCancelled | 37 767 |
+| `ml_11_3_ecarts_caisse.csv` | §11.3 | 2 189 |
 | `ml_11_4_segmentation_clients.csv` | §11.4 Segmentation client | 79 |
 
 Conventions (§15 du cahier : séparer X, Y, granularité et métrique) :
