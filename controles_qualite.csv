@@ -9,25 +9,28 @@ Document hors période 30/09/2024 – 29/09/2026,Documents,0,45448,0.00,OK,
 Document brouillon (non validé),Documents,117,45448,0.26,ATTENTION,exclus des faits
 Facture client regroupant des BL (double comptage évité),Documents,24,1052,2.28,ATTENTION,"exclues de fait_ventes, les BL sont comptés"
 Produit du référentiel interne absent de l'export Produits,dim_produit,2376,6842,34.73,ATTENTION,famille indisponible ; libellé repris des événements ou des lignes de vente ; seuil d'alerte = 5
-Company_Id client absent de CompaniesList,fait_ventes / fait_paiements,19,80,23.75,ATTENTION,ajoutés dans dim_client comme 'CLIENT INCONNU <id>' ; -1 = client non renseigné
-Fournisseur d'un achat ou d'un paiement absent de CompaniesList,fait_achats / fait_paiements,21,115,18.26,ATTENTION,ajoutés dans dim_fournisseur comme 'FOURNISSEUR INCONNU <id>' ; -1 = fournisseur non renseigné
+Company_Id client absent de CompaniesList,fait_ventes / fait_encaissements,19,80,23.75,ATTENTION,ajoutés dans dim_client comme 'CLIENT INCONNU <id>' ; -1 = client non renseigné
+Fournisseur d'un achat ou d'un paiement absent de CompaniesList,fait_achats / fait_decaissements,21,115,18.26,ATTENTION,ajoutés dans dim_fournisseur comme 'FOURNISSEUR INCONNU <id>' ; -1 = fournisseur non renseigné
 Ligne de vente sans coût (marge non calculable),fait_ventes,2,91015,0.00,ATTENTION,
 Ligne d'achat sans fournisseur identifié,fait_achats,13,23738,0.05,ATTENTION,facture fournisseur dont la transaction ne cite aucune société : Fournisseur_Id = -1
 Produit à stock négatif (vente enregistrée sans réception),fait_stock_actuel,308,6842,4.50,ATTENTION,conservé tel quel (défaut de saisie du logiciel) ; compte comme rupture potentielle
-Paiement client sans moyen de paiement renseigné,fait_paiements,37264,38142,97.70,ATTENTION,limite de la source : le moyen n'est saisi que pendant les premières semaines (sept.-oct. 2024)
-Paiement fournisseur sans fournisseur identifié,fait_paiements,0,1628,0.00,OK,doit être 0 : sinon le paiement serait compté dans le montant encaissé
-Paiement client sans client identifié,fait_paiements,0,38142,0.00,OK,
-Paiement non rattaché à un document chargé,fait_paiements,6,39770,0.02,ATTENTION,Document_Id = -1 : paiement sans imputation dans la source ou document réglé non chargé
-Paiement rattaché à un document de l'autre sens (client ↔ fournisseur),fait_paiements,0,40367,0.00,OK,
-Écart entre la somme des paiements source et fait_paiements (centimes),fait_paiements,0,498425121,0.00,OK,
+Encaissement sans moyen de paiement renseigné,fait_encaissements,37264,38142,97.70,ATTENTION,limite de la source : le moyen n'est saisi que pendant les premières semaines (sept.-oct. 2024)
+Encaissement sans client identifié,fait_encaissements,0,38142,0.00,OK,
+Décaissement sans fournisseur identifié,fait_decaissements,0,1628,0.00,OK,
+Paiement non rattaché à un document chargé,fait_encaissements,6,38142,0.02,ATTENTION,Document_Id = -1 : paiement sans imputation dans la source ou document réglé non chargé
+Paiement non rattaché à un document chargé,fait_decaissements,0,1628,0.00,OK,Document_Id = -1 : paiement sans imputation dans la source ou document réglé non chargé
+Paiement rattaché à un document de l'autre sens (vente ↔ achat),fait_encaissements / fait_decaissements,0,40367,0.00,OK,
+Écart entre les paiements source et encaissements + décaissements (centimes),fait_encaissements / fait_decaissements,0,498425121,0.00,OK,
 Clé Product_Id de fait_ventes absente de la dimension,fait_ventes,0,91015,0.00,OK,
 Clé Company_Id de fait_ventes absente de la dimension,fait_ventes,0,91015,0.00,OK,
 Clé DateKey de fait_ventes absente de la dimension,fait_ventes,0,91015,0.00,OK,
 Clé Product_Id de fait_achats absente de la dimension,fait_achats,0,23738,0.00,OK,
 Clé Fournisseur_Id de fait_achats absente de la dimension,fait_achats,0,23738,0.00,OK,
 Clé DateKey de fait_achats absente de la dimension,fait_achats,0,23738,0.00,OK,
-Clé Company_Id de fait_paiements absente de la dimension,fait_paiements,0,40367,0.00,OK,
-Clé Fournisseur_Id de fait_paiements absente de la dimension,fait_paiements,0,40367,0.00,OK,
-Clé PaymentMode_Id de fait_paiements absente de la dimension,fait_paiements,0,40367,0.00,OK,
-Clé DateKey de fait_paiements absente de la dimension,fait_paiements,0,40367,0.00,OK,
+Clé Company_Id de fait_encaissements absente de la dimension,fait_encaissements,0,38738,0.00,OK,
+Clé PaymentMode_Id de fait_encaissements absente de la dimension,fait_encaissements,0,38738,0.00,OK,
+Clé DateKey de fait_encaissements absente de la dimension,fait_encaissements,0,38738,0.00,OK,
+Clé Fournisseur_Id de fait_decaissements absente de la dimension,fait_decaissements,0,1629,0.00,OK,
+Clé PaymentMode_Id de fait_decaissements absente de la dimension,fait_decaissements,0,1629,0.00,OK,
+Clé DateKey de fait_decaissements absente de la dimension,fait_decaissements,0,1629,0.00,OK,
 Ligne de vente sous le coût,fait_ventes,2857,90972,3.14,ATTENTION,règle d'interprétation du ML 11.2

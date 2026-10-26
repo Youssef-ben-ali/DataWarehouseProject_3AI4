@@ -6,7 +6,7 @@ Construit par `build_dataset.py` (branche `main`) à partir de `cleaned/` (réel
 
 ## Règles
 
-- Modèle du §9 du cahier : 5 dimensions (`dim_temps`, `dim_produit`, `dim_client`, `dim_fournisseur`, `dim_paiement`) et 4 faits (`fait_ventes`, `fait_achats`, `fait_stock_actuel`, `fait_paiements`).
+- Modèle du §9 du cahier : 5 dimensions (`dim_temps`, `dim_produit`, `dim_client`, `dim_fournisseur`, `dim_paiement`) et 5 faits (`fait_ventes`, `fait_encaissements`, `fait_achats`, `fait_decaissements`, `fait_stock_actuel`).
 - Une colonne n'est stockée que si le cahier l'exige **et** qu'elle ne peut pas être recalculée. Les mesures (marge, rupture, stock faible, montant encaissé…) sont calculées dans Power BI.
 - CSV UTF-8, séparateur virgule, décimale `.`, dates ISO, booléens `true/false`. `DateKey` = `AAAAMMJJ`.
 - Membres `-1` « NON RENSEIGNE » dans `dim_client`, `dim_fournisseur` et `dim_paiement` : toutes les clés étrangères retrouvent leur dimension.
@@ -20,7 +20,7 @@ Construit par `build_dataset.py` (branche `main`) à partir de `cleaned/` (réel
 | Responsable commercial | Produits, familles, marques les plus vendus et les plus rentables, panier moyen | SUM(CA_HT) ; SUM(QuantiteVendue) ; Marge HT = SUM(CA_HT) − SUM(Cout_HT) | fait_ventes × dim_produit × dim_temps |
 | Responsable relation client | Clients actifs, valeur, fréquence, panier | DISTINCTCOUNT(Company_Id) avec EstClientIdentifie = true ; SUM(CA_HT) ; COUNT(DISTINCT Document_Id) | fait_ventes × dim_client × dim_temps ; ml_11_4 |
 | Responsable approvisionnement / stock | Stock disponible, ruptures, stock faible, demande à anticiper | SUM(Quantity) ; COUNT où Quantity = 0 ; COUNT où 0 < Quantity ≤ QuantiteAlerte | fait_stock_actuel × dim_produit ; ml_11_1 |
-| Responsable financier / caisse | Montant encaissé, montant payé par chaque client, montant payé à chaque fournisseur, nombre de paiements, répartition par moyen, quelle vente ou facture chaque paiement règle | SUM(Amount) où Fournisseur_Id = -1 ; SUM(Amount) par client, fournisseur ou Document_Id ; DISTINCTCOUNT(Payment_Id) | fait_paiements × dim_paiement × dim_client × dim_fournisseur × dim_temps ; ml_11_3 |
+| Responsable financier / caisse | Montant encaissé, montant payé par chaque client, montant payé à chaque fournisseur, nombre de paiements, répartition par moyen, quelle vente ou facture chaque paiement règle | SUM(fait_encaissements.Amount) ; SUM(fait_decaissements.Amount) ; par client, fournisseur ou Document_Id ; DISTINCTCOUNT(Payment_Id) | fait_encaissements × dim_client, fait_decaissements × dim_fournisseur ; dim_paiement × dim_temps ; ml_11_3 |
 | Responsable achats | Achats par fournisseur et par produit, quel produit vient de quel fournisseur | SUM(MontantAchat_HT) ; SUM(QuantiteAchetee) ; COUNT(DISTINCT Document_Id) | fait_achats × dim_fournisseur × dim_produit × dim_temps |
 
 ## Tables du Data Warehouse
@@ -75,7 +75,7 @@ Dimension Fournisseur : nom du fournisseur.
 - **Cahier :** §6.6 Achats ; §6.5 Paiements ; §9 Dimension Fournisseur
 - **Colonnes :** `Fournisseur_Id`, `Nom`
 - Le nom vient du fichier Fournisseurs quand le code y existe (les noms de CompaniesList ont été anonymisés différemment) ; le code fournisseur sert seulement à cette jointure dans l'ETL.
-- 21 fournisseurs cités par des factures ou des paiements sont absents de CompaniesList : conservés comme 'FOURNISSEUR INCONNU <id>'. -1 = fournisseur non renseigné (et valeur des lignes qui ne concernent pas un fournisseur dans fait_paiements).
+- 21 fournisseurs cités par des factures ou des paiements sont absents de CompaniesList : conservés comme 'FOURNISSEUR INCONNU <id>'. -1 = fournisseur non renseigné (et valeur des lignes qui ne concernent pas un fournisseur).
 
 ### `dwh/dim_paiement.csv`
 
@@ -134,26 +134,38 @@ Fait Stock actuel : quantité en stock et seuil d'alerte de chaque produit à la
 - QuantiteAlerte : {'paramètre par défaut (5)': 2376, 'export Produits': 4466}. Seuil choisi par le magasin pour chaque produit (pas une valeur calculable). Une ligne par produit : le seuil n'est stocké qu'une fois.
 - Pas d'historique de stock dans le BI (rotation non retenue, §6.4) : les mouvements restent en zone ETL.
 
-### `dwh/fait_paiements.csv`
+### `dwh/fait_encaissements.csv`
 
-Fait Paiements : montant réellement versé, imputé au document qu'il règle ; client qui paie ou fournisseur payé.
+Fait Encaissements : argent reçu d'un client, imputé à la vente qu'il règle.
 
-- **Granularité :** 1 ligne = 1 paiement imputé à 1 document réglé (vente ou facture fournisseur)
-- **Lignes :** 40 367
+- **Granularité :** 1 ligne = 1 encaissement imputé à 1 vente réglée
+- **Lignes :** 38 738
 - **Sources :** PaymentsList + Payment (fusionnés), TransactionPayments (imputation), Documents, RelatedDocuments, CompaniesList — réel + synthétique
-- **Cahier :** §6.5 Paiements ; §6.6 Achats ; §9 fait_paiements (Amount ; client ; fournisseur ; document réglé)
-- **Colonnes :** `Id`, `Payment_Id`, `Document_Id`, `DateKey`, `PaymentMode_Id`, `Company_Id`, `Fournisseur_Id`, `Amount`
-- 39 770 paiements (10 899 de la période réelle) sur 40 367 lignes d'imputation : un seul document : 39 712, réparti sur plusieurs documents : 58, sans imputation dans la source : 2.
-- `Payment_Id` = numéro du paiement (dimension dégénérée) : Nombre de paiements = DISTINCTCOUNT(Payment_Id). `Id` = clé technique de la ligne d'imputation.
-- `Document_Id` = document réglé, même clé que dans `fait_ventes` (encaissement client) ou `fait_achats` (paiement fournisseur) : répond à « quelle vente / quelle facture ce paiement règle-t-il ? ». -1 si le paiement n'a pas d'imputation dans la source.
-- Imputation : celle de TransactionPayments (paiement → transaction → montant). Quand une transaction règle plusieurs documents chargés — facture client regroupant des bons de livraison (seuls les bons sont dans fait_ventes), document et avoir — le montant est réparti au prorata du total TTC des documents de total positif.
-- La somme des lignes d'un paiement est exactement son montant : SUM(Amount) = total des paiements de la source.
-- Encaissement client : `Company_Id` = client qui paie (2 = client comptoir anonyme), `Fournisseur_Id` = -1. Paiement fournisseur : `Fournisseur_Id` = fournisseur payé, `Company_Id` = -1.
-- Montant encaissé = SUM(Amount) où Fournisseur_Id = -1 : 3 007 313 sur 38 142 paiements clients (dont 36 041 au comptoir) ; 1 628 paiements fournisseurs (1 976 938).
-- `Amount` est TTC et n'est pas le CA : impayés, paiements fractionnés ou différés. Aucun paiement n'est négatif : l'argent rendu lors d'un retour n'est pas enregistré comme paiement dans la source (les retours apparaissent en négatif dans fait_ventes et fait_achats).
+- **Cahier :** §6.5 Paiements ; §9 fait_encaissements (Amount ; client ; vente réglée)
+- **Colonnes :** `Id`, `Payment_Id`, `Document_Id`, `DateKey`, `PaymentMode_Id`, `Company_Id`, `Amount`
+- 38 142 encaissements (10 398 de la période réelle, 36 041 au comptoir) sur 38 738 lignes ; montant encaissé = SUM(Amount) = 3 007 313.
+- `Company_Id` = client qui paie (2 = client comptoir anonyme). `Document_Id` = vente réglée, même clé que dans `fait_ventes` : répond à « quelle vente ce paiement règle-t-il ? » ; -1 si aucune imputation.
 - Moyen de paiement : saisi par le logiciel seulement pendant les premières semaines (sept.-oct. 2024), presque jamais ensuite ; la répartition par moyen n'est représentative que sur cette période.
-- `EstPaiementFournisseur` est retiré : il se recalcule (paiement fournisseur ⇔ Fournisseur_Id ≠ -1).
-- Retirés de la version précédente : UsedAmount (égal à Amount à 99,9 %), heure, caisse, compte bancaire.
+- Imputation : celle de TransactionPayments (paiement → transaction → montant). Quand une transaction règle plusieurs documents chargés — facture client regroupant des bons de livraison (seuls les bons sont dans fait_ventes), document et avoir — le montant est réparti au prorata du total TTC des documents de total positif.
+- `Payment_Id` = numéro du paiement (dimension dégénérée) : Nombre de paiements = DISTINCTCOUNT(Payment_Id). `Id` = clé technique de la ligne d'imputation ; la somme des lignes d'un paiement est exactement son montant.
+- `Amount` est TTC et n'est pas le CA : impayés, paiements fractionnés ou différés. Aucun paiement n'est négatif : l'argent rendu lors d'un retour n'est pas enregistré comme paiement dans la source (les retours apparaissent en négatif dans fait_ventes et fait_achats).
+- Remplace, avec fait_decaissements, l'ancienne table fait_paiements : la table donne le sens du paiement, sans indicateur ni clé « sans objet ».
+
+### `dwh/fait_decaissements.csv`
+
+Fait Décaissements : argent versé à un fournisseur, imputé à la facture fournisseur qu'il règle.
+
+- **Granularité :** 1 ligne = 1 décaissement imputé à 1 facture fournisseur réglée
+- **Lignes :** 1 629
+- **Sources :** PaymentsList + Payment (fusionnés), TransactionPayments (imputation), Documents, CompaniesList — réel + synthétique
+- **Cahier :** §6.5 Paiements ; §6.6 Achats ; §9 fait_decaissements (Amount ; fournisseur ; facture réglée)
+- **Colonnes :** `Id`, `Payment_Id`, `Document_Id`, `DateKey`, `PaymentMode_Id`, `Fournisseur_Id`, `Amount`
+- 1 628 décaissements (501 de la période réelle) sur 1 629 lignes ; montant payé aux fournisseurs = SUM(Amount) = 1 976 938.
+- `Fournisseur_Id` = fournisseur payé. `Document_Id` = facture fournisseur réglée, même clé que dans `fait_achats` : répond à « quelle facture ce paiement règle-t-il ? ».
+- Imputation : celle de TransactionPayments (paiement → transaction → montant). Quand une transaction règle plusieurs documents chargés — facture client regroupant des bons de livraison (seuls les bons sont dans fait_ventes), document et avoir — le montant est réparti au prorata du total TTC des documents de total positif.
+- `Payment_Id` = numéro du paiement (dimension dégénérée) : Nombre de paiements = DISTINCTCOUNT(Payment_Id). `Id` = clé technique de la ligne d'imputation ; la somme des lignes d'un paiement est exactement son montant.
+- `Amount` est TTC et n'est pas le CA : impayés, paiements fractionnés ou différés. Aucun paiement n'est négatif : l'argent rendu lors d'un retour n'est pas enregistré comme paiement dans la source (les retours apparaissent en négatif dans fait_ventes et fait_achats).
+- Les achats (fait_achats) sont HT, les décaissements TTC : ne pas comparer les deux montants directement.
 
 
 ## Jeux de données Machine Learning
@@ -255,25 +267,28 @@ ML 11.4 – Segmentation client : CA, fréquence, panier moyen, récence, ancien
 | Document brouillon (non validé) | Documents | 117 | 45 448 | 0.26 | ATTENTION |
 | Facture client regroupant des BL (double comptage évité) | Documents | 24 | 1 052 | 2.28 | ATTENTION |
 | Produit du référentiel interne absent de l'export Produits | dim_produit | 2 376 | 6 842 | 34.73 | ATTENTION |
-| Company_Id client absent de CompaniesList | fait_ventes / fait_paiements | 19 | 80 | 23.75 | ATTENTION |
-| Fournisseur d'un achat ou d'un paiement absent de CompaniesList | fait_achats / fait_paiements | 21 | 115 | 18.26 | ATTENTION |
+| Company_Id client absent de CompaniesList | fait_ventes / fait_encaissements | 19 | 80 | 23.75 | ATTENTION |
+| Fournisseur d'un achat ou d'un paiement absent de CompaniesList | fait_achats / fait_decaissements | 21 | 115 | 18.26 | ATTENTION |
 | Ligne de vente sans coût (marge non calculable) | fait_ventes | 2 | 91 015 | 0.00 | ATTENTION |
 | Ligne d'achat sans fournisseur identifié | fait_achats | 13 | 23 738 | 0.05 | ATTENTION |
 | Produit à stock négatif (vente enregistrée sans réception) | fait_stock_actuel | 308 | 6 842 | 4.50 | ATTENTION |
-| Paiement client sans moyen de paiement renseigné | fait_paiements | 37 264 | 38 142 | 97.70 | ATTENTION |
-| Paiement fournisseur sans fournisseur identifié | fait_paiements | 0 | 1 628 | 0.00 | OK |
-| Paiement client sans client identifié | fait_paiements | 0 | 38 142 | 0.00 | OK |
-| Paiement non rattaché à un document chargé | fait_paiements | 6 | 39 770 | 0.02 | ATTENTION |
-| Paiement rattaché à un document de l'autre sens (client ↔ fournisseur) | fait_paiements | 0 | 40 367 | 0.00 | OK |
-| Écart entre la somme des paiements source et fait_paiements (centimes) | fait_paiements | 0 | 498 425 121 | 0.00 | OK |
+| Encaissement sans moyen de paiement renseigné | fait_encaissements | 37 264 | 38 142 | 97.70 | ATTENTION |
+| Encaissement sans client identifié | fait_encaissements | 0 | 38 142 | 0.00 | OK |
+| Décaissement sans fournisseur identifié | fait_decaissements | 0 | 1 628 | 0.00 | OK |
+| Paiement non rattaché à un document chargé | fait_encaissements | 6 | 38 142 | 0.02 | ATTENTION |
+| Paiement non rattaché à un document chargé | fait_decaissements | 0 | 1 628 | 0.00 | OK |
+| Paiement rattaché à un document de l'autre sens (vente ↔ achat) | fait_encaissements / fait_decaissements | 0 | 40 367 | 0.00 | OK |
+| Écart entre les paiements source et encaissements + décaissements (centimes) | fait_encaissements / fait_decaissements | 0 | 498 425 121 | 0.00 | OK |
 | Clé Product_Id de fait_ventes absente de la dimension | fait_ventes | 0 | 91 015 | 0.00 | OK |
 | Clé Company_Id de fait_ventes absente de la dimension | fait_ventes | 0 | 91 015 | 0.00 | OK |
 | Clé DateKey de fait_ventes absente de la dimension | fait_ventes | 0 | 91 015 | 0.00 | OK |
 | Clé Product_Id de fait_achats absente de la dimension | fait_achats | 0 | 23 738 | 0.00 | OK |
 | Clé Fournisseur_Id de fait_achats absente de la dimension | fait_achats | 0 | 23 738 | 0.00 | OK |
 | Clé DateKey de fait_achats absente de la dimension | fait_achats | 0 | 23 738 | 0.00 | OK |
-| Clé Company_Id de fait_paiements absente de la dimension | fait_paiements | 0 | 40 367 | 0.00 | OK |
-| Clé Fournisseur_Id de fait_paiements absente de la dimension | fait_paiements | 0 | 40 367 | 0.00 | OK |
-| Clé PaymentMode_Id de fait_paiements absente de la dimension | fait_paiements | 0 | 40 367 | 0.00 | OK |
-| Clé DateKey de fait_paiements absente de la dimension | fait_paiements | 0 | 40 367 | 0.00 | OK |
+| Clé Company_Id de fait_encaissements absente de la dimension | fait_encaissements | 0 | 38 738 | 0.00 | OK |
+| Clé PaymentMode_Id de fait_encaissements absente de la dimension | fait_encaissements | 0 | 38 738 | 0.00 | OK |
+| Clé DateKey de fait_encaissements absente de la dimension | fait_encaissements | 0 | 38 738 | 0.00 | OK |
+| Clé Fournisseur_Id de fait_decaissements absente de la dimension | fait_decaissements | 0 | 1 629 | 0.00 | OK |
+| Clé PaymentMode_Id de fait_decaissements absente de la dimension | fait_decaissements | 0 | 1 629 | 0.00 | OK |
+| Clé DateKey de fait_decaissements absente de la dimension | fait_decaissements | 0 | 1 629 | 0.00 | OK |
 | Ligne de vente sous le coût | fait_ventes | 2 857 | 90 972 | 3.14 | ATTENTION |

@@ -1,4 +1,4 @@
-# Data Warehouse – version B (5 dimensions, 4 faits)
+# Data Warehouse – version B (5 dimensions, 5 faits)
 
 Tables produites par `build_dataset.py` (branche `main`) à partir de [`data-cleaned`](../../tree/data-cleaned) et [`data-external`](../../tree/data-external). Le schéma (diagramme, descriptif, script SQL) est dans la branche [`dwh-schema`](../../tree/dwh-schema).
 
@@ -14,7 +14,8 @@ Tables produites par `build_dataset.py` (branche `main`) à partir de [`data-cle
 | `fait_ventes.csv` | Fait | 91 015 | Id, Document_Id, DateKey, Product_Id, Company_Id, QuantiteVendue, Remise_HT, CA_HT, Cout_HT |
 | `fait_achats.csv` | Fait | 23 738 | Id, Document_Id, DateKey, Product_Id, Fournisseur_Id, QuantiteAchetee, MontantAchat_HT |
 | `fait_stock_actuel.csv` | Fait | 6 842 | Product_Id, DateKey, Quantity, QuantiteAlerte |
-| `fait_paiements.csv` | Fait | 40 367 | Id, Payment_Id, Document_Id, DateKey, PaymentMode_Id, Company_Id, Fournisseur_Id, Amount |
+| `fait_encaissements.csv` | Fait | 38 738 | Id, Payment_Id, Document_Id, DateKey, PaymentMode_Id, Company_Id, Amount |
+| `fait_decaissements.csv` | Fait | 1 629 | Id, Payment_Id, Document_Id, DateKey, PaymentMode_Id, Fournisseur_Id, Amount |
 
 - Mesures Power BI : CA HT, quantité vendue, nombre de ventes, panier moyen, croissance, marge HT, clients actifs, stock disponible, ruptures, stock faible, montant encaissé, nombre de paiements, montant payé par client et par fournisseur, montant réglé par document, achats HT, quantité achetée, nombre de factures fournisseurs.
 - [`DICTIONNAIRE_DATASET.md`](DICTIONNAIRE_DATASET.md) : description de chaque table et de chaque jeu ML, règles appliquées. [`controles_qualite.csv`](controles_qualite.csv) : contrôles du §7.1.
