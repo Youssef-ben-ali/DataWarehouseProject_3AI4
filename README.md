@@ -10,6 +10,6 @@ Produit par `build_schema.py` (branche `main`), qui vérifie que la description 
 | `schema_dwh_diagramme.png` / `.svg` | Diagramme seul |
 | `schema_dwh.sql` | `CREATE TABLE` PostgreSQL avec clés primaires et étrangères + commandes de chargement des CSV |
 
-Modèle : 4 tables de faits (ventes, achats, stock actuel, paiements) partagent 5 dimensions (temps, produit, client, fournisseur, paiement). Période : 2024-09-30 → 2026-09-29 (réel jusqu'au 2025-04-30, synthétique ensuite).
+Modèle : 5 tables de faits (ventes, encaissements, achats, décaissements, stock actuel) partagent 5 dimensions (temps, produit, client, fournisseur, paiement). Période : 2024-09-30 → 2026-09-29 (réel jusqu'au 2025-04-30, synthétique ensuite).
 
 Retour à la vue d'ensemble : branche [`main`](../../tree/main).
