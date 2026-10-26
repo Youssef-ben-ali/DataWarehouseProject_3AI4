@@ -6,12 +6,12 @@ selon le cahier de spécification (docs/cahier-de-spec.pdf).
 Entrée  : ./cleaned/               données réelles nettoyées      (30/09/2024 → 30/04/2025)
           ./cleaned/synthetique/   données synthétiques nettoyées (01/05/2025 → 29/09/2026)
           ./externe/               météo Open-Meteo, épidémies Réseau Sentinelles (téléchargées si absentes)
-Sortie  : ./dataset/dwh/   5 dimensions + 4 tables de faits, DICTIONNAIRE_DATASET.md, controles_qualite.csv, README.md
+Sortie  : ./dataset/dwh/   5 dimensions + 5 tables de faits, DICTIONNAIRE_DATASET.md, controles_qualite.csv, README.md
           ./dataset/ml/    6 jeux de données Machine Learning (§11 du cahier), README.md
 
 Modèle (§9 du cahier) :
   dim_temps, dim_produit, dim_client, dim_fournisseur, dim_paiement
-  ×  fait_ventes, fait_achats, fait_stock_actuel, fait_paiements
+  ×  fait_ventes, fait_encaissements, fait_achats, fait_decaissements, fait_stock_actuel
 Règle : une colonne n'est stockée que si le cahier l'exige et qu'elle ne peut pas être recalculée ;
 le reste est calculé dans Power BI (mesures) ou reste en zone ETL.
 Délimitation réel / synthétique : par la date (réel ≤ 30/04/2025), sans colonne dédiée.
@@ -284,7 +284,7 @@ def build_clients(sale_company_ids):
         rows.append({"Company_Id": i, "Nom": f"CLIENT INCONNU {i}", "TypeClient": "NON RENSEIGNE",
                      "EstClientIdentifie": "true"})
     rows.append({"Company_Id": "-1", "Nom": "NON RENSEIGNE", "TypeClient": "NON RENSEIGNE", "EstClientIdentifie": "false"})
-    check("Company_Id client absent de CompaniesList", "fait_ventes / fait_paiements", len(unknown), len(sale_company_ids),
+    check("Company_Id client absent de CompaniesList", "fait_ventes / fait_encaissements", len(unknown), len(sale_company_ids),
           detail="ajoutés dans dim_client comme 'CLIENT INCONNU <id>' ; -1 = client non renseigné")
     types = Counter(r["TypeClient"] for r in rows)
     W("dwh/dim_client.csv", list(rows[0].keys()), rows,
@@ -308,7 +308,7 @@ def build_suppliers(used_ids):
     unknown = used_ids - set(companies) - {"-1", ""}
     rows += [{"Fournisseur_Id": i, "Nom": f"FOURNISSEUR INCONNU {i}"} for i in sorted(unknown, key=int)]
     rows.append({"Fournisseur_Id": "-1", "Nom": "NON RENSEIGNE"})
-    check("Fournisseur d'un achat ou d'un paiement absent de CompaniesList", "fait_achats / fait_paiements",
+    check("Fournisseur d'un achat ou d'un paiement absent de CompaniesList", "fait_achats / fait_decaissements",
           len(unknown), len(used_ids - {"-1", ""}),
           detail="ajoutés dans dim_fournisseur comme 'FOURNISSEUR INCONNU <id>' ; -1 = fournisseur non renseigné")
     W("dwh/dim_fournisseur.csv", list(rows[0].keys()), rows,
@@ -320,7 +320,7 @@ def build_suppliers(used_ids):
        "différemment) ; le code fournisseur sert seulement à cette jointure dans l'ETL.",
        f"{fr(len(unknown))} fournisseurs cités par des factures ou des paiements sont absents de CompaniesList : "
        "conservés comme 'FOURNISSEUR INCONNU <id>'. -1 = fournisseur non renseigné (et valeur des lignes qui ne "
-       "concernent pas un fournisseur dans fait_paiements)."])
+       "concernent pas un fournisseur)."])
     return {r["Fournisseur_Id"] for r in rows}
 
 
@@ -478,7 +478,8 @@ def payment_side(p, ctype):
     return t == "SUPPLIER" if t in ("SUPPLIER", "CUSTOMER") else p["IsPurchase"] == "true"
 
 
-PAYMENT_COLS = ["Id", "Payment_Id", "Document_Id", "DateKey", "PaymentMode_Id", "Company_Id", "Fournisseur_Id", "Amount"]
+ENC_COLS = ["Id", "Payment_Id", "Document_Id", "DateKey", "PaymentMode_Id", "Company_Id", "Amount"]
+DEC_COLS = ["Id", "Payment_Id", "Document_Id", "DateKey", "PaymentMode_Id", "Fournisseur_Id", "Amount"]
 
 
 def settled_documents(tx, by_tx, grouped, loaded, docs_by_id):
@@ -533,62 +534,67 @@ def build_payments(pays, ctype, clients, suppliers, tps, docs, grouped, loaded):
         scaled[-1] = round(amount - sum(scaled[:-1]), 4)
         for (did, _), a in zip(parts, scaled):
             rows.append({**base, "Document_Id": did, "Amount": r2(a, 4)})
-    for i, r in enumerate(rows, 1):
-        r["Id"] = i
-    pid_side = {r["Payment_Id"]: r["_sup"] for r in rows}
-    sup = {k for k, v in pid_side.items() if v}
-    cli = {k for k, v in pid_side.items() if not v}
-    nomode = len({r["Payment_Id"] for r in rows if not r["_sup"] and r["PaymentMode_Id"] == "-1"})
-    check("Paiement client sans moyen de paiement renseigné", "fait_paiements", nomode, len(cli),
+    enc = [r for r in rows if not r["_sup"]]
+    dec = [r for r in rows if r["_sup"]]
+    for part in (enc, dec):
+        for i, r in enumerate(part, 1):
+            r["Id"] = i
+    n_enc, n_dec = len({r["Payment_Id"] for r in enc}), len({r["Payment_Id"] for r in dec})
+    nomode = len({r["Payment_Id"] for r in enc if r["PaymentMode_Id"] == "-1"})
+    check("Encaissement sans moyen de paiement renseigné", "fait_encaissements", nomode, n_enc,
           detail="limite de la source : le moyen n'est saisi que pendant les premières semaines (sept.-oct. 2024)")
-    check("Paiement fournisseur sans fournisseur identifié", "fait_paiements",
-          len({r["Payment_Id"] for r in rows if r["_sup"] and r["Fournisseur_Id"] == "-1"}), len(sup),
-          detail="doit être 0 : sinon le paiement serait compté dans le montant encaissé")
-    check("Paiement client sans client identifié", "fait_paiements",
-          len({r["Payment_Id"] for r in rows if not r["_sup"] and r["Company_Id"] == "-1"}), len(cli))
-    no_doc = [r for r in rows if r["Document_Id"] == "-1"]
-    check("Paiement non rattaché à un document chargé", "fait_paiements", len({r["Payment_Id"] for r in no_doc}),
-          len(pid_side), detail="Document_Id = -1 : paiement sans imputation dans la source ou document réglé non chargé")
+    check("Encaissement sans client identifié", "fait_encaissements",
+          len({r["Payment_Id"] for r in enc if r["Company_Id"] == "-1"}), n_enc)
+    check("Décaissement sans fournisseur identifié", "fait_decaissements",
+          len({r["Payment_Id"] for r in dec if r["Fournisseur_Id"] == "-1"}), n_dec)
+    for name, part in (("fait_encaissements", enc), ("fait_decaissements", dec)):
+        check("Paiement non rattaché à un document chargé", name,
+              len({r["Payment_Id"] for r in part if r["Document_Id"] == "-1"}), len({r["Payment_Id"] for r in part}),
+              detail="Document_Id = -1 : paiement sans imputation dans la source ou document réglé non chargé")
     sale_docs = {d for d, kind in loaded.items() if kind == "vente"}
     wrong = sum(1 for r in rows if r["Document_Id"] != "-1" and (r["Document_Id"] in sale_docs) == r["_sup"])
-    check("Paiement rattaché à un document de l'autre sens (client ↔ fournisseur)", "fait_paiements", wrong, len(rows))
+    check("Paiement rattaché à un document de l'autre sens (vente ↔ achat)", "fait_encaissements / fait_decaissements",
+          wrong, len(rows))
     total_src = sum(f(p["Amount"]) for p in pays)
     total_dwh = sum(f(r["Amount"]) for r in rows)
-    check("Écart entre la somme des paiements source et fait_paiements (centimes)", "fait_paiements",
-          round(abs(total_src - total_dwh) * 100), round(total_src * 100))
-    cli_rows = [r for r in rows if not r["_sup"]]
-    sup_rows = [r for r in rows if r["_sup"]]
-    walk = len({r["Payment_Id"] for r in cli_rows if r["Company_Id"] == "2"})
-    real = len({r["Payment_Id"] for r in rows if r["_date"] <= END_REAL})
-    W("dwh/fait_paiements.csv", PAYMENT_COLS, rows,
-      "Fait Paiements : montant réellement versé, imputé au document qu'il règle ; client qui paie ou fournisseur payé.",
-      "1 ligne = 1 paiement imputé à 1 document réglé (vente ou facture fournisseur)",
+    check("Écart entre les paiements source et encaissements + décaissements (centimes)",
+          "fait_encaissements / fait_decaissements", round(abs(total_src - total_dwh) * 100), round(total_src * 100))
+    common = [
+        "Imputation : celle de TransactionPayments (paiement → transaction → montant). Quand une transaction règle plusieurs "
+        "documents chargés — facture client regroupant des bons de livraison (seuls les bons sont dans fait_ventes), "
+        "document et avoir — le montant est réparti au prorata du total TTC des documents de total positif.",
+        "`Payment_Id` = numéro du paiement (dimension dégénérée) : Nombre de paiements = DISTINCTCOUNT(Payment_Id). "
+        "`Id` = clé technique de la ligne d'imputation ; la somme des lignes d'un paiement est exactement son montant.",
+        "`Amount` est TTC et n'est pas le CA : impayés, paiements fractionnés ou différés. Aucun paiement n'est négatif : "
+        "l'argent rendu lors d'un retour n'est pas enregistré comme paiement dans la source (les retours apparaissent en "
+        "négatif dans fait_ventes et fait_achats)."]
+    walk = len({r["Payment_Id"] for r in enc if r["Company_Id"] == "2"})
+    real_e = len({r["Payment_Id"] for r in enc if r["_date"] <= END_REAL})
+    W("dwh/fait_encaissements.csv", ENC_COLS, enc,
+      "Fait Encaissements : argent reçu d'un client, imputé à la vente qu'il règle.",
+      "1 ligne = 1 encaissement imputé à 1 vente réglée",
       "PaymentsList + Payment (fusionnés), TransactionPayments (imputation), Documents, RelatedDocuments, "
       "CompaniesList — réel + synthétique",
-      "§6.5 Paiements ; §6.6 Achats ; §9 fait_paiements (Amount ; client ; fournisseur ; document réglé)",
-      [f"{fr(len(pid_side))} paiements ({fr(real)} de la période réelle) sur {fr(len(rows))} lignes d'imputation : "
-       + ", ".join(f"{k} : {fr(v)}" for k, v in stats.items()) + ".",
-       "`Payment_Id` = numéro du paiement (dimension dégénérée) : Nombre de paiements = DISTINCTCOUNT(Payment_Id). "
-       "`Id` = clé technique de la ligne d'imputation.",
-       "`Document_Id` = document réglé, même clé que dans `fait_ventes` (encaissement client) ou `fait_achats` "
-       "(paiement fournisseur) : répond à « quelle vente / quelle facture ce paiement règle-t-il ? ». -1 si le paiement "
-       "n'a pas d'imputation dans la source.",
-       "Imputation : celle de TransactionPayments (paiement → transaction → montant). Quand une transaction règle plusieurs "
-       "documents chargés — facture client regroupant des bons de livraison (seuls les bons sont dans fait_ventes), "
-       "document et avoir — le montant est réparti au prorata du total TTC des documents de total positif.",
-       "La somme des lignes d'un paiement est exactement son montant : SUM(Amount) = total des paiements de la source.",
-       "Encaissement client : `Company_Id` = client qui paie (2 = client comptoir anonyme), `Fournisseur_Id` = -1. "
-       "Paiement fournisseur : `Fournisseur_Id` = fournisseur payé, `Company_Id` = -1.",
-       f"Montant encaissé = SUM(Amount) où Fournisseur_Id = -1 : {fr(round(sum(f(r['Amount']) for r in cli_rows)))} "
-       f"sur {fr(len(cli))} paiements clients (dont {fr(walk)} au comptoir) ; {fr(len(sup))} paiements fournisseurs "
-       f"({fr(round(sum(f(r['Amount']) for r in sup_rows)))}).",
-       "`Amount` est TTC et n'est pas le CA : impayés, paiements fractionnés ou différés. Aucun paiement n'est négatif : "
-       "l'argent rendu lors d'un retour n'est pas enregistré comme paiement dans la source (les retours apparaissent en "
-       "négatif dans fait_ventes et fait_achats).",
+      "§6.5 Paiements ; §9 fait_encaissements (Amount ; client ; vente réglée)",
+      [f"{fr(n_enc)} encaissements ({fr(real_e)} de la période réelle, {fr(walk)} au comptoir) sur {fr(len(enc))} lignes ; "
+       f"montant encaissé = SUM(Amount) = {fr(round(sum(f(r['Amount']) for r in enc)))}.",
+       "`Company_Id` = client qui paie (2 = client comptoir anonyme). `Document_Id` = vente réglée, même clé que dans "
+       "`fait_ventes` : répond à « quelle vente ce paiement règle-t-il ? » ; -1 si aucune imputation.",
        "Moyen de paiement : saisi par le logiciel seulement pendant les premières semaines (sept.-oct. 2024), presque "
-       "jamais ensuite ; la répartition par moyen n'est représentative que sur cette période.",
-       "`EstPaiementFournisseur` est retiré : il se recalcule (paiement fournisseur ⇔ Fournisseur_Id ≠ -1).",
-       "Retirés de la version précédente : UsedAmount (égal à Amount à 99,9 %), heure, caisse, compte bancaire."])
+       "jamais ensuite ; la répartition par moyen n'est représentative que sur cette période."] + common
+      + ["Remplace, avec fait_decaissements, l'ancienne table fait_paiements : la table donne le sens du paiement, "
+         "sans indicateur ni clé « sans objet »."])
+    real_d = len({r["Payment_Id"] for r in dec if r["_date"] <= END_REAL})
+    W("dwh/fait_decaissements.csv", DEC_COLS, dec,
+      "Fait Décaissements : argent versé à un fournisseur, imputé à la facture fournisseur qu'il règle.",
+      "1 ligne = 1 décaissement imputé à 1 facture fournisseur réglée",
+      "PaymentsList + Payment (fusionnés), TransactionPayments (imputation), Documents, CompaniesList — réel + synthétique",
+      "§6.5 Paiements ; §6.6 Achats ; §9 fait_decaissements (Amount ; fournisseur ; facture réglée)",
+      [f"{fr(n_dec)} décaissements ({fr(real_d)} de la période réelle) sur {fr(len(dec))} lignes ; montant payé aux "
+       f"fournisseurs = SUM(Amount) = {fr(round(sum(f(r['Amount']) for r in dec)))}.",
+       "`Fournisseur_Id` = fournisseur payé. `Document_Id` = facture fournisseur réglée, même clé que dans `fait_achats` : "
+       "répond à « quelle facture ce paiement règle-t-il ? »."] + common
+      + ["Les achats (fait_achats) sont HT, les décaissements TTC : ne pas comparer les deux montants directement."])
 
 
 # --------------------------------------------------------------------------- #
@@ -889,9 +895,9 @@ SPEC_MAP = [
     ("Responsable financier / caisse",
      "Montant encaissé, montant payé par chaque client, montant payé à chaque fournisseur, nombre de paiements, "
      "répartition par moyen, quelle vente ou facture chaque paiement règle",
-     "SUM(Amount) où Fournisseur_Id = -1 ; SUM(Amount) par client, fournisseur ou Document_Id ; "
+     "SUM(fait_encaissements.Amount) ; SUM(fait_decaissements.Amount) ; par client, fournisseur ou Document_Id ; "
      "DISTINCTCOUNT(Payment_Id)",
-     "fait_paiements × dim_paiement × dim_client × dim_fournisseur × dim_temps ; ml_11_3"),
+     "fait_encaissements × dim_client, fait_decaissements × dim_fournisseur ; dim_paiement × dim_temps ; ml_11_3"),
     ("Responsable achats", "Achats par fournisseur et par produit, quel produit vient de quel fournisseur",
      "SUM(MontantAchat_HT) ; SUM(QuantiteAchetee) ; COUNT(DISTINCT Document_Id)",
      "fait_achats × dim_fournisseur × dim_produit × dim_temps"),
@@ -909,7 +915,8 @@ def write_docs():
          "(données générées). Les fichiers sources ne sont jamais modifiés.", "", f"**Période :** {period}", "",
          "## Règles", "",
          "- Modèle du §9 du cahier : 5 dimensions (`dim_temps`, `dim_produit`, `dim_client`, `dim_fournisseur`, "
-         "`dim_paiement`) et 4 faits (`fait_ventes`, `fait_achats`, `fait_stock_actuel`, `fait_paiements`).",
+         "`dim_paiement`) et 5 faits (`fait_ventes`, `fait_encaissements`, `fait_achats`, `fait_decaissements`, "
+         "`fait_stock_actuel`).",
          "- Une colonne n'est stockée que si le cahier l'exige **et** qu'elle ne peut pas être recalculée. Les mesures "
          "(marge, rupture, stock faible, montant encaissé…) sont calculées dans Power BI.",
          "- CSV UTF-8, séparateur virgule, décimale `.`, dates ISO, booléens `true/false`. `DateKey` = `AAAAMMJJ`.",
@@ -932,7 +939,7 @@ def write_docs():
           for c in CHECKS]
     (OUT / "dwh" / "DICTIONNAIRE_DATASET.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
-    readme = ["# Data Warehouse – version B (5 dimensions, 4 faits)", "",
+    readme = ["# Data Warehouse – version B (5 dimensions, 5 faits)", "",
               "Tables produites par `build_dataset.py` (branche `main`) à partir de "
               "[`data-cleaned`](../../tree/data-cleaned) et [`data-external`](../../tree/data-external). "
               "Le schéma (diagramme, descriptif, script SQL) est dans la branche [`dwh-schema`](../../tree/dwh-schema).", "",
@@ -1030,12 +1037,12 @@ def main():
                                  ("fait_achats", purchases, "Fournisseur_Id", suppliers),
                                  ("fait_achats", purchases, "DateKey", dates)):
         check(f"Clé {key} de {fact} absente de la dimension", fact, sum(1 for s in rows if s[key] not in dim), len(rows))
-    with (OUT / "dwh" / "fait_paiements.csv").open(encoding="utf-8") as fh:
-        paid = list(csv.DictReader(fh))
-    for key, dim in (("Company_Id", set(clients)), ("Fournisseur_Id", suppliers), ("PaymentMode_Id", set(PAY_FR)),
-                     ("DateKey", dates)):
-        check(f"Clé {key} de fait_paiements absente de la dimension", "fait_paiements",
-              sum(1 for p in paid if p[key] not in dim), len(paid))
+    for fact, party, dim_party in (("fait_encaissements", "Company_Id", set(clients)),
+                                   ("fait_decaissements", "Fournisseur_Id", suppliers)):
+        with (OUT / "dwh" / f"{fact}.csv").open(encoding="utf-8") as fh:
+            paid = list(csv.DictReader(fh))
+        for key, dim in ((party, dim_party), ("PaymentMode_Id", set(PAY_FR)), ("DateKey", dates)):
+            check(f"Clé {key} de {fact} absente de la dimension", fact, sum(1 for p in paid if p[key] not in dim), len(paid))
 
     meteo, senti = load_meteo(), load_sentinelles()
     ml_demand(sales, products, cal, meteo, senti)

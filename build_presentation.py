@@ -77,7 +77,7 @@ def stats():
     seg = R("ml/ml_11_4_segmentation_clients.csv")
     S["clients_id"] = len(seg)
     S["clients_ca_pct"] = 100 * sum(float(c["X_CA_HT_Total"]) for c in seg) / S["ca_ht"]
-    pays = [p for p in R("dwh/fait_paiements.csv") if p["Fournisseur_Id"] == "-1" and p["DateKey"] <= REAL_END]
+    pays = [p for p in R("dwh/fait_encaissements.csv") if p["DateKey"] <= REAL_END]
     S["sans_mode_pct"] = 100 * sum(p["PaymentMode_Id"] == "-1" for p in pays) / len(pays)
     S["rows"] = {p.stem: sum(1 for _ in p.open(encoding="utf-8")) - 1 for p in (DS / "dwh").glob("*.csv")}
     S["ml_rows"] = {p.stem: sum(1 for _ in p.open(encoding="utf-8")) - 1 for p in (DS / "ml").glob("*.csv")}
@@ -665,9 +665,10 @@ def build(S):
         ["fait_ventes", "1 produit vendu dans 1 document à 1 date", fr(rw["fait_ventes"]),
          "QuantiteVendue, Remise_HT, CA_HT, Cout_HT\n(+ Document_Id pour compter les ventes)", "Temps, Produit, Client"],
         ["fait_stock_actuel", "1 produit à la date de snapshot (29/09/2026)", fr(rw["fait_stock_actuel"]),
-         "Quantity
-(+ QuantiteAlerte, seuil du produit)", "Temps, Produit"],
-        ["fait_paiements", "1 paiement", fr(rw["fait_paiements"]), "Amount\n(+ EstPaiementFournisseur pour filtrer)", "Temps, Paiement"],
+         "Quantity\n(+ QuantiteAlerte, seuil du produit)", "Temps, Produit"],
+        ["fait_encaissements", "1 encaissement imputé à 1 vente", fr(rw["fait_encaissements"]), "Amount", "Temps, Paiement, Client"],
+        ["fait_decaissements", "1 décaissement imputé à 1 facture fournisseur", fr(rw["fait_decaissements"]), "Amount",
+         "Temps, Paiement, Fournisseur"],
         ["Mesures Power BI", "calculées, non stockées", "—",
          "Marge HT, panier moyen, croissance, clients actifs,\nruptures, stock faible, montant encaissé", "selon la mesure"],
     ], [2.35, 3.0, 1.05, 3.4, 2.45], size=12, row_h=0.95)

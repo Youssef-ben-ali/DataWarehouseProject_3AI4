@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Documentation du schéma du Data Warehouse – version B (5 dimensions, 4 tables de faits).
+Documentation du schéma du Data Warehouse – version B (5 dimensions, 5 tables de faits).
 
 Entrée  : ./dataset/dwh/*.csv            (sortie de build_dataset.py)
 Sortie  : ./dataset/schema/
@@ -101,28 +101,38 @@ META = {
          "Seuil d'alerte de stock choisi par le magasin pour le produit (export Produits, sinon paramètre par défaut du "
          "logiciel = 5). Stocké à côté de la quantité : le stock faible se calcule dans la même table. Non additif, non "
          "calculable ; une seule valeur par produit (une ligne par produit).")]),
-    "fait_paiements": ("Fait", "1 paiement imputé à 1 document réglé", [
+    "fait_encaissements": ("Fait", "1 encaissement imputé à 1 vente réglée", [
         ("Id", "BIGINT", "PK", "PK", "Clé technique de la ligne d'imputation (un paiement qui règle plusieurs documents a "
                                      "plusieurs lignes)."),
         ("Payment_Id", "BIGINT", "", "dimension dégénérée",
          "Numéro du paiement dans le logiciel : Nombre de paiements = DISTINCTCOUNT(Payment_Id)."),
         ("Document_Id", "BIGINT", "", "dimension dégénérée",
-         "Document réglé : même clé que fait_ventes (encaissement client) ou fait_achats (paiement fournisseur). "
-         "Répond à « quelle vente / quelle facture ce paiement règle-t-il ? » ; -1 si aucune imputation."),
-        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "FK → dim_temps", "Date du paiement."),
+         "Vente réglée, même clé que fait_ventes : répond à « quelle vente ce paiement règle-t-il ? » ; -1 si aucune "
+         "imputation."),
+        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "FK → dim_temps", "Date de l'encaissement."),
         ("PaymentMode_Id", "INTEGER", "FK:dim_paiement.PaymentMode_Id", "FK → dim_paiement", "Moyen de paiement ; -1 si non renseigné."),
-        ("Company_Id", "INTEGER", "FK:dim_client.Company_Id", "FK → dim_client",
-         "Client qui paie (2 = client comptoir anonyme) ; -1 pour un paiement à un fournisseur."),
-        ("Fournisseur_Id", "INTEGER", "FK:dim_fournisseur.Fournisseur_Id", "FK → dim_fournisseur",
-         "Fournisseur payé ; -1 pour un encaissement client. Remplace l'indicateur EstPaiementFournisseur, qui se "
-         "recalcule (paiement fournisseur ⇔ Fournisseur_Id ≠ -1)."),
+        ("Company_Id", "INTEGER", "FK:dim_client.Company_Id", "FK → dim_client", "Client qui paie (2 = client comptoir anonyme)."),
         ("Amount", "NUMERIC(14,4)", "M", "mesure",
          "Montant TTC réellement versé et imputé à ce document ; la somme des lignes d'un paiement est exactement le "
-         "montant payé. Valeur de base non recalculable : elle diffère du CA (impayés, paiements fractionnés ou différés, "
-         "TVA).")]),
+         "montant payé. Valeur de base non recalculable : elle diffère du CA ou des achats (impayés, paiements "
+         "fractionnés ou différés, TVA).")]),
+    "fait_decaissements": ("Fait", "1 décaissement imputé à 1 facture fournisseur réglée", [
+        ("Id", "BIGINT", "PK", "PK", "Clé technique de la ligne d'imputation (un paiement qui règle plusieurs documents a "
+                                     "plusieurs lignes)."),
+        ("Payment_Id", "BIGINT", "", "dimension dégénérée",
+         "Numéro du paiement dans le logiciel : Nombre de paiements = DISTINCTCOUNT(Payment_Id)."),
+        ("Document_Id", "BIGINT", "", "dimension dégénérée",
+         "Facture fournisseur réglée, même clé que fait_achats : répond à « quelle facture ce paiement règle-t-il ? »."),
+        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "FK → dim_temps", "Date du décaissement."),
+        ("PaymentMode_Id", "INTEGER", "FK:dim_paiement.PaymentMode_Id", "FK → dim_paiement", "Moyen de paiement ; -1 si non renseigné."),
+        ("Fournisseur_Id", "INTEGER", "FK:dim_fournisseur.Fournisseur_Id", "FK → dim_fournisseur", "Fournisseur payé."),
+        ("Amount", "NUMERIC(14,4)", "M", "mesure",
+         "Montant TTC réellement versé et imputé à ce document ; la somme des lignes d'un paiement est exactement le "
+         "montant payé. Valeur de base non recalculable : elle diffère du CA ou des achats (impayés, paiements "
+         "fractionnés ou différés, TVA).")]),
 }
 DIMS = ["dim_temps", "dim_produit", "dim_client", "dim_fournisseur", "dim_paiement"]
-FACTS = ["fait_ventes", "fait_achats", "fait_stock_actuel", "fait_paiements"]
+FACTS = ["fait_ventes", "fait_encaissements", "fait_achats", "fait_decaissements", "fait_stock_actuel"]
 
 
 # --------------------------------------------------------------------------- #
@@ -158,18 +168,21 @@ def num(v):
 
 def stats(data):
     S = {t: len(rows) for t, rows in data.items()}
-    v, p, st = data["fait_ventes"], data["fait_paiements"], data["fait_stock_actuel"]
+    v, st = data["fait_ventes"], data["fait_stock_actuel"]
+    enc, dec = data["fait_encaissements"], data["fait_decaissements"]
+    p = enc + dec
     S["dates"] = (data["dim_temps"][0]["Date"], data["dim_temps"][-1]["Date"])
     S["ventes_reel"] = sum(1 for r in v if r["DateKey"] <= REAL_END)
     S["docs"] = len({r["Document_Id"] for r in v})
     S["docs_reel"] = len({r["Document_Id"] for r in v if r["DateKey"] <= REAL_END})
-    cli = [r for r in p if r["Fournisseur_Id"] == "-1"]
-    sup = [r for r in p if r["Fournisseur_Id"] != "-1"]
+    cli, sup = enc, dec
     S["encaisse"], S["n_cli"] = sum(num(r["Amount"]) for r in cli), len({r["Payment_Id"] for r in cli})
     S["decaisse"], S["n_sup"] = sum(num(r["Amount"]) for r in sup), len({r["Payment_Id"] for r in sup})
     S["comptoir"] = len({r["Payment_Id"] for r in cli if r["Company_Id"] == "2"})
     S["sans_mode"] = len({r["Payment_Id"] for r in cli if r["PaymentMode_Id"] == "-1"})
     per_pay = Counter(r["Payment_Id"] for r in p)
+    S["enc_reel"] = len({r["Payment_Id"] for r in enc if r["DateKey"] <= REAL_END})
+    S["dec_reel"] = len({r["Payment_Id"] for r in dec if r["DateKey"] <= REAL_END})
     S["n_pay"] = len(per_pay)
     S["pay_multi"] = sum(1 for n in per_pay.values() if n > 1)
     S["pay_sans_doc"] = len({r["Payment_Id"] for r in p if r["Document_Id"] == "-1"})
@@ -204,22 +217,23 @@ def stats(data):
 # --------------------------------------------------------------------------- #
 ROW, HEAD = 25, 44
 BOXES = {   # table -> (x, y, largeur, style)
-    "dim_temps": (57, 150, 330, "dim"), "dim_produit": (421, 150, 330, "dim"), "dim_client": (785, 150, 330, "dim"),
-    "dim_fournisseur": (1149, 150, 330, "dim"), "dim_paiement": (1513, 150, 330, "dim"),
-    "fait_stock_actuel": (83, 600, 390, "fait"), "fait_ventes": (521, 600, 390, "fait"),
-    "fait_achats": (959, 600, 400, "fait"), "fait_paiements": (1407, 600, 410, "pay"),
+    "dim_temps": (75, 150, 340, "dim"), "dim_produit": (515, 150, 340, "dim"), "dim_client": (955, 150, 340, "dim"),
+    "dim_paiement": (1395, 150, 340, "dim"), "dim_fournisseur": (1835, 150, 340, "dim"),
+    "fait_stock_actuel": (45, 600, 380, "fait"), "fait_ventes": (470, 600, 390, "fait"),
+    "fait_encaissements": (905, 600, 400, "pay"), "fait_decaissements": (1350, 600, 410, "pay"),
+    "fait_achats": (1805, 600, 400, "fait"),
 }
 ICON = {"dim_temps": "cal", "dim_produit": "box", "dim_client": "users", "dim_fournisseur": "truck",
         "dim_paiement": "card", "fait_stock_actuel": "box", "fait_ventes": "chart", "fait_achats": "cart",
-        "fait_paiements": "coins"}
+        "fait_encaissements": "coins", "fait_decaissements": "coins"}
 COL = {"dim_temps": "#1e63c4", "dim_produit": "#2f9b46", "dim_client": "#7b3fc4", "dim_fournisseur": "#c0661c",
        "dim_paiement": "#b0397a"}
 # relations dimension -> faits, une voie horizontale par dimension (de haut en bas)
-LANES = [("dim_temps", 425, ["fait_stock_actuel", "fait_ventes", "fait_achats", "fait_paiements"]),
+LANES = [("dim_temps", 425, ["fait_stock_actuel", "fait_ventes", "fait_encaissements", "fait_decaissements", "fait_achats"]),
          ("dim_produit", 450, ["fait_stock_actuel", "fait_ventes", "fait_achats"]),
-         ("dim_client", 475, ["fait_ventes", "fait_paiements"]),
-         ("dim_fournisseur", 500, ["fait_achats", "fait_paiements"]),
-         ("dim_paiement", 525, ["fait_paiements"])]
+         ("dim_client", 475, ["fait_ventes", "fait_encaissements"]),
+         ("dim_paiement", 500, ["fait_encaissements", "fait_decaissements"]),
+         ("dim_fournisseur", 525, ["fait_decaissements", "fait_achats"])]
 
 
 def esc(s):
@@ -245,7 +259,7 @@ def svg_icon(kind, x, y):
 
 
 def svg_diagram(S):
-    W, H = 1900, 1000
+    W, H = 2250, 1000
     cx = W / 2
     o = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" '
          'font-family="Segoe UI, Arial, sans-serif">',
@@ -261,7 +275,7 @@ def svg_diagram(S):
          f'<text x="{cx}" y="52" text-anchor="middle" font-size="33" font-weight="700" fill="#12365e">'
          'Schéma du Data Warehouse — Health Retailers</text>',
          f'<text x="{cx}" y="98" text-anchor="middle" font-size="19" fill="#3e5f86">Modèle BI : '
-         f'5 dimensions et 4 tables de faits — volumes : {esc(S["dates"][0][8:10] + "/" + S["dates"][0][5:7] + "/" + S["dates"][0][:4])}'
+         f'5 dimensions et 5 tables de faits — volumes : {esc(S["dates"][0][8:10] + "/" + S["dates"][0][5:7] + "/" + S["dates"][0][:4])}'
          f' → {esc(S["dates"][1][8:10] + "/" + S["dates"][1][5:7] + "/" + S["dates"][1][:4])} (réel + synthétique)</text>',
          f'<rect x="38" y="116" width="{W - 76}" height="290" rx="22" fill="#dfeaf8" fill-opacity="0.6" stroke="#c3d6ef" stroke-width="1.5"/>',
          f'<rect x="38" y="560" width="{W - 76}" height="340" rx="22" fill="#e0f2e8" fill-opacity="0.65" stroke="#bfe0cc" stroke-width="1.5"/>',
@@ -398,21 +412,23 @@ def build_html(S):
     H = [f"<!doctype html><html lang='fr'><head><meta charset='utf-8'><title>Schéma du Data Warehouse — Health Retailers"
          f"</title><style>{CSS}</style></head><body>",
          "<section class='paysage'><h1>Schéma du Data Warehouse — Health Retailers</h1>"
-         "<div class='sub'>Modèle BI (version B) : 5 dimensions et 4 tables de faits — descriptif détaillé</div>"
+         "<div class='sub'>Modèle BI (version B) : 5 dimensions et 5 tables de faits — descriptif détaillé</div>"
          "<div class='schema'><img src='schema_dwh_diagramme.png' alt='Schéma du Data Warehouse'></div>"
          f"<div class='legend'>Clés primaires (PK), clés étrangères (FK) et mesures. La couleur d'un lien est celle de la "
          f"dimension d'origine. Volumes de la période chargée ({d0} → {d1}) : données réelles du {reel}, puis données "
          "synthétiques. Le détail de chaque table, des relations et des mesures figure dans les pages suivantes.</div></section>",
          "<h2>1. Présentation du modèle</h2>",
-         "<p>Le Data Warehouse de Health Retailers est un <b>modèle dimensionnel en constellation</b> : quatre tables de faits "
-         "partagent des dimensions communes. Chaque table de faits enregistre un processus métier (une vente, un achat, l'état "
-         "du stock, un paiement) au niveau de détail utile au cahier de spécification ; chaque dimension apporte le contexte "
-         "d'analyse (quand, quoi, quel client, quel fournisseur, comment).</p>",
+         "<p>Le Data Warehouse de Health Retailers est un <b>modèle dimensionnel en constellation</b> : cinq tables de faits "
+         "partagent des dimensions communes. Chaque table de faits enregistre un processus métier (une vente, un encaissement, "
+         "un achat, un décaissement, l'état du stock) au niveau de détail utile au cahier de spécification ; chaque dimension "
+         "apporte le contexte d'analyse (quand, quoi, quel client, quel fournisseur, comment). Le modèle est symétrique : "
+         "<b>cycle de vente</b> (<code>fait_ventes</code> + <code>fait_encaissements</code>, autour de <code>dim_client</code>) et "
+         "<b>cycle d'achat</b> (<code>fait_achats</code> + <code>fait_decaissements</code>, autour de <code>dim_fournisseur</code>).</p>",
          "<table><tr><th style='width:22%'>Élément</th><th>Choix retenu</th></tr>"
          "<tr><td>Dimensions (5)</td><td><code>dim_temps</code>, <code>dim_produit</code>, <code>dim_client</code>, "
          "<code>dim_fournisseur</code>, <code>dim_paiement</code></td></tr>"
-         "<tr><td>Tables de faits (4)</td><td><code>fait_ventes</code>, <code>fait_achats</code>, <code>fait_stock_actuel</code>, "
-         "<code>fait_paiements</code></td></tr>"
+         "<tr><td>Tables de faits (5)</td><td><code>fait_ventes</code>, <code>fait_encaissements</code>, <code>fait_achats</code>, "
+         "<code>fait_decaissements</code>, <code>fait_stock_actuel</code></td></tr>"
          "<tr><td>Règle de conservation d'une colonne</td><td>Une colonne n'est stockée que si elle est <b>exigée par le cahier</b> "
          "(KPI, filtre ou attribut cité) <b>et</b> qu'elle <b>ne peut pas être recalculée</b> à partir des autres colonnes du Data "
          "Warehouse. Tout le reste est calculé dans Power BI ou reste en zone ETL.</td></tr>"
@@ -438,31 +454,37 @@ def build_html(S):
     H.append("</table>")
     H.append(f"<p class='small'>fait_ventes : {fr(S['ventes_reel'])} lignes réelles et {fr(S['fait_ventes'] - S['ventes_reel'])} "
              f"synthétiques ; fait_achats : {fr(S['achats_reel'])} lignes réelles et {fr(S['fait_achats'] - S['achats_reel'])} "
-             f"synthétiques ; fait_paiements : {fr(S['n_pay'])} paiements ({fr(S['paiements_reel'])} réels et "
-             f"{fr(S['n_pay'] - S['paiements_reel'])} synthétiques) sur {fr(S['fait_paiements'])} lignes d'imputation ; fait_stock_actuel : photo au {S['stock_date'][6:]}/{S['stock_date'][4:6]}/{S['stock_date'][:4]}.</p>")
+             f"synthétiques ; fait_encaissements : {fr(S['n_cli'])} encaissements ({fr(S['enc_reel'])} réels) sur "
+             f"{fr(S['fait_encaissements'])} lignes ; fait_decaissements : {fr(S['n_sup'])} décaissements ({fr(S['dec_reel'])} "
+             f"réels) sur {fr(S['fait_decaissements'])} lignes ; fait_stock_actuel : photo au {S['stock_date'][6:]}/{S['stock_date'][4:6]}/{S['stock_date'][:4]}.</p>")
     rel = [("dim_temps", "fait_ventes", "DateKey", "Évolution du CA, des ventes, du panier ; croissance"),
            ("dim_temps", "fait_stock_actuel", "DateKey", "Date du snapshot de stock"),
            ("dim_temps", "fait_achats", "DateKey", "Évolution des achats"),
-           ("dim_temps", "fait_paiements", "DateKey", "Évolution des encaissements et des paiements fournisseurs"),
+           ("dim_temps", "fait_encaissements", "DateKey", "Évolution des encaissements"),
+           ("dim_temps", "fait_decaissements", "DateKey", "Évolution des paiements aux fournisseurs"),
            ("dim_produit", "fait_ventes", "Product_Id", "Ventes et marge par produit, famille, marque"),
            ("dim_produit", "fait_achats", "Product_Id", "Achats par produit, famille, marque ; quel produit vient de quel fournisseur"),
            ("dim_produit", "fait_stock_actuel", "Product_Id", "Stock disponible, ruptures, stock faible par produit, famille, marque"),
            ("dim_client", "fait_ventes", "Company_Id", "Analyse des clients identifiés, clients actifs ; qui a acheté quoi et quand"),
-           ("dim_client", "fait_paiements", "Company_Id", "Montant payé par chaque client"),
+           ("dim_client", "fait_encaissements", "Company_Id", "Montant payé par chaque client"),
            ("dim_fournisseur", "fait_achats", "Fournisseur_Id", "Achats par fournisseur"),
-           ("dim_fournisseur", "fait_paiements", "Fournisseur_Id", "Montant payé à chaque fournisseur"),
-           ("fait_ventes / fait_achats", "fait_paiements", "Document_Id (dimension dégénérée)",
-            "Quelle vente ou quelle facture fournisseur chaque paiement règle ; montant réglé par document"),
-           ("dim_paiement", "fait_paiements", "PaymentMode_Id", "Répartition des encaissements par moyen de paiement")]
+           ("dim_fournisseur", "fait_decaissements", "Fournisseur_Id", "Montant payé à chaque fournisseur"),
+           ("dim_paiement", "fait_encaissements", "PaymentMode_Id", "Répartition des encaissements par moyen de paiement"),
+           ("dim_paiement", "fait_decaissements", "PaymentMode_Id", "Répartition des décaissements par moyen de paiement"),
+           ("fait_ventes", "fait_encaissements", "Document_Id (dimension dégénérée)",
+            "Quelle vente chaque encaissement règle ; montant réglé par vente"),
+           ("fait_achats", "fait_decaissements", "Document_Id (dimension dégénérée)",
+            "Quelle facture fournisseur chaque décaissement règle ; montant réglé par facture")]
     H += ["<h2>3. Relations</h2><p>Toutes les relations vont d'une dimension (côté 1) vers une table de faits (côté N).</p>",
           "<table><tr><th>Dimension (1)</th><th>Table de faits (N)</th><th>Clé de jointure</th><th>Utilisation</th></tr>"]
     H += [f"<tr><td><code>{a}</code></td><td><code>{b}</code></td><td>{c}</td><td>{d}</td></tr>" for a, b, c, d in rel]
     H += ["</table><div class='box'>Les tables de faits ne sont <b>pas reliées entre elles</b> : une analyse croisée (par exemple "
           "ventes et stock d'un même produit) passe par la dimension commune, ici <code>dim_produit</code>. Seule exception : "
-          "<code>Document_Id</code>, dimension dégénérée partagée par <code>fait_ventes</code>, <code>fait_achats</code> et "
-          "<code>fait_paiements</code>, qui relie un paiement au document qu'il règle. Dans Power BI, on filtre les deux "
-          "visuels sur le même <code>Document_Id</code>, ou l'on crée une relation plusieurs-à-plusieurs sur cette colonne "
-          "(filtre dans un seul sens, de fait_paiements vers la table de faits du document).</div>",
+          "<code>Document_Id</code>, dimension dégénérée qui relie un encaissement à sa vente (<code>fait_ventes</code>) et un "
+          "décaissement à sa facture fournisseur (<code>fait_achats</code>). Dans Power BI, on filtre les deux visuels sur le "
+          "même <code>Document_Id</code>, ou l'on crée une relation plusieurs-à-plusieurs sur cette colonne (filtre dans un "
+          "seul sens). Les deux tables de paiements ne sont jamais reliées entre elles : la trésorerie nette se calcule par "
+          "mesure (encaissements − décaissements), à travers <code>dim_temps</code> et <code>dim_paiement</code>.</div>",
           "<h2>4. Dictionnaire des données</h2><p class='small'>Légende : <span class='pk'>PK</span> clé primaire · "
           "<span class='fk'>FK</span> clé étrangère · <span class='ms'>mesure</span> valeur additive.</p>"]
     notes = {
@@ -483,17 +505,17 @@ def build_html(S):
                               f"{fr(S['negatif'])} à stock négatif. Rupture et stock faible ne sont <b>pas stockés</b> : mesures "
                               "Power BI à partir de <code>Quantity</code> et <code>QuantiteAlerte</code>, dans la même table (§9). "
                               "Seuils d'alerte les plus fréquents : " + ", ".join(f"{v} ({fr(n)} produits)" for v, n in S["alertes"]) + "."),
-        "fait_paiements": (f"Encaissé clients : {fr(S['encaisse'])} € sur {fr(S['n_cli'])} paiements (dont {fr(S['comptoir'])} au "
-                           f"comptoir, Company_Id = 2) ; paiements fournisseurs : {fr(S['n_sup'])} ({fr(S['decaisse'])} €), exclus "
-                           "du montant encaissé. Chaque paiement porte soit un client, soit un fournisseur (jamais les deux). "
-                           f"<b>Imputation :</b> {fr(S['n_pay'] - S['pay_multi'] - S['pay_sans_doc'])} paiements règlent un seul "
-                           f"document, {fr(S['pay_multi'])} en règlent plusieurs (montant réparti selon TransactionPayments, puis "
-                           "au prorata du total TTC quand une facture regroupe des bons de livraison), "
-                           f"{fr(S['pay_sans_doc'])} n'ont pas de document chargé (Document_Id = -1). Le client ou le fournisseur "
-                           "du paiement est toujours celui du document réglé. "
-                           f"{fr(S['sans_mode'])} paiements clients ({100 * S['sans_mode'] / max(S['n_cli'], 1):.0f} %) n'ont pas "
-                           "de moyen renseigné : le logiciel ne le saisit que pendant les premières semaines (sept.-oct. 2024). "
-                           "Aucun montant négatif : l'argent rendu lors d'un retour n'est pas un paiement dans la source."),
+        "fait_encaissements": (f"Montant encaissé : {fr(S['encaisse'])} € sur {fr(S['n_cli'])} encaissements (dont "
+                               f"{fr(S['comptoir'])} au comptoir, Company_Id = 2). {fr(S['sans_mode'])} encaissements "
+                               f"({100 * S['sans_mode'] / max(S['n_cli'], 1):.0f} %) n'ont pas de moyen renseigné : le logiciel ne "
+                               "le saisit que pendant les premières semaines (sept.-oct. 2024). Aucun montant négatif : l'argent "
+                               "rendu lors d'un retour n'est pas un paiement dans la source."),
+        "fait_decaissements": (f"Montant payé aux fournisseurs : {fr(S['decaisse'])} € sur {fr(S['n_sup'])} décaissements. "
+                               f"<b>Imputation (deux tables) :</b> {fr(S['n_pay'] - S['pay_multi'] - S['pay_sans_doc'])} paiements "
+                               f"règlent un seul document, {fr(S['pay_multi'])} en règlent plusieurs (montant réparti selon "
+                               "TransactionPayments, puis au prorata du total TTC quand une facture client regroupe des bons de "
+                               f"livraison), {fr(S['pay_sans_doc'])} n'ont pas de document chargé (Document_Id = -1). Le client ou le "
+                               "fournisseur du paiement est toujours celui du document réglé."),
     }
     for t, (kind, grain, cols) in META.items():
         cls, lab = tag[kind]
@@ -514,14 +536,16 @@ def build_html(S):
             ("Stock disponible", "SUM(Quantity)", "fait_stock_actuel", "Stock"),
             ("Produits en rupture", "COUNT(Product_Id) où Quantity = 0", "fait_stock_actuel", "Stock"),
             ("Produits en stock faible", "COUNT(Product_Id) où 0 < Quantity ≤ QuantiteAlerte", "fait_stock_actuel", "Stock"),
-            ("Montant encaissé", "SUM(Amount) où Fournisseur_Id = -1", "fait_paiements", "Paiements"),
+            ("Montant encaissé", "SUM(Amount)", "fait_encaissements", "Paiements"),
             ("Montant payé par client", "Montant encaissé par Company_Id, filtre EstClientIdentifie = true",
-             "fait_paiements + dim_client", "Paiements, Clients"),
-            ("Montant payé aux fournisseurs", "SUM(Amount) où Fournisseur_Id ≠ -1", "fait_paiements + dim_fournisseur",
-             "Paiements, Achats"),
-            ("Nombre de paiements", "DISTINCTCOUNT(Payment_Id)", "fait_paiements", "Paiements"),
-            ("Montant réglé d'une vente / d'une facture", "SUM(Amount) par Document_Id", "fait_paiements",
+             "fait_encaissements + dim_client", "Paiements, Clients"),
+            ("Montant payé aux fournisseurs", "SUM(Amount)", "fait_decaissements + dim_fournisseur", "Paiements, Achats"),
+            ("Nombre d'encaissements / de décaissements", "DISTINCTCOUNT(Payment_Id)", "fait_encaissements / fait_decaissements",
+             "Paiements"),
+            ("Montant réglé d'une vente / d'une facture", "SUM(Amount) par Document_Id", "fait_encaissements / fait_decaissements",
              "Paiements, Clients, Achats"),
+            ("Trésorerie nette", "Montant encaissé − Montant payé aux fournisseurs", "fait_encaissements + fait_decaissements",
+             "Paiements"),
             ("Achats HT", "SUM(MontantAchat_HT)", "fait_achats", "Achats"),
             ("Quantité achetée", "SUM(QuantiteAchetee)", "fait_achats", "Achats"),
             ("Nombre de factures fournisseurs", "COUNT(DISTINCT Document_Id)", "fait_achats", "Achats"),
@@ -539,21 +563,23 @@ def build_html(S):
                ("dim_paiement : EstEspeces, EstDiffere, ligne « Inconnu (4) »", "Déductibles du moyen de paiement ; la ligne 4 n'est utilisée par aucun paiement."),
                ("fait_ventes : CA_TTC, Marge_HT, CoutUnitaire, Signe, taux de remise, colonnes brutes", "Recalculables ou non utilisées par les KPI ; la marge devient une mesure."),
                ("fait_stock_actuel : EnRupture, StockFaible, ValeurStock_HT, rotation, couverture…", "Rupture et stock faible deviennent des mesures ; les autres ne sont pas des KPI du cahier."),
-               ("fait_paiements : UsedAmount, heure, caisse", "UsedAmount = Amount à 99,9 % ; aucun KPI n'utilise les autres colonnes.")]
+               ("paiements : UsedAmount, heure, caisse", "UsedAmount = Amount à 99,9 % ; aucun KPI n'utilise les autres colonnes.")]
     added = [("dim_fournisseur", "Nouvelle dimension : savoir quel fournisseur est payé et chez qui un produit est acheté."),
              ("fait_achats", "Nouveau fait : achats par fournisseur, produit et période ; quel produit vient de quel fournisseur."),
-             ("fait_paiements : Company_Id", "Montant payé par chaque client (2 = paiements au comptoir)."),
-             ("fait_paiements : Fournisseur_Id", "Montant payé à chaque fournisseur."),
-             ("fait_paiements : grain « 1 paiement imputé à 1 document », Payment_Id, Document_Id",
+             ("fait_paiements séparé en fait_encaissements et fait_decaissements",
+              "La table donne le sens du paiement : plus d'indicateur EstPaiementFournisseur ni de clé « sans objet » (-1) ; "
+              "chaque table ne porte que la partie concernée (client ou fournisseur) et le document qu'elle règle."),
+             ("fait_encaissements : Company_Id ; fait_decaissements : Fournisseur_Id",
+              "Montant payé par chaque client (2 = paiements au comptoir) et à chaque fournisseur."),
+             ("Grain « 1 paiement imputé à 1 document », Payment_Id, Document_Id",
               "Le cahier demande quelle vente ou facture chaque paiement règle ; un paiement qui règle plusieurs documents "
               "est réparti sur plusieurs lignes, sans table pont."),
-             ("fait_paiements : EstPaiementFournisseur retiré", "Recalculable : paiement fournisseur ⇔ Fournisseur_Id ≠ -1."),
              ("QuantiteAlerte : de dim_produit vers fait_stock_actuel",
               "Le seuil est stocké à côté de la quantité ; le stock faible se calcule dans une seule table.")]
     H += ["<h2>6. Différences avec le modèle précédent (version A)</h2><table><tr><th style='width:36%'>Élément retiré</th>"
           "<th>Raison</th></tr>"]
     H += [f"<tr><td>{esc(a)}</td><td>{esc(b)}</td></tr>" for a, b in removed]
-    H += ["</table><h2>7. Ajouts au modèle B (achats, fournisseurs, client et fournisseur des paiements)</h2>"
+    H += ["</table><h2>7. Ajouts au modèle B (achats, fournisseurs, encaissements et décaissements)</h2>"
           "<table><tr><th style='width:36%'>Élément</th><th>Raison</th></tr>"]
     H += [f"<tr><td>{esc(a)}</td><td>{esc(b)}</td></tr>" for a, b in added]
     H += ["</table><h2>8. Règles de chargement et limites</h2><ul>",
@@ -563,14 +589,15 @@ def build_html(S):
           "<li><b>Documents :</b> seuls les documents validés sont chargés ; retours et avoirs signés négativement ; pas de double "
           "comptage entre factures et bons de livraison.</li>",
           "<li><b>Ventes anonymes :</b> conservées (client comptoir) mais exclues des KPI clients par <code>EstClientIdentifie</code>.</li>",
-          "<li><b>Paiements :</b> un encaissement porte le client qui paie (<code>Fournisseur_Id</code> = -1), un paiement "
-          "fournisseur porte le fournisseur payé (<code>Company_Id</code> = -1) ; le montant encaissé exclut les paiements "
-          "fournisseurs par le filtre <code>Fournisseur_Id = -1</code>.</li>",
+          "<li><b>Paiements :</b> un seul fichier source (PaymentsList) réparti en deux tables : paiement d'un client → "
+          "<code>fait_encaissements</code>, paiement à un fournisseur → <code>fait_decaissements</code>. La somme des deux "
+          "tables est exactement le total des paiements de la source.</li>",
           "<li><b>Achats :</b> factures fournisseurs validées ; avoirs fournisseurs signés négativement. Les achats sont HT, "
           "les paiements TTC : ne pas comparer les deux montants directement.</li>",
           "<li><b>Retours et remboursements :</b> les marchandises retournées sont des lignes négatives de "
           "<code>fait_ventes</code> et <code>fait_achats</code> ; l'argent rendu n'est pas enregistré comme paiement dans "
-          "la source, il n'apparaît donc pas dans <code>fait_paiements</code> (aucun montant négatif).</li>",
+          "la source, il n'apparaît donc ni dans <code>fait_encaissements</code> ni dans <code>fait_decaissements</code> "
+          "(aucun montant négatif).</li>",
           "<li><b>Moyen de paiement :</b> saisi par le logiciel pendant les premières semaines seulement (sept.-oct. 2024) ; "
           "la répartition par moyen n'est représentative que sur cette période, réelle comme synthétique.</li>",
           "<li><b>Période synthétique :</b> pas d'avoir client ni fournisseur généré (types de documents rares) ; les retours "
@@ -590,7 +617,7 @@ def build_html(S):
 # --------------------------------------------------------------------------- #
 def build_sql():
     L = ["-- Schéma du Data Warehouse Health Retailers – version B (PostgreSQL)",
-         "-- Généré par build_schema.py. 5 dimensions, 4 tables de faits.",
+         "-- Généré par build_schema.py. 5 dimensions, 5 tables de faits.",
          "-- Chargement : \\copy <table> FROM 'dataset/dwh/<table>.csv' WITH (FORMAT csv, HEADER true, NULL '')",
          "-- Ordre : dimensions puis faits (même ordre que ci-dessous).", ""]
     for t in DIMS + FACTS:
@@ -651,8 +678,8 @@ def write_readme(S):
          "mesures Power BI, différences avec la version A, règles de chargement |",
          "| `schema_dwh_diagramme.png` / `.svg` | Diagramme seul |",
          "| `schema_dwh.sql` | `CREATE TABLE` PostgreSQL avec clés primaires et étrangères + commandes de chargement des CSV |", "",
-         "Modèle : 4 tables de faits (ventes, achats, stock actuel, paiements) partagent 5 dimensions (temps, produit, client, "
-         "fournisseur, paiement). "
+         "Modèle : 5 tables de faits (ventes, encaissements, achats, décaissements, stock actuel) partagent 5 dimensions "
+         "(temps, produit, client, fournisseur, paiement). "
          f"Période : {S['dates'][0]} → {S['dates'][1]} (réel jusqu'au 2025-04-30, synthétique ensuite).", "",
          "Retour à la vue d'ensemble : branche [`main`](../../tree/main).", ""]
     (OUT / "README.md").write_text("\n".join(L), encoding="utf-8", newline="\n")

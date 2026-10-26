@@ -6,7 +6,7 @@ Projet Data Engineering · Classe 3IA · ESPRIT.
 par des données synthétiques jusqu'au 29/09/2026 (2 ans au total), le projet construit un **Data Warehouse**, des
 **tableaux de bord BI** et **quatre cas de Machine Learning** (prévision de la demande, anomalies de ventes, anomalies
 de caisse, segmentation client), selon le [cahier de spécification](docs/cahier-de-spec.pdf) — **version B** :
-modèle à **5 dimensions et 4 tables de faits** (ventes, achats, stock actuel, paiements).
+modèle à **5 dimensions et 5 tables de faits** (ventes, encaissements, achats, décaissements, stock actuel).
 
 ## Organisation : une branche par livrable
 
@@ -19,7 +19,7 @@ Chaque branche est indépendante et contient **un seul type de contenu** avec so
 | [`data-external`](../../tree/data-external) | Données externes : météo (Open-Meteo), épidémies (Réseau Sentinelles), données synthétiques (prolongation à 2 ans) | `build_dataset.py` (téléchargement), `generate_external_data.py` |
 | [`data-cleaned`](../../tree/data-cleaned) | Fichiers nettoyés + rapport de nettoyage ; `synthetique/` pour la période générée | `clean_data.py` |
 | [`script-cleaning`](../../tree/script-cleaning) | Le nettoyage découpé en un script par fichier brut (`script_cleaning_<fichier>.py`), mêmes résultats que `clean_data.py` | — |
-| [`dataset-dwh`](../../tree/dataset-dwh) | Data Warehouse : 5 dimensions, 4 tables de faits, dictionnaire, contrôles qualité | `build_dataset.py` |
+| [`dataset-dwh`](../../tree/dataset-dwh) | Data Warehouse : 5 dimensions, 5 tables de faits, dictionnaire, contrôles qualité | `build_dataset.py` |
 | [`dataset-ml`](../../tree/dataset-ml) | 6 jeux de données Machine Learning (variables `X_`, cibles `Y_`) | `build_dataset.py` |
 | [`dwh-schema`](../../tree/dwh-schema) | Schéma du DWH : diagramme, descriptif PDF, script SQL (PK / FK) | `build_schema.py` |
 | [`presentation`](../../tree/presentation) | Support de la première validation (PowerPoint), modèle révisé | `build_presentation.py` |
@@ -32,7 +32,7 @@ flowchart LR
     A -->|clean_data.py| B[data-cleaned<br/>réel]
     G -->|clean_data.py --synthetique| B2[data-cleaned/synthetique]
     E[data-external<br/>météo · épidémies] --> D
-    B -->|build_dataset.py| C[dataset-dwh<br/>5 dim · 4 faits]
+    B -->|build_dataset.py| C[dataset-dwh<br/>5 dim · 5 faits]
     B2 -->|build_dataset.py| C
     B -->|build_dataset.py| D[dataset-ml<br/>6 jeux ML]
     B2 --> D
@@ -100,7 +100,7 @@ Chaque dossier étant une branche, `git status` dans le dossier montre ce qui a 
 | Sources | 29 CSV · 370 256 enregistrements réels |
 | CA HT réel (ventes validées, sans double comptage) | 1 021 293 · 11 571 ventes · panier moyen 88,26 HT |
 | CA HT sur 2 ans (réel + synthétique) | 3 805 148 · 42 148 ventes · panier moyen 90,28 HT |
-| Data Warehouse | 5 dimensions · 4 tables de faits · 100 % des clés étrangères vérifiées |
+| Data Warehouse | 5 dimensions · 5 tables de faits · 100 % des clés étrangères vérifiées |
 
 ## Données externes
 
