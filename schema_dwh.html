@@ -23,22 +23,22 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 .keep { break-inside: avoid; page-break-inside: avoid; }
 .small { font-size: 7.6pt; color: #4a5a70; }
 </style></head><body>
-<section class='paysage'><h1>Schéma du Data Warehouse — Health Retailers</h1><div class='sub'>Modèle BI (version B) : 5 dimensions et 5 tables de faits — descriptif détaillé</div><div class='schema'><img src='schema_dwh_diagramme.png' alt='Schéma du Data Warehouse'></div><div class='legend'>Clés primaires (PK), clés étrangères (FK) et mesures. La couleur d'un lien est celle de la dimension d'origine. Volumes de la période chargée (30/09/2024 → 29/09/2026) : données réelles du 30/09/2024 → 30/04/2025, puis données synthétiques. Le détail de chaque table, des relations et des mesures figure dans les pages suivantes.</div></section>
+<section class='paysage'><h1>Schéma du Data Warehouse — Health Retailers</h1><div class='sub'>Modèle BI (version B) : 5 dimensions et 5 tables de faits — descriptif détaillé</div><div class='schema'><img src='schema_dwh_diagramme.png' alt='Schéma du Data Warehouse'></div><div class='legend'>Clés primaires (PK), clés de substitution (SK), clés métier et mesures. La couleur d'un lien est celle de la dimension d'origine. Volumes de la période chargée (30/09/2024 → 29/09/2026) : données réelles du 30/09/2024 → 30/04/2025, puis données synthétiques. Le détail de chaque table, des relations et des mesures figure dans les pages suivantes.</div></section>
 <h2>1. Présentation du modèle</h2>
 <p>Le Data Warehouse de Health Retailers est un <b>modèle dimensionnel en constellation</b> : cinq tables de faits partagent des dimensions communes. Chaque table de faits enregistre un processus métier (une vente, un encaissement, un achat, un décaissement, l'état du stock) au niveau de détail utile au cahier de spécification ; chaque dimension apporte le contexte d'analyse (quand, quoi, quel client, quel fournisseur, comment). Le modèle est symétrique : <b>cycle de vente</b> (<code>fait_ventes</code> + <code>fait_encaissements</code>, autour de <code>dim_client</code>) et <b>cycle d'achat</b> (<code>fait_achats</code> + <code>fait_decaissements</code>, autour de <code>dim_fournisseur</code>).</p>
-<table><tr><th style='width:22%'>Élément</th><th>Choix retenu</th></tr><tr><td>Dimensions (5)</td><td><code>dim_temps</code>, <code>dim_produit</code>, <code>dim_client</code>, <code>dim_fournisseur</code>, <code>dim_paiement</code></td></tr><tr><td>Tables de faits (5)</td><td><code>fait_ventes</code>, <code>fait_encaissements</code>, <code>fait_achats</code>, <code>fait_decaissements</code>, <code>fait_stock_actuel</code></td></tr><tr><td>Règle de conservation d'une colonne</td><td>Une colonne n'est stockée que si elle est <b>exigée par le cahier</b> (KPI, filtre ou attribut cité) <b>et</b> qu'elle <b>ne peut pas être recalculée</b> à partir des autres colonnes du Data Warehouse. Tout le reste est calculé dans Power BI ou reste en zone ETL.</td></tr><tr><td>Principe des mesures</td><td>Une mesure est définie une seule fois dans Power BI ; les vues par produit, marque, client, période ou moyen de paiement sont obtenues par les dimensions et les filtres.</td></tr><tr><td>Période</td><td>Données réelles du 30/09/2024 → 30/04/2025 (7 mois), prolongées par des données synthétiques jusqu'au 29/09/2026 (2 ans au total).</td></tr><tr><td>Délimitation réel / synthétique</td><td>Par la date, sans colonne dédiée : toute donnée datée jusqu'au 30/04/2025 inclus est réelle ; toute donnée à partir du 01/05/2025 est synthétique.</td></tr><tr><td>Données externes</td><td>Météo (Open-Meteo) et indicateurs épidémiques (Réseau Sentinelles) : réservés au jeu ML de prévision de la demande, <b>hors du Data Warehouse</b>. Le calendrier français (jours fériés) est calculé dans <code>dim_temps</code>.</td></tr><tr><td>Machine Learning</td><td>Les jeux ML sont construits à partir des données nettoyées (zone ETL), pas à partir du Data Warehouse : retirer une colonne du DW n'enlève rien aux cas ML.</td></tr></table>
+<table><tr><th style='width:22%'>Élément</th><th>Choix retenu</th></tr><tr><td>Dimensions (5)</td><td><code>dim_temps</code>, <code>dim_produit</code>, <code>dim_client</code>, <code>dim_fournisseur</code>, <code>dim_paiement</code></td></tr><tr><td>Tables de faits (5)</td><td><code>fait_ventes</code>, <code>fait_encaissements</code>, <code>fait_achats</code>, <code>fait_decaissements</code>, <code>fait_stock_actuel</code></td></tr><tr><td>Clés</td><td>Chaque dimension (sauf <code>dim_temps</code>, dont la clé <code>DateKey</code> AAAAMMJJ est conservée) a une <b>clé de substitution (SK)</b> créée par le DWH : c'est sa clé primaire, et les tables de faits la portent en clé étrangère. L'identifiant du logiciel reste dans la dimension comme <b>clé métier</b>. Le schéma est le modèle cible : les CSV de dataset-dwh portent encore les identifiants du logiciel, les SK seront attribuées au chargement.</td></tr><tr><td>Règle de conservation d'une colonne</td><td>Une colonne n'est stockée que si elle est <b>exigée par le cahier</b> (KPI, filtre ou attribut cité) <b>et</b> qu'elle <b>ne peut pas être recalculée</b> à partir des autres colonnes du Data Warehouse. Tout le reste est calculé dans Power BI ou reste en zone ETL.</td></tr><tr><td>Principe des mesures</td><td>Une mesure est définie une seule fois dans Power BI ; les vues par produit, marque, client, période ou moyen de paiement sont obtenues par les dimensions et les filtres.</td></tr><tr><td>Période</td><td>Données réelles du 30/09/2024 → 30/04/2025 (7 mois), prolongées par des données synthétiques jusqu'au 29/09/2026 (2 ans au total).</td></tr><tr><td>Délimitation réel / synthétique</td><td>Par la date, sans colonne dédiée : toute donnée datée jusqu'au 30/04/2025 inclus est réelle ; toute donnée à partir du 01/05/2025 est synthétique.</td></tr><tr><td>Données externes</td><td>Météo (Open-Meteo) et indicateurs épidémiques (Réseau Sentinelles) : réservés au jeu ML de prévision de la demande, <b>hors du Data Warehouse</b>. Le calendrier français (jours fériés) est calculé dans <code>dim_temps</code>.</td></tr><tr><td>Machine Learning</td><td>Les jeux ML sont construits à partir des données nettoyées (zone ETL), pas à partir du Data Warehouse : retirer une colonne du DW n'enlève rien aux cas ML.</td></tr></table>
 <h2>2. Vue d'ensemble des tables</h2>
 <table><tr><th>Table</th><th>Type</th><th>Grain</th><th>Clé primaire</th><th>Clés étrangères</th><th>Col.</th><th>Lignes</th></tr>
 <tr><td><code>dim_temps</code></td><td>Dimension</td><td>1 ligne = 1 date</td><td>DateKey</td><td>—</td><td>7</td><td>730</td></tr>
-<tr><td><code>dim_produit</code></td><td>Dimension</td><td>1 ligne = 1 produit</td><td>Product_Id</td><td>—</td><td>4</td><td>6 842</td></tr>
-<tr><td><code>dim_client</code></td><td>Dimension</td><td>1 ligne = 1 client, y compris le client comptoir anonyme</td><td>Company_Id</td><td>—</td><td>4</td><td>82</td></tr>
-<tr><td><code>dim_fournisseur</code></td><td>Dimension</td><td>1 ligne = 1 fournisseur</td><td>Fournisseur_Id</td><td>—</td><td>2</td><td>116</td></tr>
-<tr><td><code>dim_paiement</code></td><td>Dimension</td><td>1 ligne = 1 moyen de paiement</td><td>PaymentMode_Id</td><td>—</td><td>2</td><td>6</td></tr>
-<tr><td><code>fait_ventes</code></td><td>Fait</td><td>1 produit vendu dans 1 document à 1 date</td><td>Id</td><td>DateKey, Product_Id, Company_Id</td><td>9</td><td>91 015</td></tr>
-<tr><td><code>fait_achats</code></td><td>Fait</td><td>1 produit acheté dans 1 facture fournisseur à 1 date</td><td>Id</td><td>DateKey, Product_Id, Fournisseur_Id</td><td>7</td><td>23 738</td></tr>
-<tr><td><code>fait_stock_actuel</code></td><td>Fait (snapshot)</td><td>1 produit à la date de snapshot</td><td>Product_Id</td><td>Product_Id, DateKey</td><td>4</td><td>6 842</td></tr>
-<tr><td><code>fait_encaissements</code></td><td>Fait</td><td>1 encaissement imputé à 1 vente réglée</td><td>Id</td><td>DateKey, PaymentMode_Id, Company_Id</td><td>7</td><td>38 738</td></tr>
-<tr><td><code>fait_decaissements</code></td><td>Fait</td><td>1 décaissement imputé à 1 facture fournisseur réglée</td><td>Id</td><td>DateKey, PaymentMode_Id, Fournisseur_Id</td><td>7</td><td>1 629</td></tr>
+<tr><td><code>dim_produit</code></td><td>Dimension</td><td>1 ligne = 1 produit</td><td>Produit_SK</td><td>—</td><td>5</td><td>6 842</td></tr>
+<tr><td><code>dim_client</code></td><td>Dimension</td><td>1 ligne = 1 client, y compris le client comptoir anonyme</td><td>Client_SK</td><td>—</td><td>5</td><td>82</td></tr>
+<tr><td><code>dim_fournisseur</code></td><td>Dimension</td><td>1 ligne = 1 fournisseur</td><td>Fournisseur_SK</td><td>—</td><td>3</td><td>116</td></tr>
+<tr><td><code>dim_paiement</code></td><td>Dimension</td><td>1 ligne = 1 moyen de paiement</td><td>Paiement_SK</td><td>—</td><td>3</td><td>6</td></tr>
+<tr><td><code>fait_ventes</code></td><td>Fait</td><td>1 produit vendu dans 1 document à 1 date</td><td>Id</td><td>DateKey, Produit_SK, Client_SK</td><td>9</td><td>91 015</td></tr>
+<tr><td><code>fait_achats</code></td><td>Fait</td><td>1 produit acheté dans 1 facture fournisseur à 1 date</td><td>Id</td><td>DateKey, Produit_SK, Fournisseur_SK</td><td>7</td><td>23 738</td></tr>
+<tr><td><code>fait_stock_actuel</code></td><td>Fait (snapshot)</td><td>1 produit à la date de snapshot</td><td>Produit_SK</td><td>Produit_SK, DateKey</td><td>4</td><td>6 842</td></tr>
+<tr><td><code>fait_encaissements</code></td><td>Fait</td><td>1 encaissement imputé à 1 vente réglée</td><td>Id</td><td>DateKey, Paiement_SK, Client_SK</td><td>7</td><td>38 738</td></tr>
+<tr><td><code>fait_decaissements</code></td><td>Fait</td><td>1 décaissement imputé à 1 facture fournisseur réglée</td><td>Id</td><td>DateKey, Paiement_SK, Fournisseur_SK</td><td>7</td><td>1 629</td></tr>
 </table>
 <p class='small'>fait_ventes : 25 743 lignes réelles et 65 272 synthétiques ; fait_achats : 6 980 lignes réelles et 16 758 synthétiques ; fait_encaissements : 38 142 encaissements (10 398 réels) sur 38 738 lignes ; fait_decaissements : 1 628 décaissements (501 réels) sur 1 629 lignes ; fait_stock_actuel : photo au 29/09/2026.</p>
 <h2>3. Relations</h2><p>Toutes les relations vont d'une dimension (côté 1) vers une table de faits (côté N).</p>
@@ -48,21 +48,21 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td><code>dim_temps</code></td><td><code>fait_achats</code></td><td>DateKey</td><td>Évolution des achats</td></tr>
 <tr><td><code>dim_temps</code></td><td><code>fait_encaissements</code></td><td>DateKey</td><td>Évolution des encaissements</td></tr>
 <tr><td><code>dim_temps</code></td><td><code>fait_decaissements</code></td><td>DateKey</td><td>Évolution des paiements aux fournisseurs</td></tr>
-<tr><td><code>dim_produit</code></td><td><code>fait_ventes</code></td><td>Product_Id</td><td>Ventes et marge par produit, famille, marque</td></tr>
-<tr><td><code>dim_produit</code></td><td><code>fait_achats</code></td><td>Product_Id</td><td>Achats par produit, famille, marque ; quel produit vient de quel fournisseur</td></tr>
-<tr><td><code>dim_produit</code></td><td><code>fait_stock_actuel</code></td><td>Product_Id</td><td>Stock disponible, ruptures, stock faible par produit, famille, marque</td></tr>
-<tr><td><code>dim_client</code></td><td><code>fait_ventes</code></td><td>Company_Id</td><td>Analyse des clients identifiés, clients actifs ; qui a acheté quoi et quand</td></tr>
-<tr><td><code>dim_client</code></td><td><code>fait_encaissements</code></td><td>Company_Id</td><td>Montant payé par chaque client</td></tr>
-<tr><td><code>dim_fournisseur</code></td><td><code>fait_achats</code></td><td>Fournisseur_Id</td><td>Achats par fournisseur</td></tr>
-<tr><td><code>dim_fournisseur</code></td><td><code>fait_decaissements</code></td><td>Fournisseur_Id</td><td>Montant payé à chaque fournisseur</td></tr>
-<tr><td><code>dim_paiement</code></td><td><code>fait_encaissements</code></td><td>PaymentMode_Id</td><td>Répartition des encaissements par moyen de paiement</td></tr>
-<tr><td><code>dim_paiement</code></td><td><code>fait_decaissements</code></td><td>PaymentMode_Id</td><td>Répartition des décaissements par moyen de paiement</td></tr>
+<tr><td><code>dim_produit</code></td><td><code>fait_ventes</code></td><td>Produit_SK</td><td>Ventes et marge par produit, famille, marque</td></tr>
+<tr><td><code>dim_produit</code></td><td><code>fait_achats</code></td><td>Produit_SK</td><td>Achats par produit, famille, marque ; quel produit vient de quel fournisseur</td></tr>
+<tr><td><code>dim_produit</code></td><td><code>fait_stock_actuel</code></td><td>Produit_SK</td><td>Stock disponible, ruptures, stock faible par produit, famille, marque</td></tr>
+<tr><td><code>dim_client</code></td><td><code>fait_ventes</code></td><td>Client_SK</td><td>Analyse des clients identifiés, clients actifs ; qui a acheté quoi et quand</td></tr>
+<tr><td><code>dim_client</code></td><td><code>fait_encaissements</code></td><td>Client_SK</td><td>Montant payé par chaque client</td></tr>
+<tr><td><code>dim_fournisseur</code></td><td><code>fait_achats</code></td><td>Fournisseur_SK</td><td>Achats par fournisseur</td></tr>
+<tr><td><code>dim_fournisseur</code></td><td><code>fait_decaissements</code></td><td>Fournisseur_SK</td><td>Montant payé à chaque fournisseur</td></tr>
+<tr><td><code>dim_paiement</code></td><td><code>fait_encaissements</code></td><td>Paiement_SK</td><td>Répartition des encaissements par moyen de paiement</td></tr>
+<tr><td><code>dim_paiement</code></td><td><code>fait_decaissements</code></td><td>Paiement_SK</td><td>Répartition des décaissements par moyen de paiement</td></tr>
 <tr><td><code>fait_ventes</code></td><td><code>fait_encaissements</code></td><td>Document_Id (dimension dégénérée)</td><td>Quelle vente chaque encaissement règle ; montant réglé par vente</td></tr>
 <tr><td><code>fait_achats</code></td><td><code>fait_decaissements</code></td><td>Document_Id (dimension dégénérée)</td><td>Quelle facture fournisseur chaque décaissement règle ; montant réglé par facture</td></tr>
 </table><div class='box'>Les tables de faits ne sont <b>pas reliées entre elles</b> : une analyse croisée (par exemple ventes et stock d'un même produit) passe par la dimension commune, ici <code>dim_produit</code>. Seule exception : <code>Document_Id</code>, dimension dégénérée qui relie un encaissement à sa vente (<code>fait_ventes</code>) et un décaissement à sa facture fournisseur (<code>fait_achats</code>). Dans Power BI, on filtre les deux visuels sur le même <code>Document_Id</code>, ou l'on crée une relation plusieurs-à-plusieurs sur cette colonne (filtre dans un seul sens). Les deux tables de paiements ne sont jamais reliées entre elles : la trésorerie nette se calcule par mesure (encaissements − décaissements), à travers <code>dim_temps</code> et <code>dim_paiement</code>.</div>
-<h2>4. Dictionnaire des données</h2><p class='small'>Légende : <span class='pk'>PK</span> clé primaire · <span class='fk'>FK</span> clé étrangère · <span class='ms'>mesure</span> valeur additive.</p>
+<h2>4. Dictionnaire des données</h2><p class='small'>Légende : <span class='pk'>PK</span> clé primaire · <span class='fk'>SK</span> clé de substitution (clé étrangère dans les tables de faits) · <b>clé métier</b> identifiant du logiciel · <span class='ms'>mesure</span> valeur additive.</p>
 <div class='keep'><h3>dim_temps <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
-<tr><td>DateKey</td><td><span class="pk">PK</span></td><td>Clé de la date au format AAAAMMJJ (ex. 20250430).</td></tr>
+<tr><td>DateKey</td><td><span class="pk">PK</span>, <span class="fk">SK</span></td><td>Clé de la date au format AAAAMMJJ (ex. 20250430).</td></tr>
 <tr><td>Date</td><td>attribut</td><td>Date calendaire.</td></tr>
 <tr><td>Annee</td><td>attribut</td><td>Année civile.</td></tr>
 <tr><td>Trimestre</td><td>attribut</td><td>Trimestre (1 à 4) ; vues trimestrielles de la direction (§6.1).</td></tr>
@@ -71,33 +71,37 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>EstFerie</td><td>attribut</td><td>Jour férié français (fêtes fixes et fêtes mobiles calculées à partir de Pâques). Remplace une source externe de calendrier.</td></tr>
 </table></div>
 <div class='keep'><h3>dim_produit <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
-<tr><td>Product_Id</td><td><span class="pk">PK</span></td><td>Identifiant numérique du produit dans le logiciel (référentiel ProductStocks).</td></tr>
+<tr><td>Produit_SK</td><td><span class="pk">PK</span>, <span class="fk">SK</span></td><td>Clé de substitution du DWH (numéro technique 1…N, -1 pour la ligne NON RENSEIGNE) : clé primaire de la dimension Produit, indépendante du logiciel source.</td></tr>
+<tr><td>Product_Id</td><td>clé métier</td><td>Identifiant numérique du produit dans le logiciel (référentiel ProductStocks).</td></tr>
 <tr><td>Libellé</td><td>attribut</td><td>Nom du produit (export Produits, sinon dernier libellé connu dans les événements ou les lignes de vente).</td></tr>
 <tr><td>Famille</td><td>attribut</td><td>Catégorie du produit ; NON RENSEIGNE si inconnue.</td></tr>
 <tr><td>Marque</td><td>attribut</td><td>Marque (export Produits, ou déduite du début du libellé) ; NON RENSEIGNE si inconnue.</td></tr>
 </table></div>
 <div class='keep'><h3>dim_client <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
-<tr><td>Company_Id</td><td><span class="pk">PK</span></td><td>Identifiant de la société dans le logiciel (CompaniesList) ; -1 = client non renseigné.</td></tr>
+<tr><td>Client_SK</td><td><span class="pk">PK</span>, <span class="fk">SK</span></td><td>Clé de substitution du DWH (numéro technique 1…N, -1 pour la ligne NON RENSEIGNE) : clé primaire de la dimension Client, indépendante du logiciel source.</td></tr>
+<tr><td>Company_Id</td><td>clé métier</td><td>Identifiant de la société dans le logiciel (CompaniesList) ; 2 = client comptoir anonyme, -1 = client non renseigné.</td></tr>
 <tr><td>Nom</td><td>attribut</td><td>Nom du client, pour l&#x27;affichage dans le dashboard Clients.</td></tr>
 <tr><td>TypeClient</td><td>attribut</td><td>PARTICULIER, B2B (laboratoires), COMPTOIR_ANONYME (client de passage, Company_Id = 2) ou NON RENSEIGNE. Axe « type client » du cahier (§6, §10).</td></tr>
 <tr><td>EstClientIdentifie</td><td>attribut</td><td>false pour le client comptoir anonyme et la ligne -1 : filtre de tous les KPI clients. Gardé bien que théoriquement déductible : il porte une règle métier (quels clients sont anonymes), définie une seule fois.</td></tr>
 </table></div>
 <div class='box'>Types : NON RENSEIGNE (34), PARTICULIER (29), B2B (18), COMPTOIR_ANONYME (1).</div>
 <div class='keep'><h3>dim_fournisseur <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
-<tr><td>Fournisseur_Id</td><td><span class="pk">PK</span></td><td>Identifiant de la société fournisseur dans le logiciel (CompaniesList) ; -1 = fournisseur non renseigné, ou paiement qui ne concerne pas un fournisseur.</td></tr>
+<tr><td>Fournisseur_SK</td><td><span class="pk">PK</span>, <span class="fk">SK</span></td><td>Clé de substitution du DWH (numéro technique 1…N, -1 pour la ligne NON RENSEIGNE) : clé primaire de la dimension Fournisseur, indépendante du logiciel source.</td></tr>
+<tr><td>Fournisseur_Id</td><td>clé métier</td><td>Identifiant de la société fournisseur dans le logiciel (CompaniesList) ; -1 = fournisseur non renseigné.</td></tr>
 <tr><td>Nom</td><td>attribut</td><td>Nom du fournisseur (fichier Fournisseurs quand le code y existe, sinon CompaniesList), pour l&#x27;affichage dans les dashboards Achats et Paiements.</td></tr>
 </table></div>
 <div class='box'>115 fournisseurs, dont 21 cités par des factures ou des paiements mais absents de la liste des sociétés (« FOURNISSEUR INCONNU &lt;id&gt; »).</div>
 <div class='keep'><h3>dim_paiement <span class='tag dim'>DIMENSION</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
-<tr><td>PaymentMode_Id</td><td><span class="pk">PK</span></td><td>Identifiant du moyen de paiement : 11 Espèces, 5 Carte bancaire, 1 Chèque, 7 Crédit (paiement différé), 21 Jetons, -1 Non renseigné.</td></tr>
+<tr><td>Paiement_SK</td><td><span class="pk">PK</span>, <span class="fk">SK</span></td><td>Clé de substitution du DWH (numéro technique 1…N, -1 pour la ligne NON RENSEIGNE) : clé primaire de la dimension Paiement, indépendante du logiciel source.</td></tr>
+<tr><td>PaymentMode_Id</td><td>clé métier</td><td>Identifiant du moyen de paiement : 11 Espèces, 5 Carte bancaire, 1 Chèque, 7 Crédit (paiement différé), 21 Jetons, -1 Non renseigné.</td></tr>
 <tr><td>PaymentModeName</td><td>attribut</td><td>Libellé affiché dans les graphiques et les filtres du dashboard Paiements (§9 : « Libellé / type de moyen »).</td></tr>
 </table></div>
 <div class='keep'><h3>fait_ventes <span class='tag fait'>FAIT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
 <tr><td>Id</td><td><span class="pk">PK</span></td><td>Identifiant de la ligne de document source.</td></tr>
 <tr><td>Document_Id</td><td>dimension dégénérée</td><td>Identifiant du document (ticket, bon de livraison, facture) : permet de compter les ventes et de calculer le panier moyen, sans dimension Document.</td></tr>
-<tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date du document.</td></tr>
-<tr><td>Product_Id</td><td><span class="fk">FK</span> → dim_produit</td><td>Produit vendu.</td></tr>
-<tr><td>Company_Id</td><td><span class="fk">FK</span> → dim_client</td><td>Client de la transaction ; -1 si non renseigné.</td></tr>
+<tr><td>DateKey</td><td><span class="fk">SK</span> → dim_temps</td><td>Date du document.</td></tr>
+<tr><td>Produit_SK</td><td><span class="fk">SK</span> → dim_produit</td><td>Produit vendu.</td></tr>
+<tr><td>Client_SK</td><td><span class="fk">SK</span> → dim_client</td><td>Client de la transaction ; -1 si non renseigné.</td></tr>
 <tr><td>QuantiteVendue</td><td><span class="ms">mesure</span></td><td>Quantité vendue, négative pour un retour ou un avoir.</td></tr>
 <tr><td>Remise_HT</td><td><span class="ms">mesure</span></td><td>Montant total de la remise HT accordée sur la ligne (cité par le cahier, §9).</td></tr>
 <tr><td>CA_HT</td><td><span class="ms">mesure</span></td><td>Chiffre d&#x27;affaires HT de la ligne, remises déduites, signé (négatif pour un retour).</td></tr>
@@ -107,16 +111,16 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <div class='keep'><h3>fait_achats <span class='tag fait'>FAIT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
 <tr><td>Id</td><td><span class="pk">PK</span></td><td>Identifiant de la ligne de document source.</td></tr>
 <tr><td>Document_Id</td><td>dimension dégénérée</td><td>Identifiant de la facture (ou de l&#x27;avoir) fournisseur : permet de compter les factures fournisseurs.</td></tr>
-<tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date de la facture fournisseur.</td></tr>
-<tr><td>Product_Id</td><td><span class="fk">FK</span> → dim_produit</td><td>Produit acheté.</td></tr>
-<tr><td>Fournisseur_Id</td><td><span class="fk">FK</span> → dim_fournisseur</td><td>Fournisseur de la facture ; -1 si la transaction ne cite aucune société.</td></tr>
+<tr><td>DateKey</td><td><span class="fk">SK</span> → dim_temps</td><td>Date de la facture fournisseur.</td></tr>
+<tr><td>Produit_SK</td><td><span class="fk">SK</span> → dim_produit</td><td>Produit acheté.</td></tr>
+<tr><td>Fournisseur_SK</td><td><span class="fk">SK</span> → dim_fournisseur</td><td>Fournisseur de la facture ; -1 si la transaction ne cite aucune société.</td></tr>
 <tr><td>QuantiteAchetee</td><td><span class="ms">mesure</span></td><td>Quantité achetée, négative pour un avoir fournisseur.</td></tr>
 <tr><td>MontantAchat_HT</td><td><span class="ms">mesure</span></td><td>Montant HT de la ligne après remise, signé (négatif pour un avoir). Le prix unitaire n&#x27;est pas stocké : il se recalcule (montant / quantité).</td></tr>
 </table></div>
 <div class='box'>3 145 factures et avoirs fournisseurs (dont 14 à montant négatif : avoirs et factures de correction), 3 155 130 € HT d'achats. 379 produits sont achetés chez plusieurs fournisseurs : le lien produit → fournisseur passe donc par cette table, pas par <code>dim_produit</code>. Seuls les documents validés sont chargés ; aucune facture fournisseur ne regroupe d'autres documents.</div>
 <div class='keep'><h3>fait_stock_actuel <span class='tag fait'>FAIT · SNAPSHOT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
-<tr><td>Product_Id</td><td><span class="pk">PK</span> / <span class="fk">FK</span> → dim_produit</td><td>Produit (une ligne par produit).</td></tr>
-<tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date de la photo du stock (fin de la période chargée).</td></tr>
+<tr><td>Produit_SK</td><td><span class="pk">PK</span>, <span class="fk">SK</span> → dim_produit</td><td>Produit (une ligne par produit).</td></tr>
+<tr><td>DateKey</td><td><span class="fk">SK</span> → dim_temps</td><td>Date de la photo du stock (fin de la période chargée).</td></tr>
 <tr><td>Quantity</td><td><span class="ms">mesure</span></td><td>Quantité en stock selon le logiciel ; peut être négative quand une vente est enregistrée avant ou sans la réception de la marchandise (le logiciel l&#x27;autorise pour les ventes comptoir et les bons de livraison).</td></tr>
 <tr><td>QuantiteAlerte</td><td>seuil</td><td>Seuil d&#x27;alerte de stock choisi par le magasin pour le produit (export Produits, sinon paramètre par défaut du logiciel = 5). Stocké à côté de la quantité : le stock faible se calcule dans la même table. Non additif, non calculable ; une seule valeur par produit (une ligne par produit).</td></tr>
 </table></div>
@@ -125,19 +129,19 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>Id</td><td><span class="pk">PK</span></td><td>Clé technique de la ligne d&#x27;imputation (un paiement qui règle plusieurs documents a plusieurs lignes).</td></tr>
 <tr><td>Payment_Id</td><td>dimension dégénérée</td><td>Numéro du paiement dans le logiciel : Nombre de paiements = DISTINCTCOUNT(Payment_Id).</td></tr>
 <tr><td>Document_Id</td><td>dimension dégénérée</td><td>Vente réglée, même clé que fait_ventes : répond à « quelle vente ce paiement règle-t-il ? » ; -1 si aucune imputation.</td></tr>
-<tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date de l&#x27;encaissement.</td></tr>
-<tr><td>PaymentMode_Id</td><td><span class="fk">FK</span> → dim_paiement</td><td>Moyen de paiement ; -1 si non renseigné.</td></tr>
-<tr><td>Company_Id</td><td><span class="fk">FK</span> → dim_client</td><td>Client qui paie (2 = client comptoir anonyme).</td></tr>
+<tr><td>DateKey</td><td><span class="fk">SK</span> → dim_temps</td><td>Date de l&#x27;encaissement.</td></tr>
+<tr><td>Paiement_SK</td><td><span class="fk">SK</span> → dim_paiement</td><td>Moyen de paiement ; -1 si non renseigné.</td></tr>
+<tr><td>Client_SK</td><td><span class="fk">SK</span> → dim_client</td><td>Client qui paie (y compris le client comptoir anonyme).</td></tr>
 <tr><td>Amount</td><td><span class="ms">mesure</span></td><td>Montant TTC réellement versé et imputé à ce document ; la somme des lignes d&#x27;un paiement est exactement le montant payé. Valeur de base non recalculable : elle diffère du CA ou des achats (impayés, paiements fractionnés ou différés, TVA).</td></tr>
 </table></div>
-<div class='box'>Montant encaissé : 3 007 313 € sur 38 142 encaissements (dont 36 041 au comptoir, Company_Id = 2). 37 264 encaissements (98 %) n'ont pas de moyen renseigné : le logiciel ne le saisit que pendant les premières semaines (sept.-oct. 2024). Aucun montant négatif : l'argent rendu lors d'un retour n'est pas un paiement dans la source.</div>
+<div class='box'>Montant encaissé : 3 007 313 € sur 38 142 encaissements (dont 36 041 au comptoir, client de clé métier Company_Id = 2). 37 264 encaissements (98 %) n'ont pas de moyen renseigné : le logiciel ne le saisit que pendant les premières semaines (sept.-oct. 2024). Aucun montant négatif : l'argent rendu lors d'un retour n'est pas un paiement dans la source.</div>
 <div class='keep'><h3>fait_decaissements <span class='tag fait'>FAIT</span></h3><table><tr><th style='width:20%'>Colonne</th><th style='width:14%'>Rôle</th><th>Description</th></tr>
 <tr><td>Id</td><td><span class="pk">PK</span></td><td>Clé technique de la ligne d&#x27;imputation (un paiement qui règle plusieurs documents a plusieurs lignes).</td></tr>
 <tr><td>Payment_Id</td><td>dimension dégénérée</td><td>Numéro du paiement dans le logiciel : Nombre de paiements = DISTINCTCOUNT(Payment_Id).</td></tr>
 <tr><td>Document_Id</td><td>dimension dégénérée</td><td>Facture fournisseur réglée, même clé que fait_achats : répond à « quelle facture ce paiement règle-t-il ? ».</td></tr>
-<tr><td>DateKey</td><td><span class="fk">FK</span> → dim_temps</td><td>Date du décaissement.</td></tr>
-<tr><td>PaymentMode_Id</td><td><span class="fk">FK</span> → dim_paiement</td><td>Moyen de paiement ; -1 si non renseigné.</td></tr>
-<tr><td>Fournisseur_Id</td><td><span class="fk">FK</span> → dim_fournisseur</td><td>Fournisseur payé.</td></tr>
+<tr><td>DateKey</td><td><span class="fk">SK</span> → dim_temps</td><td>Date du décaissement.</td></tr>
+<tr><td>Paiement_SK</td><td><span class="fk">SK</span> → dim_paiement</td><td>Moyen de paiement ; -1 si non renseigné.</td></tr>
+<tr><td>Fournisseur_SK</td><td><span class="fk">SK</span> → dim_fournisseur</td><td>Fournisseur payé.</td></tr>
 <tr><td>Amount</td><td><span class="ms">mesure</span></td><td>Montant TTC réellement versé et imputé à ce document ; la somme des lignes d&#x27;un paiement est exactement le montant payé. Valeur de base non recalculable : elle diffère du CA ou des achats (impayés, paiements fractionnés ou différés, TVA).</td></tr>
 </table></div>
 <div class='box'>Montant payé aux fournisseurs : 1 976 938 € sur 1 628 décaissements. <b>Imputation (deux tables) :</b> 39 706 paiements règlent un seul document, 58 en règlent plusieurs (montant réparti selon TransactionPayments, puis au prorata du total TTC quand une facture client regroupe des bons de livraison), 6 n'ont pas de document chargé (Document_Id = -1). Le client ou le fournisseur du paiement est toujours celui du document réglé.</div>
@@ -148,12 +152,12 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>Panier moyen</td><td><code>CA HT / Nombre de ventes</code></td><td>fait_ventes</td><td>Synthèse, Commercial, Clients</td></tr>
 <tr><td>Taux de croissance du CA</td><td><code>(CA_N − CA_N-1) / CA_N-1 × 100</code></td><td>fait_ventes + dim_temps</td><td>Synthèse</td></tr>
 <tr><td>Marge HT</td><td><code>SUM(CA_HT) − SUM(Cout_HT), lignes sans coût exclues</code></td><td>fait_ventes</td><td>Commercial</td></tr>
-<tr><td>Clients actifs</td><td><code>DISTINCTCOUNT(Company_Id) avec au moins une vente, filtre EstClientIdentifie = true</code></td><td>fait_ventes + dim_client</td><td>Clients</td></tr>
+<tr><td>Clients actifs</td><td><code>DISTINCTCOUNT(Client_SK) avec au moins une vente, filtre EstClientIdentifie = true</code></td><td>fait_ventes + dim_client</td><td>Clients</td></tr>
 <tr><td>Stock disponible</td><td><code>SUM(Quantity)</code></td><td>fait_stock_actuel</td><td>Stock</td></tr>
-<tr><td>Produits en rupture</td><td><code>COUNT(Product_Id) où Quantity = 0</code></td><td>fait_stock_actuel</td><td>Stock</td></tr>
-<tr><td>Produits en stock faible</td><td><code>COUNT(Product_Id) où 0 &lt; Quantity ≤ QuantiteAlerte</code></td><td>fait_stock_actuel</td><td>Stock</td></tr>
+<tr><td>Produits en rupture</td><td><code>COUNT(Produit_SK) où Quantity = 0</code></td><td>fait_stock_actuel</td><td>Stock</td></tr>
+<tr><td>Produits en stock faible</td><td><code>COUNT(Produit_SK) où 0 &lt; Quantity ≤ QuantiteAlerte</code></td><td>fait_stock_actuel</td><td>Stock</td></tr>
 <tr><td>Montant encaissé</td><td><code>SUM(Amount)</code></td><td>fait_encaissements</td><td>Paiements</td></tr>
-<tr><td>Montant payé par client</td><td><code>Montant encaissé par Company_Id, filtre EstClientIdentifie = true</code></td><td>fait_encaissements + dim_client</td><td>Paiements, Clients</td></tr>
+<tr><td>Montant payé par client</td><td><code>Montant encaissé par Client_SK, filtre EstClientIdentifie = true</code></td><td>fait_encaissements + dim_client</td><td>Paiements, Clients</td></tr>
 <tr><td>Montant payé aux fournisseurs</td><td><code>SUM(Amount)</code></td><td>fait_decaissements + dim_fournisseur</td><td>Paiements, Achats</td></tr>
 <tr><td>Nombre d'encaissements / de décaissements</td><td><code>DISTINCTCOUNT(Payment_Id)</code></td><td>fait_encaissements / fait_decaissements</td><td>Paiements</td></tr>
 <tr><td>Montant réglé d'une vente / d'une facture</td><td><code>SUM(Amount) par Document_Id</code></td><td>fait_encaissements / fait_decaissements</td><td>Paiements, Clients, Achats</td></tr>
@@ -178,7 +182,8 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <tr><td>dim_fournisseur</td><td>Nouvelle dimension : savoir quel fournisseur est payé et chez qui un produit est acheté.</td></tr>
 <tr><td>fait_achats</td><td>Nouveau fait : achats par fournisseur, produit et période ; quel produit vient de quel fournisseur.</td></tr>
 <tr><td>fait_paiements séparé en fait_encaissements et fait_decaissements</td><td>La table donne le sens du paiement : plus d&#x27;indicateur EstPaiementFournisseur ni de clé « sans objet » (-1) ; chaque table ne porte que la partie concernée (client ou fournisseur) et le document qu&#x27;elle règle.</td></tr>
-<tr><td>fait_encaissements : Company_Id ; fait_decaissements : Fournisseur_Id</td><td>Montant payé par chaque client (2 = paiements au comptoir) et à chaque fournisseur.</td></tr>
+<tr><td>fait_encaissements : Client_SK ; fait_decaissements : Fournisseur_SK</td><td>Montant payé par chaque client (y compris le client comptoir anonyme) et à chaque fournisseur.</td></tr>
+<tr><td>Clés de substitution : Produit_SK, Client_SK, Fournisseur_SK, Paiement_SK</td><td>Clés primaires des dimensions, portées en clés étrangères par les faits : le DWH ne dépend plus des identifiants du logiciel, conservés comme clés métier.</td></tr>
 <tr><td>Grain « 1 paiement imputé à 1 document », Payment_Id, Document_Id</td><td>Le cahier demande quelle vente ou facture chaque paiement règle ; un paiement qui règle plusieurs documents est réparti sur plusieurs lignes, sans table pont.</td></tr>
 <tr><td>QuantiteAlerte : de dim_produit vers fait_stock_actuel</td><td>Le seuil est stocké à côté de la quantité ; le stock faible se calcule dans une seule table.</td></tr>
 </table><h2>8. Règles de chargement et limites</h2><ul>
@@ -190,7 +195,7 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 <li><b>Retours et remboursements :</b> les marchandises retournées sont des lignes négatives de <code>fait_ventes</code> et <code>fait_achats</code> ; l'argent rendu n'est pas enregistré comme paiement dans la source, il n'apparaît donc ni dans <code>fait_encaissements</code> ni dans <code>fait_decaissements</code> (aucun montant négatif).</li>
 <li><b>Moyen de paiement :</b> saisi par le logiciel pendant les premières semaines seulement (sept.-oct. 2024) ; la répartition par moyen n'est représentative que sur cette période, réelle comme synthétique.</li>
 <li><b>Période synthétique :</b> pas d'avoir client ni fournisseur généré (types de documents rares) ; les retours clients y apparaissent seulement comme lignes négatives de tickets de caisse.</li>
-<li><b>Stock :</b> une seule photo du stock, donc Product_Id suffit comme clé ; avec plusieurs photos, la clé deviendrait (Product_Id, DateKey).</li>
+<li><b>Stock :</b> une seule photo du stock, donc Produit_SK suffit comme clé ; avec plusieurs photos, la clé deviendrait (Produit_SK, DateKey).</li>
 <li><b>Stock :</b> quantité du logiciel conservée, y compris les stocks négatifs (signalés par les contrôles qualité).</li>
 <li><b>Données synthétiques :</b> générées par simulation (hypothèses documentées dans la branche data-external) ; l'apport de la météo et des épidémies se mesure sur la période réelle uniquement.</li>
 <li><b>Sources brutes :</b> jamais modifiées ; le nettoyage produit des copies, puis le chargement du Data Warehouse.</li>
