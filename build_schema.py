@@ -8,7 +8,8 @@ Sortie  : ./dataset/schema/
             schema_dwh.html / .pdf            descriptif détaillé : modèle, tables, relations, dictionnaire, mesures
             schema_dwh.sql                    CREATE TABLE PostgreSQL avec clés primaires et étrangères
             README.md
-Vérifie que le dictionnaire correspond exactement aux colonnes des CSV ; tous les chiffres sont recalculés.
+Vérifie que le dictionnaire correspond aux colonnes des CSV (une SK correspond à l'identifiant source tant que l'ETL
+n'attribue pas les SK) ; tous les chiffres sont recalculés.
 
 Bibliothèque standard uniquement (+ Chrome ou Edge pour le PNG et le PDF) :  python build_schema.py
 """
@@ -28,7 +29,7 @@ REAL_END = "20250430"           # délimitation réel / synthétique (DateKey)
 #   clé : "PK", "FK:table.colonne", "PK FK:table.colonne", "M" (mesure) ou ""
 META = {
     "dim_temps": ("Dimension", "1 ligne = 1 date", [
-        ("DateKey", "INTEGER", "PK", "PK", "Clé de la date au format AAAAMMJJ (ex. 20250430)."),
+        ("DateKey", "INTEGER", "PK", "PK, SK", "Clé de la date au format AAAAMMJJ (ex. 20250430)."),
         ("Date", "DATE", "", "attribut", "Date calendaire."),
         ("Annee", "SMALLINT", "", "attribut", "Année civile."),
         ("Trimestre", "SMALLINT", "", "attribut", "Trimestre (1 à 4) ; vues trimestrielles de la direction (§6.1)."),
@@ -38,13 +39,15 @@ META = {
          "Jour férié français (fêtes fixes et fêtes mobiles calculées à partir de Pâques). Remplace une source "
          "externe de calendrier.")]),
     "dim_produit": ("Dimension", "1 ligne = 1 produit", [
-        ("Product_Id", "INTEGER", "PK", "PK", "Identifiant numérique du produit dans le logiciel (référentiel ProductStocks)."),
+        ("Produit_SK", "INTEGER", "PK", "PK, SK", "Clé de substitution du DWH (numéro technique 1…N, -1 pour la ligne NON RENSEIGNE) : clé primaire de la dimension Produit, indépendante du logiciel source."),
+        ("Product_Id", "INTEGER", "BK", "clé métier", "Identifiant numérique du produit dans le logiciel (référentiel ProductStocks)."),
         ("Libellé", "TEXT", "", "attribut",
          "Nom du produit (export Produits, sinon dernier libellé connu dans les événements ou les lignes de vente)."),
         ("Famille", "TEXT", "", "attribut", "Catégorie du produit ; NON RENSEIGNE si inconnue."),
         ("Marque", "TEXT", "", "attribut", "Marque (export Produits, ou déduite du début du libellé) ; NON RENSEIGNE si inconnue.")]),
     "dim_client": ("Dimension", "1 ligne = 1 client, y compris le client comptoir anonyme", [
-        ("Company_Id", "INTEGER", "PK", "PK", "Identifiant de la société dans le logiciel (CompaniesList) ; -1 = client non renseigné."),
+        ("Client_SK", "INTEGER", "PK", "PK, SK", "Clé de substitution du DWH (numéro technique 1…N, -1 pour la ligne NON RENSEIGNE) : clé primaire de la dimension Client, indépendante du logiciel source."),
+        ("Company_Id", "INTEGER", "BK", "clé métier", "Identifiant de la société dans le logiciel (CompaniesList) ; 2 = client comptoir anonyme, -1 = client non renseigné."),
         ("Nom", "TEXT", "", "attribut", "Nom du client, pour l'affichage dans le dashboard Clients."),
         ("TypeClient", "TEXT", "", "attribut",
          "PARTICULIER, B2B (laboratoires), COMPTOIR_ANONYME (client de passage, Company_Id = 2) ou NON RENSEIGNE. "
@@ -53,14 +56,15 @@ META = {
          "false pour le client comptoir anonyme et la ligne -1 : filtre de tous les KPI clients. Gardé bien que "
          "théoriquement déductible : il porte une règle métier (quels clients sont anonymes), définie une seule fois.")]),
     "dim_fournisseur": ("Dimension", "1 ligne = 1 fournisseur", [
-        ("Fournisseur_Id", "INTEGER", "PK", "PK",
-         "Identifiant de la société fournisseur dans le logiciel (CompaniesList) ; -1 = fournisseur non renseigné, ou "
-         "paiement qui ne concerne pas un fournisseur."),
+        ("Fournisseur_SK", "INTEGER", "PK", "PK, SK", "Clé de substitution du DWH (numéro technique 1…N, -1 pour la ligne NON RENSEIGNE) : clé primaire de la dimension Fournisseur, indépendante du logiciel source."),
+        ("Fournisseur_Id", "INTEGER", "BK", "clé métier",
+         "Identifiant de la société fournisseur dans le logiciel (CompaniesList) ; -1 = fournisseur non renseigné."),
         ("Nom", "TEXT", "", "attribut",
          "Nom du fournisseur (fichier Fournisseurs quand le code y existe, sinon CompaniesList), pour l'affichage dans "
          "les dashboards Achats et Paiements.")]),
     "dim_paiement": ("Dimension", "1 ligne = 1 moyen de paiement", [
-        ("PaymentMode_Id", "INTEGER", "PK", "PK",
+        ("Paiement_SK", "INTEGER", "PK", "PK, SK", "Clé de substitution du DWH (numéro technique 1…N, -1 pour la ligne NON RENSEIGNE) : clé primaire de la dimension Paiement, indépendante du logiciel source."),
+        ("PaymentMode_Id", "INTEGER", "BK", "clé métier",
          "Identifiant du moyen de paiement : 11 Espèces, 5 Carte bancaire, 1 Chèque, 7 Crédit (paiement différé), "
          "21 Jetons, -1 Non renseigné."),
         ("PaymentModeName", "TEXT", "", "attribut",
@@ -70,9 +74,9 @@ META = {
         ("Document_Id", "BIGINT", "", "dimension dégénérée",
          "Identifiant du document (ticket, bon de livraison, facture) : permet de compter les ventes et de calculer "
          "le panier moyen, sans dimension Document."),
-        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "FK → dim_temps", "Date du document."),
-        ("Product_Id", "INTEGER", "FK:dim_produit.Product_Id", "FK → dim_produit", "Produit vendu."),
-        ("Company_Id", "INTEGER", "FK:dim_client.Company_Id", "FK → dim_client", "Client de la transaction ; -1 si non renseigné."),
+        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "SK → dim_temps", "Date du document."),
+        ("Produit_SK", "INTEGER", "FK:dim_produit.Produit_SK", "SK → dim_produit", "Produit vendu."),
+        ("Client_SK", "INTEGER", "FK:dim_client.Client_SK", "SK → dim_client", "Client de la transaction ; -1 si non renseigné."),
         ("QuantiteVendue", "NUMERIC(14,4)", "M", "mesure", "Quantité vendue, négative pour un retour ou un avoir."),
         ("Remise_HT", "NUMERIC(14,4)", "M", "mesure", "Montant total de la remise HT accordée sur la ligne (cité par le cahier, §9)."),
         ("CA_HT", "NUMERIC(14,4)", "M", "mesure", "Chiffre d'affaires HT de la ligne, remises déduites, signé (négatif pour un retour)."),
@@ -83,17 +87,17 @@ META = {
         ("Id", "BIGINT", "PK", "PK", "Identifiant de la ligne de document source."),
         ("Document_Id", "BIGINT", "", "dimension dégénérée",
          "Identifiant de la facture (ou de l'avoir) fournisseur : permet de compter les factures fournisseurs."),
-        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "FK → dim_temps", "Date de la facture fournisseur."),
-        ("Product_Id", "INTEGER", "FK:dim_produit.Product_Id", "FK → dim_produit", "Produit acheté."),
-        ("Fournisseur_Id", "INTEGER", "FK:dim_fournisseur.Fournisseur_Id", "FK → dim_fournisseur",
+        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "SK → dim_temps", "Date de la facture fournisseur."),
+        ("Produit_SK", "INTEGER", "FK:dim_produit.Produit_SK", "SK → dim_produit", "Produit acheté."),
+        ("Fournisseur_SK", "INTEGER", "FK:dim_fournisseur.Fournisseur_SK", "SK → dim_fournisseur",
          "Fournisseur de la facture ; -1 si la transaction ne cite aucune société."),
         ("QuantiteAchetee", "NUMERIC(14,4)", "M", "mesure", "Quantité achetée, négative pour un avoir fournisseur."),
         ("MontantAchat_HT", "NUMERIC(14,4)", "M", "mesure",
          "Montant HT de la ligne après remise, signé (négatif pour un avoir). Le prix unitaire n'est pas stocké : "
          "il se recalcule (montant / quantité).")]),
     "fait_stock_actuel": ("Fait (snapshot)", "1 produit à la date de snapshot", [
-        ("Product_Id", "INTEGER", "PK FK:dim_produit.Product_Id", "PK / FK → dim_produit", "Produit (une ligne par produit)."),
-        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "FK → dim_temps", "Date de la photo du stock (fin de la période chargée)."),
+        ("Produit_SK", "INTEGER", "PK FK:dim_produit.Produit_SK", "PK, SK → dim_produit", "Produit (une ligne par produit)."),
+        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "SK → dim_temps", "Date de la photo du stock (fin de la période chargée)."),
         ("Quantity", "NUMERIC(14,3)", "M", "mesure",
          "Quantité en stock selon le logiciel ; peut être négative quand une vente est enregistrée avant ou sans la "
          "réception de la marchandise (le logiciel l'autorise pour les ventes comptoir et les bons de livraison)."),
@@ -109,9 +113,9 @@ META = {
         ("Document_Id", "BIGINT", "", "dimension dégénérée",
          "Vente réglée, même clé que fait_ventes : répond à « quelle vente ce paiement règle-t-il ? » ; -1 si aucune "
          "imputation."),
-        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "FK → dim_temps", "Date de l'encaissement."),
-        ("PaymentMode_Id", "INTEGER", "FK:dim_paiement.PaymentMode_Id", "FK → dim_paiement", "Moyen de paiement ; -1 si non renseigné."),
-        ("Company_Id", "INTEGER", "FK:dim_client.Company_Id", "FK → dim_client", "Client qui paie (2 = client comptoir anonyme)."),
+        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "SK → dim_temps", "Date de l'encaissement."),
+        ("Paiement_SK", "INTEGER", "FK:dim_paiement.Paiement_SK", "SK → dim_paiement", "Moyen de paiement ; -1 si non renseigné."),
+        ("Client_SK", "INTEGER", "FK:dim_client.Client_SK", "SK → dim_client", "Client qui paie (y compris le client comptoir anonyme)."),
         ("Amount", "NUMERIC(14,4)", "M", "mesure",
          "Montant TTC réellement versé et imputé à ce document ; la somme des lignes d'un paiement est exactement le "
          "montant payé. Valeur de base non recalculable : elle diffère du CA ou des achats (impayés, paiements "
@@ -123,14 +127,16 @@ META = {
          "Numéro du paiement dans le logiciel : Nombre de paiements = DISTINCTCOUNT(Payment_Id)."),
         ("Document_Id", "BIGINT", "", "dimension dégénérée",
          "Facture fournisseur réglée, même clé que fait_achats : répond à « quelle facture ce paiement règle-t-il ? »."),
-        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "FK → dim_temps", "Date du décaissement."),
-        ("PaymentMode_Id", "INTEGER", "FK:dim_paiement.PaymentMode_Id", "FK → dim_paiement", "Moyen de paiement ; -1 si non renseigné."),
-        ("Fournisseur_Id", "INTEGER", "FK:dim_fournisseur.Fournisseur_Id", "FK → dim_fournisseur", "Fournisseur payé."),
+        ("DateKey", "INTEGER", "FK:dim_temps.DateKey", "SK → dim_temps", "Date du décaissement."),
+        ("Paiement_SK", "INTEGER", "FK:dim_paiement.Paiement_SK", "SK → dim_paiement", "Moyen de paiement ; -1 si non renseigné."),
+        ("Fournisseur_SK", "INTEGER", "FK:dim_fournisseur.Fournisseur_SK", "SK → dim_fournisseur", "Fournisseur payé."),
         ("Amount", "NUMERIC(14,4)", "M", "mesure",
          "Montant TTC réellement versé et imputé à ce document ; la somme des lignes d'un paiement est exactement le "
          "montant payé. Valeur de base non recalculable : elle diffère du CA ou des achats (impayés, paiements "
          "fractionnés ou différés, TVA).")]),
 }
+SK_SOURCE = {"Produit_SK": "Product_Id", "Client_SK": "Company_Id", "Fournisseur_SK": "Fournisseur_Id",
+             "Paiement_SK": "PaymentMode_Id"}   # SK du schéma -> colonne des CSV (l'ETL n'attribue pas encore les SK)
 DIMS = ["dim_temps", "dim_produit", "dim_client", "dim_fournisseur", "dim_paiement"]
 FACTS = ["fait_ventes", "fait_encaissements", "fait_achats", "fait_decaissements", "fait_stock_actuel"]
 
@@ -148,7 +154,7 @@ def verify():
     for t, (_, _, cols) in META.items():
         with (DWH / f"{t}.csv").open(encoding="utf-8") as fh:
             header = next(csv.reader(fh))
-        expected = [c[0] for c in cols]
+        expected = list(dict.fromkeys(SK_SOURCE.get(c[0], c[0]) for c in cols))
         assert header == expected, f"{t} : colonnes différentes\nCSV  : {header}\nMETA : {expected}"
         data[t] = read(t)
     return data
@@ -306,9 +312,12 @@ def svg_diagram(S):
             tag, ref = "", ""
             if key == "M":
                 tag = '<tspan dx="10" font-size="15" fill="#7d6aa8">[mesure]</tspan>'
+            elif key == "BK":
+                tag = '<tspan dx="10" font-size="15" fill="#9a5b10">[clé métier]</tspan>'
             elif is_key:
-                label = "PK/FK" if "PK" in parts and len(parts) > 1 else "PK" if "PK" in parts else "FK"
-                color = "#2a7a52" if label == "FK" else "#1f4e8c"
+                sk = col in SK_SOURCE or col == "DateKey"
+                label = "PK, SK" if "PK" in parts and sk else "PK" if "PK" in parts else "SK"
+                color = "#2a7a52" if label == "SK" else "#1f4e8c"
                 tag = f'<tspan dx="10" font-size="15" font-weight="700" fill="{color}">[{label}]</tspan>'
                 fk = next((p[3:].split(".")[0] for p in parts if p.startswith("FK:")), "")
                 if fk:
@@ -349,17 +358,18 @@ def svg_diagram(S):
           'stroke-width="1.5" stroke-dasharray="6 5"/>',
           f'<text x="70" y="{ly + 41}" font-size="17" font-weight="700" fill="#1d2330">Légende :</text>']
     for x, w, label, fill, color, txt in ((175, 78, "PK", "#d6e5f8", "#1f4e8c", "= clé primaire"),
-                                          (390, 78, "FK", "#d5eedf", "#2a7a52", "= clé étrangère"),
-                                          (610, 100, "mesure", "#e7ddf6", "#5a3f8f", "= valeur additive")):
+                                          (390, 78, "SK", "#d5eedf", "#2a7a52", "= clé de substitution (FK dans les faits)"),
+                                          (800, 100, "mesure", "#e7ddf6", "#5a3f8f", "= valeur additive"),
+                                          (1070, 130, "clé métier", "#fde9c9", "#9a5b10", "= identifiant du logiciel")):
         o.append(f'<rect x="{x}" y="{ly + 17}" width="{w}" height="34" rx="17" fill="{fill}"/>'
                  f'<text x="{x + w / 2}" y="{ly + 40}" text-anchor="middle" font-size="16" font-weight="700" fill="{color}">{label}</text>'
                  f'<text x="{x + w + 14}" y="{ly + 40}" font-size="15" fill="#2b3442">{txt}</text>')
-    badge(900, ly + 34, "1", COL["dim_temps"])
-    o.append(f'<path d="M915 {ly + 34} H985" stroke="{COL["dim_temps"]}" stroke-width="3"/>'
-             f'<path d="M981 {ly + 28} L991 {ly + 34} L981 {ly + 40} Z" fill="{COL["dim_temps"]}"/>')
-    badge(1007, ly + 34, "N", COL["dim_temps"])
-    o.append(f'<text x="1033" y="{ly + 30}" font-size="15" fill="#2b3442">= relation 1 vers plusieurs</text>'
-             f'<text x="1033" y="{ly + 49}" font-size="12" fill="#5a6b82">(1 ligne de dimension pour plusieurs lignes de la '
+    badge(1420, ly + 34, "1", COL["dim_temps"])
+    o.append(f'<path d="M1435 {ly + 34} H1505" stroke="{COL["dim_temps"]}" stroke-width="3"/>'
+             f'<path d="M1501 {ly + 28} L1511 {ly + 34} L1501 {ly + 40} Z" fill="{COL["dim_temps"]}"/>')
+    badge(1527, ly + 34, "N", COL["dim_temps"])
+    o.append(f'<text x="1553" y="{ly + 30}" font-size="15" fill="#2b3442">= relation 1 vers plusieurs</text>'
+             f'<text x="1553" y="{ly + 49}" font-size="12" fill="#5a6b82">(1 ligne de dimension pour plusieurs lignes de la '
              'table de faits ; la couleur est celle de la dimension)</text>')
     o.append("</svg>")
     return "\n".join(o), W, H
@@ -397,9 +407,9 @@ code { font-family: Consolas, monospace; font-size: 8pt; background: #eef2f7; pa
 
 def role_html(role):
     if role.startswith("PK"):
-        return role.replace("PK", '<span class="pk">PK</span>').replace("FK", '<span class="fk">FK</span>')
-    if role.startswith("FK"):
-        return role.replace("FK", '<span class="fk">FK</span>')
+        return role.replace("PK", '<span class="pk">PK</span>').replace("SK", '<span class="fk">SK</span>')
+    if role.startswith("SK"):
+        return role.replace("SK", '<span class="fk">SK</span>')
     if role == "mesure":
         return '<span class="ms">mesure</span>'
     return esc(role)
@@ -414,7 +424,7 @@ def build_html(S):
          "<section class='paysage'><h1>Schéma du Data Warehouse — Health Retailers</h1>"
          "<div class='sub'>Modèle BI (version B) : 5 dimensions et 5 tables de faits — descriptif détaillé</div>"
          "<div class='schema'><img src='schema_dwh_diagramme.png' alt='Schéma du Data Warehouse'></div>"
-         f"<div class='legend'>Clés primaires (PK), clés étrangères (FK) et mesures. La couleur d'un lien est celle de la "
+         f"<div class='legend'>Clés primaires (PK), clés de substitution (SK), clés métier et mesures. La couleur d'un lien est celle de la "
          f"dimension d'origine. Volumes de la période chargée ({d0} → {d1}) : données réelles du {reel}, puis données "
          "synthétiques. Le détail de chaque table, des relations et des mesures figure dans les pages suivantes.</div></section>",
          "<h2>1. Présentation du modèle</h2>",
@@ -429,6 +439,9 @@ def build_html(S):
          "<code>dim_fournisseur</code>, <code>dim_paiement</code></td></tr>"
          "<tr><td>Tables de faits (5)</td><td><code>fait_ventes</code>, <code>fait_encaissements</code>, <code>fait_achats</code>, "
          "<code>fait_decaissements</code>, <code>fait_stock_actuel</code></td></tr>"
+         "<tr><td>Clés</td><td>Chaque dimension (sauf <code>dim_temps</code>, dont la clé <code>DateKey</code> AAAAMMJJ est conservée) "
+         "a une <b>clé de substitution (SK)</b> créée par le DWH : c'est sa clé primaire, et les tables de faits la portent en clé "
+         "étrangère. L'identifiant du logiciel reste dans la dimension comme <b>clé métier</b>. Le schéma est le modèle cible : les CSV de dataset-dwh portent encore les identifiants du logiciel, les SK seront attribuées au chargement.</td></tr>"
          "<tr><td>Règle de conservation d'une colonne</td><td>Une colonne n'est stockée que si elle est <b>exigée par le cahier</b> "
          "(KPI, filtre ou attribut cité) <b>et</b> qu'elle <b>ne peut pas être recalculée</b> à partir des autres colonnes du Data "
          "Warehouse. Tout le reste est calculé dans Power BI ou reste en zone ETL.</td></tr>"
@@ -462,15 +475,15 @@ def build_html(S):
            ("dim_temps", "fait_achats", "DateKey", "Évolution des achats"),
            ("dim_temps", "fait_encaissements", "DateKey", "Évolution des encaissements"),
            ("dim_temps", "fait_decaissements", "DateKey", "Évolution des paiements aux fournisseurs"),
-           ("dim_produit", "fait_ventes", "Product_Id", "Ventes et marge par produit, famille, marque"),
-           ("dim_produit", "fait_achats", "Product_Id", "Achats par produit, famille, marque ; quel produit vient de quel fournisseur"),
-           ("dim_produit", "fait_stock_actuel", "Product_Id", "Stock disponible, ruptures, stock faible par produit, famille, marque"),
-           ("dim_client", "fait_ventes", "Company_Id", "Analyse des clients identifiés, clients actifs ; qui a acheté quoi et quand"),
-           ("dim_client", "fait_encaissements", "Company_Id", "Montant payé par chaque client"),
-           ("dim_fournisseur", "fait_achats", "Fournisseur_Id", "Achats par fournisseur"),
-           ("dim_fournisseur", "fait_decaissements", "Fournisseur_Id", "Montant payé à chaque fournisseur"),
-           ("dim_paiement", "fait_encaissements", "PaymentMode_Id", "Répartition des encaissements par moyen de paiement"),
-           ("dim_paiement", "fait_decaissements", "PaymentMode_Id", "Répartition des décaissements par moyen de paiement"),
+           ("dim_produit", "fait_ventes", "Produit_SK", "Ventes et marge par produit, famille, marque"),
+           ("dim_produit", "fait_achats", "Produit_SK", "Achats par produit, famille, marque ; quel produit vient de quel fournisseur"),
+           ("dim_produit", "fait_stock_actuel", "Produit_SK", "Stock disponible, ruptures, stock faible par produit, famille, marque"),
+           ("dim_client", "fait_ventes", "Client_SK", "Analyse des clients identifiés, clients actifs ; qui a acheté quoi et quand"),
+           ("dim_client", "fait_encaissements", "Client_SK", "Montant payé par chaque client"),
+           ("dim_fournisseur", "fait_achats", "Fournisseur_SK", "Achats par fournisseur"),
+           ("dim_fournisseur", "fait_decaissements", "Fournisseur_SK", "Montant payé à chaque fournisseur"),
+           ("dim_paiement", "fait_encaissements", "Paiement_SK", "Répartition des encaissements par moyen de paiement"),
+           ("dim_paiement", "fait_decaissements", "Paiement_SK", "Répartition des décaissements par moyen de paiement"),
            ("fait_ventes", "fait_encaissements", "Document_Id (dimension dégénérée)",
             "Quelle vente chaque encaissement règle ; montant réglé par vente"),
            ("fait_achats", "fait_decaissements", "Document_Id (dimension dégénérée)",
@@ -486,7 +499,7 @@ def build_html(S):
           "seul sens). Les deux tables de paiements ne sont jamais reliées entre elles : la trésorerie nette se calcule par "
           "mesure (encaissements − décaissements), à travers <code>dim_temps</code> et <code>dim_paiement</code>.</div>",
           "<h2>4. Dictionnaire des données</h2><p class='small'>Légende : <span class='pk'>PK</span> clé primaire · "
-          "<span class='fk'>FK</span> clé étrangère · <span class='ms'>mesure</span> valeur additive.</p>"]
+          "<span class='fk'>SK</span> clé de substitution (clé étrangère dans les tables de faits) · <b>clé métier</b> identifiant du logiciel · <span class='ms'>mesure</span> valeur additive.</p>"]
     notes = {
         "dim_client": "Types : " + ", ".join(f"{k} ({v})" for k, v in S["types"].most_common()) + ".",
         "dim_fournisseur": (f"{fr(S['dim_fournisseur'] - 1)} fournisseurs, dont {fr(S['inconnus_four'])} cités par des factures "
@@ -506,7 +519,7 @@ def build_html(S):
                               "Power BI à partir de <code>Quantity</code> et <code>QuantiteAlerte</code>, dans la même table (§9). "
                               "Seuils d'alerte les plus fréquents : " + ", ".join(f"{v} ({fr(n)} produits)" for v, n in S["alertes"]) + "."),
         "fait_encaissements": (f"Montant encaissé : {fr(S['encaisse'])} € sur {fr(S['n_cli'])} encaissements (dont "
-                               f"{fr(S['comptoir'])} au comptoir, Company_Id = 2). {fr(S['sans_mode'])} encaissements "
+                               f"{fr(S['comptoir'])} au comptoir, client de clé métier Company_Id = 2). {fr(S['sans_mode'])} encaissements "
                                f"({100 * S['sans_mode'] / max(S['n_cli'], 1):.0f} %) n'ont pas de moyen renseigné : le logiciel ne "
                                "le saisit que pendant les premières semaines (sept.-oct. 2024). Aucun montant négatif : l'argent "
                                "rendu lors d'un retour n'est pas un paiement dans la source."),
@@ -531,13 +544,13 @@ def build_html(S):
             ("Panier moyen", "CA HT / Nombre de ventes", "fait_ventes", "Synthèse, Commercial, Clients"),
             ("Taux de croissance du CA", "(CA_N − CA_N-1) / CA_N-1 × 100", "fait_ventes + dim_temps", "Synthèse"),
             ("Marge HT", "SUM(CA_HT) − SUM(Cout_HT), lignes sans coût exclues", "fait_ventes", "Commercial"),
-            ("Clients actifs", "DISTINCTCOUNT(Company_Id) avec au moins une vente, filtre EstClientIdentifie = true",
+            ("Clients actifs", "DISTINCTCOUNT(Client_SK) avec au moins une vente, filtre EstClientIdentifie = true",
              "fait_ventes + dim_client", "Clients"),
             ("Stock disponible", "SUM(Quantity)", "fait_stock_actuel", "Stock"),
-            ("Produits en rupture", "COUNT(Product_Id) où Quantity = 0", "fait_stock_actuel", "Stock"),
-            ("Produits en stock faible", "COUNT(Product_Id) où 0 < Quantity ≤ QuantiteAlerte", "fait_stock_actuel", "Stock"),
+            ("Produits en rupture", "COUNT(Produit_SK) où Quantity = 0", "fait_stock_actuel", "Stock"),
+            ("Produits en stock faible", "COUNT(Produit_SK) où 0 < Quantity ≤ QuantiteAlerte", "fait_stock_actuel", "Stock"),
             ("Montant encaissé", "SUM(Amount)", "fait_encaissements", "Paiements"),
-            ("Montant payé par client", "Montant encaissé par Company_Id, filtre EstClientIdentifie = true",
+            ("Montant payé par client", "Montant encaissé par Client_SK, filtre EstClientIdentifie = true",
              "fait_encaissements + dim_client", "Paiements, Clients"),
             ("Montant payé aux fournisseurs", "SUM(Amount)", "fait_decaissements + dim_fournisseur", "Paiements, Achats"),
             ("Nombre d'encaissements / de décaissements", "DISTINCTCOUNT(Payment_Id)", "fait_encaissements / fait_decaissements",
@@ -569,8 +582,11 @@ def build_html(S):
              ("fait_paiements séparé en fait_encaissements et fait_decaissements",
               "La table donne le sens du paiement : plus d'indicateur EstPaiementFournisseur ni de clé « sans objet » (-1) ; "
               "chaque table ne porte que la partie concernée (client ou fournisseur) et le document qu'elle règle."),
-             ("fait_encaissements : Company_Id ; fait_decaissements : Fournisseur_Id",
-              "Montant payé par chaque client (2 = paiements au comptoir) et à chaque fournisseur."),
+             ("fait_encaissements : Client_SK ; fait_decaissements : Fournisseur_SK",
+              "Montant payé par chaque client (y compris le client comptoir anonyme) et à chaque fournisseur."),
+             ("Clés de substitution : Produit_SK, Client_SK, Fournisseur_SK, Paiement_SK",
+              "Clés primaires des dimensions, portées en clés étrangères par les faits : le DWH ne dépend plus des identifiants "
+              "du logiciel, conservés comme clés métier."),
              ("Grain « 1 paiement imputé à 1 document », Payment_Id, Document_Id",
               "Le cahier demande quelle vente ou facture chaque paiement règle ; un paiement qui règle plusieurs documents "
               "est réparti sur plusieurs lignes, sans table pont."),
@@ -602,8 +618,8 @@ def build_html(S):
           "la répartition par moyen n'est représentative que sur cette période, réelle comme synthétique.</li>",
           "<li><b>Période synthétique :</b> pas d'avoir client ni fournisseur généré (types de documents rares) ; les retours "
           "clients y apparaissent seulement comme lignes négatives de tickets de caisse.</li>",
-          "<li><b>Stock :</b> une seule photo du stock, donc Product_Id suffit comme clé ; avec plusieurs photos, la clé "
-          "deviendrait (Product_Id, DateKey).</li>",
+          "<li><b>Stock :</b> une seule photo du stock, donc Produit_SK suffit comme clé ; avec plusieurs photos, la clé "
+          "deviendrait (Produit_SK, DateKey).</li>",
           "<li><b>Stock :</b> quantité du logiciel conservée, y compris les stocks négatifs (signalés par les contrôles qualité).</li>",
           "<li><b>Données synthétiques :</b> générées par simulation (hypothèses documentées dans la branche data-external) ; "
           "l'apport de la météo et des épidémies se mesure sur la période réelle uniquement.</li>",
@@ -618,7 +634,7 @@ def build_html(S):
 def build_sql():
     L = ["-- Schéma du Data Warehouse Health Retailers – version B (PostgreSQL)",
          "-- Généré par build_schema.py. 5 dimensions, 5 tables de faits.",
-         "-- Chargement : \\copy <table> FROM 'dataset/dwh/<table>.csv' WITH (FORMAT csv, HEADER true, NULL '')",
+         "-- Le schéma est le modèle cible : les CSV de dataset-dwh portent encore les identifiants du logiciel, les SK seront attribuées au chargement.",
          "-- Ordre : dimensions puis faits (même ordre que ci-dessous).", ""]
     for t in DIMS + FACTS:
         kind, grain, cols = META[t]
@@ -626,14 +642,13 @@ def build_sql():
         pk = [c for c, _, key, _, _ in cols if "PK" in key.split()]
         lines.append(f'    CONSTRAINT pk_{t} PRIMARY KEY ({", ".join(chr(34) + p + chr(34) for p in pk)})')
         for c, _, key, _, _ in cols:
+            if key == "BK":
+                lines.append(f'    CONSTRAINT uq_{t}_{c.lower()} UNIQUE ("{c}")')
             for part in key.split():
                 if part.startswith("FK:"):
                     tt, cc = part[3:].split(".")
                     lines.append(f'    CONSTRAINT fk_{t}_{c.lower()} FOREIGN KEY ("{c}") REFERENCES {tt} ("{cc}")')
         L += [f"-- {kind} : {grain}", f"CREATE TABLE {t} (", ",\n".join(lines), ");", ""]
-    L += ["-- Chargement des données (psql)"]
-    L += [f"\\copy {t} FROM 'dataset/dwh/{t}.csv' WITH (FORMAT csv, HEADER true, NULL '')"
-          for t in DIMS + FACTS]
     return "\n".join(L) + "\n"
 
 
@@ -677,9 +692,9 @@ def write_readme(S):
          "| `schema_dwh.pdf` / `schema_dwh.html` | Descriptif détaillé : modèle, tables, relations, dictionnaire de chaque colonne, "
          "mesures Power BI, différences avec la version A, règles de chargement |",
          "| `schema_dwh_diagramme.png` / `.svg` | Diagramme seul |",
-         "| `schema_dwh.sql` | `CREATE TABLE` PostgreSQL avec clés primaires et étrangères + commandes de chargement des CSV |", "",
+         "| `schema_dwh.sql` | `CREATE TABLE` PostgreSQL avec clés primaires, clés étrangères et clés métier |", "",
          "Modèle : 5 tables de faits (ventes, encaissements, achats, décaissements, stock actuel) partagent 5 dimensions "
-         "(temps, produit, client, fournisseur, paiement). "
+         "(temps, produit, client, fournisseur, paiement), reliées par des clés de substitution (SK). Le schéma est le modèle cible : les CSV de dataset-dwh portent encore les identifiants du logiciel, les SK seront attribuées au chargement. "
          f"Période : {S['dates'][0]} → {S['dates'][1]} (réel jusqu'au 2025-04-30, synthétique ensuite).", "",
          "Retour à la vue d'ensemble : branche [`main`](../../tree/main).", ""]
     (OUT / "README.md").write_text("\n".join(L), encoding="utf-8", newline="\n")
